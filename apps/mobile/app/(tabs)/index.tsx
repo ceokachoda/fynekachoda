@@ -2,6 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Bell, QrCode, TrendingUp, Sigma, FlaskConical, FileText, Download, CircleDashed, User } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FyneStudyLogo } from '../../components/FyneStudyLogo';
 
 export default function HomeScreen() {
   return (
@@ -17,7 +18,7 @@ export default function HomeScreen() {
             source={{ uri: 'https://i.pravatar.cc/150?img=11' }} 
             className="w-10 h-10 rounded-full bg-slate-200" 
           />
-          <Text className="text-xl font-bold italic text-blue-900">Coaching OS</Text>
+          <FyneStudyLogo variant="header" />
           <TouchableOpacity className="w-10 h-10 items-end justify-center">
             <Bell size={24} color="#1e3a8a" />
           </TouchableOpacity>

@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { router } from 'expo-router';
+import { FyneStudyLogo } from '../../components/FyneStudyLogo';
 
 export default function ClassesScreen() {
   const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'recorded'>('upcoming');
@@ -16,7 +17,7 @@ export default function ClassesScreen() {
           source={{ uri: 'https://i.pravatar.cc/150?img=11' }} 
           className="w-10 h-10 rounded-full bg-slate-200" 
         />
-        <Text className="text-xl font-bold italic text-blue-900">Coaching OS</Text>
+        <FyneStudyLogo variant="header" />
         <TouchableOpacity className="w-10 h-10 items-end justify-center">
           <Bell size={24} color="#1e3a8a" />
         </TouchableOpacity>

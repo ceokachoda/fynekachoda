@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { ShieldCheck } from 'lucide-react-native';
+import { FyneStudyLogo } from '../components/FyneStudyLogo';
 
 export default function VerifyScreen() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function VerifyScreen() {
               source={{ uri: 'https://i.pravatar.cc/150?img=11' }} 
               className="w-10 h-10 rounded-full bg-slate-200" 
             />
-            <Text className="text-xl font-bold italic text-blue-900">Coaching OS</Text>
+            <FyneStudyLogo variant="header" />
             <View className="w-10 h-10" />
           </View>
 
