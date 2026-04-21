@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+.next/
+out/
+build/
+
+# expo
+.expo/
+web-build/
+expo-env.d.ts
+
+# local env
+.env
+.env.local
+.env.*.local
+
+# ide
+.vscode/
+.idea/
+.claude/
+.antigravity/
+
+# misc
+*.log
+.DS_Store
