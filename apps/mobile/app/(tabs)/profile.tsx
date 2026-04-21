@@ -8,7 +8,8 @@ export default function ProfileScreen() {
     <SafeAreaView className="flex-1 bg-slate-50" edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
-        <View className="w-10 h-10" /> {/* Spacer for centering */}
+        {/* Spacer for centering */}
+        <View className="w-10 h-10" />
         <Text className="text-xl font-bold italic text-blue-900">My Profile</Text>
         <TouchableOpacity className="w-10 h-10 items-end justify-center">
           <Settings size={24} color="#1e3a8a" />

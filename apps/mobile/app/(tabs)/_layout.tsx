@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Home, Video, BookOpen, QrCode, User, Compass, Menu as MenuIcon } from 'lucide-react-native';
+import { Home, Video, BookOpen, QrCode, User, Menu as MenuIcon } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
