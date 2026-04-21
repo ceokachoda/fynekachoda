@@ -3,13 +3,13 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import { Sigma, FlaskConical, Monitor, Beaker } from 'lucide-react-native';
+import { Target, Rocket, Activity, BookOpen } from 'lucide-react-native';
 
 const COURSES = [
-  { id: '1', title: 'Mathematics', description: 'Algebra, Calculus, and more', Icon: Sigma, color: '#eab308', bg: 'bg-yellow-50' },
-  { id: '2', title: 'Physics', description: 'Mechanics, Thermodynamics, and Quantum', Icon: FlaskConical, color: '#22c55e', bg: 'bg-green-50' },
-  { id: '3', title: 'Computer Science', description: 'Programming, Data Structures', Icon: Monitor, color: '#3b82f6', bg: 'bg-blue-50' },
-  { id: '4', title: 'Chemistry', description: 'Organic, Inorganic, and Physical', Icon: Beaker, color: '#ef4444', bg: 'bg-red-50' },
+  { id: '1', title: 'JEE Main', description: 'Joint Entrance Examination - Main', Icon: Target, color: '#3b82f6', bg: 'bg-blue-50' },
+  { id: '2', title: 'JEE Advanced', description: 'IIT Joint Entrance Examination', Icon: Rocket, color: '#8b5cf6', bg: 'bg-violet-50' },
+  { id: '3', title: 'NEET UG', description: 'National Eligibility cum Entrance Test', Icon: Activity, color: '#22c55e', bg: 'bg-green-50' },
+  { id: '4', title: 'CUET UG', description: 'Common University Entrance Test', Icon: BookOpen, color: '#f97316', bg: 'bg-orange-50' },
 ];
 
 export default function SelectCourseScreen() {
