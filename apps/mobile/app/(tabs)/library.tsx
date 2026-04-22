@@ -1,10 +1,18 @@
 import { View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { useState, useEffect } from 'react';
 import { Bell, Search, Play, Download, ClipboardList, ArrowRight, PlayCircle, Video, FileText, CheckSquare } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FyneStudyLogo } from '../../components/FyneStudyLogo';
+import { Skeleton } from '../../components/ui/skeleton';
 
 export default function LibraryScreen() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={['top']}>
       {/* Header */}
@@ -71,155 +79,182 @@ export default function LibraryScreen() {
         </View>
 
         {/* Content Cards */}
-        {/* Card 1: JEE Advanced - Recorded Class */}
-        <View className="bg-white rounded-[28px] mx-6 mb-6 p-4 shadow-sm shadow-slate-200/50 border border-slate-100">
-          <View className="w-full h-40 rounded-2xl overflow-hidden mb-4 relative">
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1632559646095-fc7c08287e07?q=80&w=600&auto=format&fit=crop' }} 
-              className="w-full h-full"
-              contentFit="cover"
-            />
-            <View className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg flex-row items-center">
-              <Video size={12} color="#eab308" style={{ marginRight: 6 }} />
-              <Text className="text-slate-900 text-xs font-bold">Recorded</Text>
+        {isLoading ? (
+          <View>
+            {[1, 2, 3].map(i => (
+              <View key={i} className="bg-white rounded-[28px] mx-6 mb-6 p-4 shadow-sm shadow-slate-200/50 border border-slate-100">
+                <Skeleton width="100%" height={160} borderRadius={16} className="mb-4" />
+                <View className="flex-row items-center mb-2">
+                  <Skeleton width={80} height={12} borderRadius={4} />
+                  <Skeleton width={12} height={12} borderRadius={6} className="mx-2" />
+                  <Skeleton width={80} height={12} borderRadius={4} />
+                </View>
+                <Skeleton width="90%" height={24} borderRadius={6} className="mb-2" />
+                <Skeleton width="100%" height={16} borderRadius={4} className="mb-1" />
+                <Skeleton width="80%" height={16} borderRadius={4} className="mb-4" />
+                <View className="flex-row items-center justify-between mt-2 pt-4 border-t border-slate-50">
+                  <View className="flex-row items-center">
+                    <Skeleton width={28} height={28} borderRadius={14} className="mr-2" />
+                    <Skeleton width={80} height={16} borderRadius={4} />
+                  </View>
+                  <Skeleton width={32} height={32} borderRadius={16} />
+                </View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View>
+            {/* Card 1: JEE Advanced - Recorded Class */}
+            <View className="bg-white rounded-[28px] mx-6 mb-6 p-4 shadow-sm shadow-slate-200/50 border border-slate-100">
+              <View className="w-full h-40 rounded-2xl overflow-hidden mb-4 relative">
+                <Image 
+                  source={{ uri: 'https://images.unsplash.com/photo-1632559646095-fc7c08287e07?q=80&w=600&auto=format&fit=crop' }} 
+                  className="w-full h-full"
+                  contentFit="cover"
+                />
+                <View className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg flex-row items-center">
+                  <Video size={12} color="#eab308" style={{ marginRight: 6 }} />
+                  <Text className="text-slate-900 text-xs font-bold">Recorded</Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center mb-2">
+                <Text className="text-yellow-500 text-[10px] font-bold tracking-widest uppercase mr-2">JEE ADVANCED</Text>
+                <Text className="text-slate-300 text-[10px]">•</Text>
+                <Text className="text-slate-500 text-[10px] font-medium ml-2">Oct 24, 2023</Text>
+              </View>
+
+              <Text className="text-xl font-bold text-blue-900 mb-2 leading-tight">Rotational Mechanics: Rolling Friction</Text>
+              
+              <Text className="text-sm text-slate-500 mb-4 leading-5">
+                A deep dive into advanced problem-solving techniques for rolling motion and friction on inclined planes.
+              </Text>
+
+              <View className="flex-row items-center justify-between mt-2">
+                <View className="flex-row items-center">
+                  <Image 
+                    source={{ uri: 'https://i.pravatar.cc/150?img=68' }} 
+                    className="w-7 h-7 rounded-full bg-slate-200 mr-2" 
+                  />
+                  <Text className="text-slate-700 text-xs font-medium">Dr. H.C. Verma</Text>
+                </View>
+                <TouchableOpacity className="w-8 h-8 bg-blue-50 rounded-full items-center justify-center">
+                  <Play size={14} color="#2563eb" style={{ marginLeft: 2 }} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Card 2: NEET UG - PDF Notes */}
+            <View className="bg-white rounded-[28px] mx-6 mb-6 p-4 shadow-sm shadow-slate-200/50 border border-slate-100">
+              <View className="w-full h-40 bg-slate-900 rounded-2xl overflow-hidden mb-4 relative items-center justify-center">
+                <Image 
+                  source={{ uri: 'https://images.unsplash.com/photo-1603126857599-f6e15782ffa5?q=80&w=600&auto=format&fit=crop' }} 
+                  className="w-full h-full opacity-60"
+                  contentFit="cover"
+                />
+                <View className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg flex-row items-center">
+                  <FileText size={12} color="#10b981" style={{ marginRight: 6 }} />
+                  <Text className="text-slate-900 text-xs font-bold">PDF Notes</Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center mb-2">
+                <Text className="text-slate-500 text-[10px] font-bold tracking-widest uppercase mr-2">NEET UG</Text>
+                <Text className="text-slate-300 text-[10px]">•</Text>
+                <Text className="text-slate-500 text-[10px] font-medium ml-2">Oct 20, 2023</Text>
+              </View>
+
+              <Text className="text-xl font-bold text-blue-900 mb-2 leading-tight">Organic Chemistry: Reaction Mechanisms</Text>
+              
+              <Text className="text-sm text-slate-500 mb-4 leading-5">
+                Comprehensive slides detailing the electrophilic and nucleophilic substitution reactions.
+              </Text>
+
+              <View className="flex-row items-center justify-between mt-2 pt-4 border-t border-slate-50">
+                <Text className="text-slate-400 text-xs font-medium">4.2 MB</Text>
+                <TouchableOpacity className="flex-row items-center">
+                  <Text className="text-yellow-500 text-sm font-bold mr-1">Download</Text>
+                  <Download size={14} color="#eab308" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Card 3: JEE Mains - Assignment */}
+            <View className="bg-white rounded-[28px] mx-6 mb-6 p-4 shadow-sm shadow-slate-200/50 border border-slate-100">
+              <View className="w-full h-40 bg-slate-100 rounded-2xl mb-4 relative items-center justify-center">
+                <View className="w-16 h-16 bg-blue-500 rounded-2xl items-center justify-center shadow-sm shadow-blue-200">
+                  <ClipboardList size={32} color="white" />
+                </View>
+                <View className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg flex-row items-center">
+                  <CheckSquare size={12} color="#ef4444" style={{ marginRight: 6 }} />
+                  <Text className="text-slate-900 text-xs font-bold">Assignment</Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center mb-2">
+                <Text className="text-red-500 text-[10px] font-bold tracking-widest uppercase mr-2">Due in 3 days</Text>
+                <Text className="text-slate-300 text-[10px]">•</Text>
+                <Text className="text-slate-500 text-[10px] font-medium ml-2">Oct 18, 2023</Text>
+              </View>
+
+              <Text className="text-xl font-bold text-blue-900 mb-2 leading-tight">Calculus Weekly Practice Sheet</Text>
+              
+              <Text className="text-sm text-slate-500 mb-4 leading-5">
+                Complete the 50 objective questions focusing on Definite Integration properties from the JEE syllabus.
+              </Text>
+
+              <View className="flex-row items-center justify-between mt-2 pt-4 border-t border-slate-50">
+                <View className="bg-slate-50 px-2.5 py-1 rounded-md">
+                  <Text className="text-slate-600 text-xs font-bold">50 Qs</Text>
+                </View>
+                <TouchableOpacity className="flex-row items-center">
+                  <Text className="text-yellow-500 text-sm font-bold mr-1">Open</Text>
+                  <ArrowRight size={14} color="#eab308" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Card 4: CBSE Boards - Recorded Class */}
+            <View className="bg-white rounded-[28px] mx-6 mb-8 p-4 shadow-sm shadow-slate-200/50 border border-slate-100">
+              <View className="w-full h-40 rounded-2xl overflow-hidden mb-4 relative">
+                <Image 
+                  source={{ uri: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=600&auto=format&fit=crop' }} 
+                  className="w-full h-full"
+                  contentFit="cover"
+                />
+                {/* Progress Bar overlay */}
+                <View className="absolute bottom-0 left-0 right-0 h-1 bg-white/30">
+                  <View className="h-full bg-yellow-400" style={{ width: '65%' }} />
+                </View>
+                
+                <View className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg flex-row items-center">
+                  <Video size={12} color="#eab308" style={{ marginRight: 6 }} />
+                  <Text className="text-slate-900 text-xs font-bold">Recorded</Text>
+                </View>
+              </View>
+
+              <View className="flex-row items-center mb-2">
+                <Text className="text-slate-500 text-[10px] font-bold tracking-widest uppercase mr-2">CBSE 12TH</Text>
+                <Text className="text-slate-300 text-[10px]">•</Text>
+                <Text className="text-slate-500 text-[10px] font-medium ml-2">Oct 10, 2023</Text>
+              </View>
+
+              <Text className="text-xl font-bold text-blue-900 mb-2 leading-tight">Human Reproduction: Part 2</Text>
+              
+              <Text className="text-sm text-slate-500 mb-4 leading-5">
+                Understanding the menstrual cycle and fertilization processes in detail as per NCERT guidelines.
+              </Text>
+
+              <View className="flex-row items-center justify-between mt-2 pt-4 border-t border-slate-50">
+                <Text className="text-slate-400 text-xs font-medium">45 mins left</Text>
+                <TouchableOpacity className="flex-row items-center">
+                  <Text className="text-yellow-500 text-sm font-bold mr-1">Resume</Text>
+                  <PlayCircle size={14} color="#eab308" />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-
-          <View className="flex-row items-center mb-2">
-            <Text className="text-yellow-500 text-[10px] font-bold tracking-widest uppercase mr-2">JEE ADVANCED</Text>
-            <Text className="text-slate-300 text-[10px]">•</Text>
-            <Text className="text-slate-500 text-[10px] font-medium ml-2">Oct 24, 2023</Text>
-          </View>
-
-          <Text className="text-xl font-bold text-blue-900 mb-2 leading-tight">Rotational Mechanics: Rolling Friction</Text>
-          
-          <Text className="text-sm text-slate-500 mb-4 leading-5">
-            A deep dive into advanced problem-solving techniques for rolling motion and friction on inclined planes.
-          </Text>
-
-          <View className="flex-row items-center justify-between mt-2">
-            <View className="flex-row items-center">
-              <Image 
-                source={{ uri: 'https://i.pravatar.cc/150?img=68' }} 
-                className="w-7 h-7 rounded-full bg-slate-200 mr-2" 
-              />
-              <Text className="text-slate-700 text-xs font-medium">Dr. H.C. Verma</Text>
-            </View>
-            <TouchableOpacity className="w-8 h-8 bg-blue-50 rounded-full items-center justify-center">
-              <Play size={14} color="#2563eb" style={{ marginLeft: 2 }} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Card 2: NEET UG - PDF Notes */}
-        <View className="bg-white rounded-[28px] mx-6 mb-6 p-4 shadow-sm shadow-slate-200/50 border border-slate-100">
-          <View className="w-full h-40 bg-slate-900 rounded-2xl overflow-hidden mb-4 relative items-center justify-center">
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1603126857599-f6e15782ffa5?q=80&w=600&auto=format&fit=crop' }} 
-              className="w-full h-full opacity-60"
-              contentFit="cover"
-            />
-            <View className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg flex-row items-center">
-              <FileText size={12} color="#10b981" style={{ marginRight: 6 }} />
-              <Text className="text-slate-900 text-xs font-bold">PDF Notes</Text>
-            </View>
-          </View>
-
-          <View className="flex-row items-center mb-2">
-            <Text className="text-slate-500 text-[10px] font-bold tracking-widest uppercase mr-2">NEET UG</Text>
-            <Text className="text-slate-300 text-[10px]">•</Text>
-            <Text className="text-slate-500 text-[10px] font-medium ml-2">Oct 20, 2023</Text>
-          </View>
-
-          <Text className="text-xl font-bold text-blue-900 mb-2 leading-tight">Organic Chemistry: Reaction Mechanisms</Text>
-          
-          <Text className="text-sm text-slate-500 mb-4 leading-5">
-            Comprehensive slides detailing the electrophilic and nucleophilic substitution reactions.
-          </Text>
-
-          <View className="flex-row items-center justify-between mt-2 pt-4 border-t border-slate-50">
-            <Text className="text-slate-400 text-xs font-medium">4.2 MB</Text>
-            <TouchableOpacity className="flex-row items-center">
-              <Text className="text-yellow-500 text-sm font-bold mr-1">Download</Text>
-              <Download size={14} color="#eab308" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Card 3: JEE Mains - Assignment */}
-        <View className="bg-white rounded-[28px] mx-6 mb-6 p-4 shadow-sm shadow-slate-200/50 border border-slate-100">
-          <View className="w-full h-40 bg-slate-100 rounded-2xl mb-4 relative items-center justify-center">
-            <View className="w-16 h-16 bg-blue-500 rounded-2xl items-center justify-center shadow-sm shadow-blue-200">
-              <ClipboardList size={32} color="white" />
-            </View>
-            <View className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg flex-row items-center">
-              <CheckSquare size={12} color="#ef4444" style={{ marginRight: 6 }} />
-              <Text className="text-slate-900 text-xs font-bold">Assignment</Text>
-            </View>
-          </View>
-
-          <View className="flex-row items-center mb-2">
-            <Text className="text-red-500 text-[10px] font-bold tracking-widest uppercase mr-2">Due in 3 days</Text>
-            <Text className="text-slate-300 text-[10px]">•</Text>
-            <Text className="text-slate-500 text-[10px] font-medium ml-2">Oct 18, 2023</Text>
-          </View>
-
-          <Text className="text-xl font-bold text-blue-900 mb-2 leading-tight">Calculus Weekly Practice Sheet</Text>
-          
-          <Text className="text-sm text-slate-500 mb-4 leading-5">
-            Complete the 50 objective questions focusing on Definite Integration properties from the JEE syllabus.
-          </Text>
-
-          <View className="flex-row items-center justify-between mt-2 pt-4 border-t border-slate-50">
-            <View className="bg-slate-50 px-2.5 py-1 rounded-md">
-              <Text className="text-slate-600 text-xs font-bold">50 Qs</Text>
-            </View>
-            <TouchableOpacity className="flex-row items-center">
-              <Text className="text-yellow-500 text-sm font-bold mr-1">Open</Text>
-              <ArrowRight size={14} color="#eab308" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Card 4: CBSE Boards - Recorded Class */}
-        <View className="bg-white rounded-[28px] mx-6 mb-8 p-4 shadow-sm shadow-slate-200/50 border border-slate-100">
-          <View className="w-full h-40 rounded-2xl overflow-hidden mb-4 relative">
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=600&auto=format&fit=crop' }} 
-              className="w-full h-full"
-              contentFit="cover"
-            />
-            {/* Progress Bar overlay */}
-            <View className="absolute bottom-0 left-0 right-0 h-1 bg-white/30">
-              <View className="h-full bg-yellow-400" style={{ width: '65%' }} />
-            </View>
-            
-            <View className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg flex-row items-center">
-              <Video size={12} color="#eab308" style={{ marginRight: 6 }} />
-              <Text className="text-slate-900 text-xs font-bold">Recorded</Text>
-            </View>
-          </View>
-
-          <View className="flex-row items-center mb-2">
-            <Text className="text-slate-500 text-[10px] font-bold tracking-widest uppercase mr-2">CBSE 12TH</Text>
-            <Text className="text-slate-300 text-[10px]">•</Text>
-            <Text className="text-slate-500 text-[10px] font-medium ml-2">Oct 10, 2023</Text>
-          </View>
-
-          <Text className="text-xl font-bold text-blue-900 mb-2 leading-tight">Human Reproduction: Part 2</Text>
-          
-          <Text className="text-sm text-slate-500 mb-4 leading-5">
-            Understanding the menstrual cycle and fertilization processes in detail as per NCERT guidelines.
-          </Text>
-
-          <View className="flex-row items-center justify-between mt-2 pt-4 border-t border-slate-50">
-            <Text className="text-slate-400 text-xs font-medium">45 mins left</Text>
-            <TouchableOpacity className="flex-row items-center">
-              <Text className="text-yellow-500 text-sm font-bold mr-1">Resume</Text>
-              <PlayCircle size={14} color="#eab308" />
-            </TouchableOpacity>
-          </View>
-        </View>
+        )}
 
         {/* Load More Button */}
         <View className="px-6 mb-8">
