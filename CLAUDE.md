@@ -3,9 +3,9 @@
 > Hybrid coaching institute OS for JEE/NEET/CUET prep. One mobile app (students + teachers, role-gated). One web admin panel. One Supabase backend. Live classes via wrapped YouTube. Attendance via rotating QR. Practice quizzes + graded exams. Weekly parents' WhatsApp PDF.
 
 ## Status
-- Phase 1 (UI scaffolding) ✅ done — `apps/mobile/` has all student screens.
-- Phase 2 (backend wiring) starting. **The existing OTP login + course selection screens are dead code** (see `D-142`, `D-143` in `docs/decisions.md`) — they will be replaced with email+password and admin-issued batch assignment.
-- Phases not yet written. Will be done after docs review.
+- **Phase 0 (UI scaffolding) ✅ done** — `apps/mobile/` had all student screens before the new phased plan started. These are kept until Phase 2 deletes the dead ones (OTP, verify, select-course).
+- **Phase 1 (Foundation & Infrastructure) ✅ done — 2026-05-14** (PR #1, commit `ef8c0cf` merged to main as `bea08b2`). pnpm monorepo, Supabase dev project (`orqwyazvcthgxoadfxfv`), `health` edge fn, mobile lib/ wired, Vercel admin (`https://admin-kohl-sigma.vercel.app/`), CI workflows, EAS project. Full ledger in `docs/phases/phase-1.md §13`. Three ACs deferred by explicit user decision: Sentry (#7), PostHog (#8), Android APK install (#15) — Sentry/PostHog deferred to a future "observability pass" phase; Android install covered by iOS Expo Go.
+- **Phase 2 (Auth & Onboarding) — next.** Picks up with `docs/phases/phase-2.md`. Deletes the existing OTP/verify/select-course screens per `decisions.md D-142, D-143`, builds the email+password login + forced password change + role gate against the live Supabase dev project. Renames `app/(tabs)` → `app/(student)`.
 
 ## Authoritative docs (read these first when working)
 | Question | Open |

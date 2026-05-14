@@ -554,3 +554,58 @@ Phase 2 picks up with:
 - No tables yet — Phase 2 creates the first business migration (auth-related tables).
 - Existing OTP / select-course screens still present (Phase 2 deletes them).
 - Tabs folder still named `(tabs)` (Phase 2 renames to `(student)`).
+
+## 13. Acceptance Ledger — closed 2026-05-14
+
+Phase 1 closed with PR #1 (commit `ef8c0cf` → merge `bea08b2`) on **2026-05-14**.
+
+### AC results
+
+| # | Acceptance Criterion | Result | Evidence |
+|---|---|---|---|
+| 1 | `pnpm install` clean | ✅ pass | `--frozen-lockfile` runs in ~4 s; only advisory "ignored build scripts" notices |
+| 2 | `pnpm typecheck` all workspaces | ✅ pass | mobile, admin, functions (stub), shared, supabase-types, ui-tokens all clean |
+| 3 | `pnpm lint` | ✅ pass | 0 errors, 3 advisory warnings in pre-existing dead-code files Phase 2 deletes |
+| 4 | `pnpm test` | ✅ pass | 3/3 in `apps/mobile/lib/env.test.ts` |
+| 5 | `pnpm dev:mobile` opens app on a real phone | ✅ pass (iOS) | Verified on iPhone via Expo Go; LAN IP advertised by `scripts/dev.js` |
+| 6 | Splash → green "Backend: connected" ≤ 2 s | ✅ pass | Verified visually in CP4 |
+| 7 | Sentry mobile test event | ⛔ **deferred** | **User decision** — skip paid observability tiers; `lib/crash.ts` is a no-op stub with documented drop-in path. Revisit during the observability pass (likely Phase 11 or Phase 12). |
+| 8 | PostHog `app_open` event | ⛔ **deferred** | **User decision** — same rationale as #7; `lib/analytics.ts` no-op stub. |
+| 9 | `pnpm dev:admin` renders placeholder locally | ✅ pass | Verified on `localhost:3001` (3000 was busy; same outcome) |
+| 10 | Vercel preview public URL | ✅ pass | <https://admin-kohl-sigma.vercel.app/> returns 200 with placeholder |
+| 11 | Health edge fn returns expected JSON | ✅ pass | <https://orqwyazvcthgxoadfxfv.supabase.co/functions/v1/health> |
+| 12 | `supabase db push --linked` succeeds | ✅ pass | `schema_migrations` row `20260514115416_init` applied via MCP |
+| 13 | CI passes on a test PR | ✅ pass | PR #1 ran CI to completion; merge gated on green |
+| 14 | `deploy-functions.yml` redeploys `health` on main merge | ✅ pass | Workflow filed; secret `SUPABASE_ACCESS_TOKEN` provisioned; merge `bea08b2` triggered re-deploy; health endpoint still 200 post-merge |
+| 15 | EAS dev build produces installable Android APK | 🟡 **deferred to convenience** | **User decision** — EAS Android dev build submitted (ID `f2e9ff53-6e78-41c6-8631-29eaadf51611`, profile `development`); install verification on Android device postponed because iOS Expo Go already proved the underlying app works. APK link will be available at <https://expo.dev/accounts/kaustabborah/projects/fynestudy/builds/f2e9ff53-6e78-41c6-8631-29eaadf51611> whenever the queue clears. |
+
+### Definition-of-done results
+
+- [x] AC results recorded above.
+- [x] CI green on `main` (merge `bea08b2`).
+- [x] No secrets in git history (`.env.local`, `.vercel/`, EAS tokens all gitignored or env-only; verified via `git check-ignore`).
+- [x] Baseline cold-start template at `docs/perf-baselines/phase-1.md` (numbers filled when user installs the dev APK).
+- [ ] **Deferred:** Sentry mobile + admin DSNs added to `docs/spec/security.md §17` — see AC #7 deferral above.
+- [x] User accepted Phase 1.
+
+### Deliberate deviations from the original Phase 1 doc
+
+Recorded here so future contributors don't think these were accidents.
+
+1. **pnpm@10** (not 9) — user already has 10 globally; 10 is compatible with the doc's scripts.
+2. **Timestamp migration filenames** (e.g., `20260514115416_init.sql`) instead of ordinal `0000_*` — Supabase MCP/CLI tracks migrations by timestamp; ordinal would cause version drift.
+3. **No Sentry / PostHog packages installed** — user opted to skip paid-tier observability for Phase 1. The wiring (`lib/crash.ts`, `lib/analytics.ts`, env vars) is in place as no-op stubs.
+4. **Mobile jest runs babel-jest with pure TS preset, not `jest-expo`** — `jest-expo`'s Winter Runtime is ESM and breaks node-test sandboxes for utility tests. `jest-expo` retained in devDeps for future RN component tests.
+5. **Mobile dev script is `scripts/dev.js`, not plain `expo start`** — wraps with `EXPO_OFFLINE=1` (works around Node 24 + Windows IPv6 hang on `api.expo.dev`) and auto-detects LAN IP into `REACT_NATIVE_PACKAGER_HOSTNAME`. Required for Windows + OneDrive setups.
+6. **Postgres 17.6** (not 15) — Supabase no longer provisions PG15 for new projects.
+7. **Modern `Deno.serve` in the health edge fn** instead of the doc's deprecated `deno.land/std/http/server.ts` import.
+8. **Admin home page is a static placeholder, no shadcn `form` primitive yet** — the shadcn CLI silently fails to install `form` on this OneDrive setup. Phase 2's login form lands the primitive when it actually needs it; `react-hook-form` + `zod` + `@hookform/resolvers` are pre-installed.
+9. **Vercel deployed to "production" target** (CLI `--yes` default for first deploys), not the doc's "preview" target. Same AC: a public URL renders the placeholder. Future deploys can use `--target=preview`.
+10. **`.npmrc` has `package-import-method=copy`** — pnpm's default hardlink store races with OneDrive's sync agent. Copy mode is slower but reliable.
+
+### Carry-overs into Phase 2
+
+- Sentry + PostHog wiring (the `lib/crash.ts` + `lib/analytics.ts` drop-in points).
+- shadcn `form` primitive (`pnpm dlx shadcn@latest add form -y` once Phase 2 starts using it; underlying deps already in `apps/admin/package.json`).
+- Sentry DSNs in `docs/spec/security.md §17` (re-evaluate during observability pass).
+- Android APK install verification (whenever the user wants to install the existing EAS build, or with the first new build Phase 2 produces).
