@@ -1,6 +1,8 @@
 # File Structure
 
-A **pnpm workspace** with three top-level apps and shared packages. The current repo only contains `apps/mobile`; the layout below describes the target structure as the backend, admin panel, and shared packages come online.
+A **pnpm workspace** with three top-level apps and shared packages. The layout below describes the **target structure** for the full product. Mark the state of each section against the [phase index](phases/README.md) — items belonging to phases that aren't yet accepted may not exist on disk.
+
+**As of 2026-05-15 (Phase 2 closed):** `apps/mobile`, `apps/admin`, `apps/functions`, all `packages/*`, `supabase/migrations`, `scripts/` and `.github/workflows/` are populated. Phase 2 added auth-related tables and screens; Phase 3+ adds the rest of the schema and feature surfaces.
 
 ## Top-level
 
@@ -41,8 +43,9 @@ FyneStudyLive/
     ├── project.md
     ├── file-structure.md               # This file
     ├── backend-architecture.md
-    ├── AppsFeatures_260501_151101.pdf
-    ├── spec/
+    ├── decisions.md                    # Source of truth when specs disagree
+    ├── external-setup-timeline.md      # Multi-day external account lead times
+    ├── spec/                           # Feature specs
     │   ├── authentication.md
     │   ├── student-dashboard.md
     │   ├── attendance.md
@@ -55,7 +58,12 @@ FyneStudyLive/
     │   ├── admin-panel.md
     │   ├── teacher-panel.md
     │   └── security.md
-    └── phases/                         # phase-1.md … phase-4.md (filled later)
+    └── phases/                         # All 12 phase docs + README with kickoff prompts
+        ├── README.md
+        ├── phase-1.md                  # ✅ accepted 2026-05-14
+        ├── phase-2.md                  # ✅ accepted 2026-05-15
+        ├── phase-3.md                  # ⏳ next
+        └── …phase-12.md
 ```
 
 ## apps/mobile

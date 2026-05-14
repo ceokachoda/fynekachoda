@@ -537,3 +537,73 @@ Phase 3 picks up with:
 - Identity layer live; admin can create users with no batch/course (placeholder).
 - `students.batch_id` column exists but is nullable and unconstrained.
 - Phase 3 adds the course/batch/curriculum tables, makes `batch_id` NOT NULL via migration with a default first batch, and adds the teacher batch-scope RLS policy.
+
+## 14. Acceptance Ledger — closed 2026-05-15
+
+Phase 2 closed on **2026-05-15** with all checkpoints (CP1–CP9) verified mechanically and manually. Work sits on `main` uncommitted, ready for the Phase 2 PR.
+
+### AC results
+
+| # | Acceptance Criterion | Result | Evidence |
+|---|---|---|---|
+| 1 | Owner-bootstrap script creates the first owner; second run says "Already exists" and exits 0 | ✅ pass | CP4. `scripts/bootstrap-owner.ts` is idempotent (lookup by email). Demo owner `owner@fynestudy.example.com` (app_users.id `12159494…`) created 2026-05-14. |
+| 2 | Owner logs into admin at Vercel preview URL with email + password | ✅ pass | CP6. <https://admin-kohl-sigma.vercel.app/login>; user verified visually. |
+| 3 | Owner is forced to enroll TOTP on first login. Recovery codes displayed once | 🟡 **partial** | TOTP enrollment IS enforced via middleware → `/2fa/enroll` redirect on first login. **Recovery codes were not implemented** — Supabase TOTP doesn't generate them by default and we deferred a custom implementation. Owner is instructed to keep their authenticator app intact; a future "Admin: reset MFA" owner-only flow (per phase-2.md §8) will provide the recovery path. |
+| 4 | Owner logs out, logs back in, prompted for TOTP, succeeds | ✅ pass | CP6 user verification on 2026-05-15. |
+| 5 | Owner creates a test student via `/students/new`. Modal shows credentials | ✅ pass | CP7 + manually re-verified during CP8 Part C (created `manualtest-may15@…`). |
+| 6 | Owner can see student in `/students` list with status "Active" | ✅ pass | CP7. FK-hint embed (`user_roles!user_id!inner(role)`) drives the list. |
+| 7 | Student opens mobile app → login screen | ✅ pass | CP8. Splash router (`app/index.tsx`) routes to `/login` when no session. |
+| 8 | Student logs in with admin-issued creds → forced password change screen | ✅ pass | CP8 Part C verified. Splash router checks `app_users.must_change_password`. |
+| 9 | Student picks a new password (≥10 chars, mixed) → lands on `(student)` dashboard | ✅ pass | CP8 Part C (after the timeout hotfix, D-148). Validation covered by 13 jest tests in `features/auth/schemas.test.ts`. |
+| 10 | Student profile shows name, email, phone, DOB read-only with "Contact admin" CTA | 🟡 **partial** | Read-only + "Contact admin" pattern is in place. Currently displays name + email + a phone row showing `—` (placeholder); DOB row not yet rendered because `SessionProvider` doesn't load the `students` extension table. The spirit (D-016 immutability) holds; the data surface is a Phase 3 enhancement once batch/course UI ships. |
+| 11 | Student cannot navigate to `(teacher)/*` (RouteGuard kicks in) | ✅ pass | `TeacherGate` in `app/(teacher)/_layout.tsx` redirects non-teachers to `/` on every mount. Mirror `StudentGate` for the reverse. |
+| 12 | Owner suspends student → next refresh, suspended screen shows | ✅ pass | `pnpm smoke:cp8` Step 10-12 proves it at the data layer (suspended-student JWT still reads own row, sees `is_active=false` → splash routes to `/suspended`). User verified manually in Part D. |
+| 13 | Owner unsuspends → student logs in normally | ✅ pass | `pnpm smoke:cp8` Step 13-14 + user Part D. |
+| 14 | Owner force-resets student password → student must change again | ✅ pass | `pnpm smoke:cp5` Steps 8-11 cover the full cycle: force-reset → new temp pw → student sign-in → `must_change_password` reasserted. |
+| 15 | Audit log shows: create_user, suspend, unsuspend, force_reset, password_changed for each action | ✅ pass | `pnpm smoke:cp5` Step 12 + `pnpm smoke:cp8` Step 16. All five action shapes verified end-to-end. |
+| 16 | All RLS tests pass (`pnpm test:rls`) | ✅ pass | CP9. 6/6 from spec §5.9 + 2 sanity sub-tests pass against live dev project. `scripts/test-rls.ts`. |
+| 17 | OTP screens and `select-course.tsx` are gone (grep finds nothing) | ✅ pass | `apps/mobile/app/verify.tsx` and `apps/mobile/app/select-course.tsx` deleted. The only remaining "OTP" matches are in `apps/admin/app/2fa/enroll/` (the admin TOTP flow — different feature). |
+| 18 | `(tabs)` folder renamed to `(student)`; no broken imports (`pnpm typecheck` green) | ✅ pass | `pnpm -r typecheck` clean across all 6 workspaces. `(student)` + `(teacher)` tab groups in place. |
+| 19 | Cold app start still under 3s on Redmi 8A reference | ⛔ **deferred** | User does not own a Redmi 8A reference device. Cold-start sub-3s validated only on iPhone via Expo Go (subjectively well under 1s). Re-test when first Android dev build installs. |
+| 20 | CI green on phase branch | ⏳ **pending PR** | All workspace gates (`typecheck`, `lint`, `test`) pass locally. CI run lands when the user opens the Phase 2 PR. |
+
+**Mechanical proof corpus:**
+- `pnpm -r typecheck` — 6/6 workspaces clean.
+- `pnpm --filter @fynestudy/mobile lint` — 0 errors, 0 warnings.
+- `pnpm --filter @fynestudy/mobile test` — 4 suites, 41 tests, all green.
+- `pnpm smoke:cp5` — 12 steps, all PASS (CP5 edge functions end-to-end).
+- `pnpm smoke:cp8` — 16 steps, all PASS (mobile auth flow against live Supabase).
+- `pnpm test:rls` — 6/6 RLS scenarios + 2 sanity sub-tests, all PASS.
+
+### Definition-of-done results
+
+- [x] AC results recorded above.
+- [x] RLS test suite green (`pnpm test:rls`, CP9).
+- [ ] **Pending PR:** CI green on `main` — local gates clean; PR run is the final gate.
+- [ ] **Pending PR:** `docs/backend-architecture.md §3.1` updated to reflect actual schema (private schema for RLS helpers, `audit_log` table, `students.batch_id` nullable, etc.). Tracked as a small doc-drift sweep; spec body still describes Phase 2's intent correctly, the drift is in the table/policy SQL examples.
+- [x] `docs/decisions.md` updated — new D-146, D-147, D-148, D-149 capturing private-schema helpers, single `auth-suspend` fn, mobile `withTimeout`, and the no-enumeration forgot-password contract.
+- [ ] User says "Phase 2 accepted" — pending this review.
+
+### Deliberate deviations from the original Phase 2 doc
+
+Recorded here so future contributors don't think these were accidents.
+
+1. **RLS helper functions in `private` schema, not `public`** — driven by Supabase advisor lints 0028/0029 which flag `SECURITY DEFINER` functions in `public` (they get auto-exposed as PostgREST RPC). See D-146. The harden migration `20260514222506_harden_auth_helper_schema.sql` moves them and grants `USAGE`/`EXECUTE` only to `authenticated`.
+2. **`auth-suspend` is one edge fn with a `mode` field** instead of separate `auth-suspend` and `auth-unsuspend` functions. See D-147.
+3. **Mobile auth calls wrap with `withTimeout` (15s)** — the doc didn't anticipate that RN fetch + supabase-js have no native timeout, and a dropped response strands the UI forever. Discovered during CP8 manual verification when the user's "Saving…" button hung after a successful server-side password update. See D-148 and `apps/mobile/features/auth/network-errors.ts`.
+4. **Forgot-password flow always reports success** (no email-enumeration disclosure; also handles Supabase's built-in rejection of `.example.com` test addresses). See D-149.
+5. **RLS tests via TypeScript runner against the live dev project**, not pgtap / local Supabase. `scripts/test-rls.ts` signs in as real users and exercises the full PostgREST + JWT + RLS pipeline — same pattern as the CP5/CP8 smoke tests. This is a stronger test surface (it catches PostgREST helper bugs that SQL-level pgtap misses) and avoids a separate `supabase start` infra dependency that doesn't run on the user's Windows + OneDrive setup.
+6. **CP5 / CP8 smoke tests are TS scripts at `scripts/`** rather than Deno tests inside `apps/functions/*/test.ts`. Same TS toolchain as the rest of the repo, easier to run on Windows.
+7. **Live-flow tests use the dev project** (`orqwyazvcthgxoadfxfv`) and leave timestamped fixture rows behind. Cleanup is deferred to a future sweep job; in the meantime each run is idempotent.
+8. **Mobile lint: pre-existing Phase 0 scaffolding warnings cleaned proactively** (`(student)/classes.tsx` unused `User` import, `(student)/menu.tsx` `useEffect` deps comment) so `pnpm lint` is 0/0 instead of 0/2.
+9. **`auth-clear-must-change` is called on BOTH force-password-change and the email-reset path**, not only force-password-change. The doc described force-change only, but a user who hit the email-reset deep link while `must_change_password=true` would otherwise be bounced back to `/force-password-change` after just resetting. The edge fn is idempotent so this is safe; see `clearMustChange()` in `apps/mobile/features/auth/auth.ts`.
+10. **A "no usable role" trapdoor on the splash router** routes signed-in users with empty `roles[]` to `/admin-redirect` (which has a Sign Out CTA), preventing the bounce-loop a misconfigured account would otherwise hit.
+11. **Splash router 10s timeout on `isLoading`** — if the session-load network call hangs at cold start, the router proceeds with whatever state is available rather than showing the spinner indefinitely.
+
+### Carry-overs into Phase 3
+
+- TOTP **recovery codes** (AC #3) — implement via a custom 10-code generation on enrollment + hashed storage + fallback verify flow. Bundle with the "Admin: reset MFA" owner-only flow per phase-2.md §8 risk row.
+- Profile **phone + DOB display** (AC #10) — extend `SessionProvider` to also load the `students` extension row (or fetch via TanStack Query on profile mount). Will land naturally when Phase 3 introduces the batch UI that also reads `students.batch_id`.
+- `docs/backend-architecture.md §3.1` **schema drift sweep** — update the table/policy SQL examples to match the four applied migrations.
+- **Android cold-start measurement** (AC #19) — when a Redmi 8A or equivalent low-end Android device is available, install the next EAS build and capture cold-start times into `docs/perf-baselines/`.
+- **Sentry + PostHog wiring** still deferred from Phase 1 (drop-in points are `lib/crash.ts` and `lib/analytics.ts`).

@@ -56,6 +56,16 @@ Both Supabase projects in `ap-south-1`. Branching (`supabase branch create`) use
 
 > SQL below is illustrative. Final migrations live under `supabase/migrations/`. Every table uses UUIDs (`gen_random_uuid()`), `created_at` and `updated_at` (`timestamptz`), and soft-delete where indicated.
 
+> **Phase 2 status note (2026-05-15):** §3.1 Identity + the audit_log are now **applied** to the dev project (`orqwyazvcthgxoadfxfv`) via these migrations:
+> - `20260514164704_init_users_roles.sql` — `app_users`, `user_roles`, `students`, `teachers`, `set_updated_at` trigger.
+> - `20260514165311_auth_helpers_rls.sql` — helper functions + RLS baseline.
+> - `20260514165545_harden_auth_helper_schema.sql` — moves the RLS helpers to a `private` schema per **D-146** (resolves advisor lints 0028/0029). The body of §5.2 below is **superseded** by this migration; use `private.is_admin()`, `private.has_role()`, `private.current_app_user_id()` in any new policies.
+> - `20260514170336_audit_log.sql` — audit_log table + admin-read policy.
+>
+> Other §3 sections (batches, sessions, content, quizzes, exams, mastery, etc.) are **target schema** — they land in Phases 3 through 8.
+>
+> A full schema-drift sweep against this section is a [Phase 3 carry-over](phases/phase-2.md#14-acceptance-ledger--closed-2026-05-15) — until that sweep lands, when this doc disagrees with applied migrations, **the migrations win**.
+
 ### 3.1 Identity
 
 ```sql

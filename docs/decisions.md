@@ -139,6 +139,21 @@ Format:
   - Why: Supabase defaults that balance freshness and UX.
   - Status: Locked.
 
+- **D-147 (2026-05-15):** Single `auth-suspend` edge fn handles both suspend AND unsuspend via a `mode: "suspend" | "unsuspend"` discriminated field — not two separate functions.
+  - Why: same caller (admin), same target (`app_users.is_active`), same audit shape. One fn keeps the contract symmetric and avoids two near-identical implementations drifting apart.
+  - Impacts: `apps/functions/auth-suspend/index.ts`, `_shared/schemas.ts SuspendInputSchema`.
+  - Status: Locked.
+
+- **D-148 (2026-05-15):** Every mobile Supabase auth call and edge-fn fetch must be wrapped in `withTimeout(...)` (15s default). Edge-fn fetches additionally use an `AbortController`.
+  - Why: RN's fetch and supabase-js have no built-in timeout. During CP8 a dropped response packet stranded the UI on "Saving…" forever (server side completed, client never knew). The 15s cap is well past p99 for every call we make, and all our auth mutations are idempotent so retries are safe.
+  - Impacts: `apps/mobile/features/auth/network-errors.ts` (helper); every call site in `apps/mobile/features/auth/auth.ts`.
+  - Status: Locked.
+
+- **D-149 (2026-05-15):** The forgot-password flow always returns success-looking UI ("Check your inbox…") for any syntactically-valid email, regardless of whether the address exists. Only network errors surface to the user.
+  - Why: prevents email-enumeration attacks (standard pattern: GitHub, Google, etc.) AND sidesteps Supabase Auth's built-in rejection of reserved test domains (`.example.com`, `.test`) that would otherwise confuse demo users with seed-data accounts.
+  - Impacts: `apps/mobile/features/auth/auth.ts requestPasswordReset`.
+  - Status: Locked.
+
 ## Attendance
 
 - **D-030 (2026-05-14):** **Rotating QR**, 30-second HMAC-signed token. Student displays, teacher scans.
@@ -406,6 +421,11 @@ Format:
 - **D-106 (2026-05-14):** Scheduled jobs via **pg_cron** + Supabase Edge Functions.
   - Why: built-in; no external scheduler service.
   - Status: Locked.
+
+- **D-146 (2026-05-15):** RLS helper functions (`is_admin()`, `is_active()`, `current_app_user_id()`, etc.) live in a **`private` schema**, not `public`.
+  - Why: Supabase advisor lints `0028` / `0029` flag SECURITY DEFINER functions in `public` because PostgREST auto-exposes them as RPC endpoints. Moving them to `private` (with `USAGE`/`EXECUTE` limited to `authenticated`) keeps them callable from RLS policies but invisible to the API.
+  - Impacts: `supabase/migrations/20260514222506_harden_auth_helper_schema.sql`; every new RLS policy must reference `private.is_admin()` etc.
+  - Status: Locked. Supersedes the original placement implied by `backend-architecture.md §5.2`.
 
 ## Security & Compliance
 
