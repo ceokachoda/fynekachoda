@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { Bell, User, PlayCircle, Calendar, Clock, Video } from 'lucide-react-native';
+import { Bell, PlayCircle, Calendar, Clock, Video } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';

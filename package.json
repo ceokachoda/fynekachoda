@@ -15,9 +15,18 @@
     "dev:admin": "pnpm --filter @fynestudy/admin dev",
     "fn:deploy": "supabase functions deploy --project-ref $SUPABASE_PROJECT_REF",
     "db:diff": "supabase db diff --linked",
-    "db:push": "supabase db push --linked"
+    "db:push": "supabase db push --linked",
+    "bootstrap:owner": "tsx scripts/bootstrap-owner.ts",
+    "smoke:cp5": "tsx scripts/smoke-test-cp5.ts",
+    "smoke:cp8": "tsx scripts/smoke-test-cp8.ts",
+    "test:rls": "tsx scripts/test-rls.ts"
   },
   "devDependencies": {
-    "typescript": "~5.9.2"
+    "@supabase/supabase-js": "^2.105.4",
+    "@types/node": "^20.0.0",
+    "dotenv": "^16.4.5",
+    "tsx": "^4.19.2",
+    "typescript": "~5.9.2",
+    "zod": "^3.24.0"
   }
 }

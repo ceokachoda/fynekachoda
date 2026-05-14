@@ -50,6 +50,8 @@ export default function MenuScreen() {
 
     // Stagger the animations so they cascade smoothly
     Animated.stagger(100, animations).start();
+    // animatedValues is stable across renders; intentionally one-shot on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
