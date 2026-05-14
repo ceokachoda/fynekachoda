@@ -1,0 +1,2 @@
+-- Demo seed (populated starting Phase 3).
+-- Phase 1 has no business tables yet.

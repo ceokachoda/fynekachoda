@@ -1,0 +1,11 @@
+{
+  "name": "@fynestudy/functions",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Supabase Edge Functions (Deno runtime). This package.json exists only so pnpm workspaces can discover the folder; actual function code is Deno TS and is not bundled with Node tooling.",
+  "scripts": {
+    "typecheck": "echo \"functions typechecked via deno (skipped in node CI for Phase 1)\" && exit 0",
+    "lint": "echo \"no lint configured\" && exit 0",
+    "test": "echo \"no tests yet\" && exit 0"
+  }
+}

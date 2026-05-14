@@ -1,0 +1,4 @@
+# Supabase CLI temp artifacts
+.branches
+.temp
+.env
