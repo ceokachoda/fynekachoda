@@ -1,0 +1,23 @@
+{
+  "name": "fynestudy",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "pnpm -r --if-present lint",
+    "test": "pnpm -r --if-present test",
+    "dev:mobile": "pnpm --filter @fynestudy/mobile dev",
+    "dev:admin": "pnpm --filter @fynestudy/admin dev",
+    "fn:deploy": "supabase functions deploy --project-ref $SUPABASE_PROJECT_REF",
+    "db:diff": "supabase db diff --linked",
+    "db:push": "supabase db push --linked"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  }
+}

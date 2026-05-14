@@ -78,7 +78,7 @@ export default function LiveSessionScreen() {
             <Text className="text-blue-800 text-[10px] font-bold tracking-widest uppercase">Pinned by Moderator</Text>
           </View>
           <Text className="text-blue-900 text-sm leading-5">
-            Welcome! Please drop your questions regarding Chapter 4 integration below. We'll address them at the end.
+            Welcome! Please drop your questions regarding Chapter 4 integration below. We&apos;ll address them at the end.
           </Text>
         </View>
 
@@ -124,7 +124,7 @@ export default function LiveSessionScreen() {
           </View>
           <View className="ml-9 bg-slate-50 border border-slate-100 rounded-2xl rounded-tl-sm p-3.5">
             <Text className="text-slate-800 text-sm leading-5">
-              I see those questions. I'll pause in 5 mins to review substitution with a simpler example!
+              I see those questions. I&apos;ll pause in 5 mins to review substitution with a simpler example!
             </Text>
           </View>
         </View>

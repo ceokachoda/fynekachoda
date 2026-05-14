@@ -1,0 +1,68 @@
+name: Deploy Edge Functions (dev)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/functions/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/deploy-functions.yml'
+
+concurrency:
+  group: deploy-functions-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: supabase functions deploy
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: orqwyazvcthgxoadfxfv
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link apps/functions into supabase/functions
+        # Per docs/file-structure.md, edge function source lives under
+        # apps/functions/, but the Supabase CLI looks for them at
+        # supabase/functions/. The repo doesn't ship the symlink because
+        # Windows requires admin/dev mode to create one; CI recreates it
+        # at deploy time.
+        run: |
+          set -euo pipefail
+          rm -rf supabase/functions
+          ln -s ../apps/functions supabase/functions
+          ls -la supabase/functions/
+
+      - name: Deploy all edge functions
+        run: |
+          set -euo pipefail
+          for fn_dir in apps/functions/*/; do
+            fn_name=$(basename "$fn_dir")
+            if [ "$fn_name" = "_shared" ]; then
+              continue
+            fi
+            if [ ! -f "${fn_dir}index.ts" ]; then
+              echo "skip ${fn_name} (no index.ts)"
+              continue
+            fi
+            # health is public; every other function (Phase 2+) verifies JWT.
+            if [ "$fn_name" = "health" ]; then
+              echo "::group::deploy $fn_name (--no-verify-jwt)"
+              supabase functions deploy "$fn_name" \
+                --project-ref "$SUPABASE_PROJECT_REF" \
+                --no-verify-jwt
+              echo "::endgroup::"
+            else
+              echo "::group::deploy $fn_name"
+              supabase functions deploy "$fn_name" \
+                --project-ref "$SUPABASE_PROJECT_REF"
+              echo "::endgroup::"
+            fi
+          done

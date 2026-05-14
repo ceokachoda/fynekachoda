@@ -65,11 +65,11 @@ export default function MenuScreen() {
         showsVerticalScrollIndicator={false}
       >
         {menuGroups.map((group, groupIdx) => {
-          const animVal = animatedValues[groupIdx];
-          
+          const animVal = animatedValues[groupIdx]!;
+
           return (
-            <Animated.View 
-              key={groupIdx} 
+            <Animated.View
+              key={groupIdx}
               className="mb-8"
               style={{
                 opacity: animVal,
@@ -99,9 +99,9 @@ export default function MenuScreen() {
                       </View>
                       <View className="flex-1 justify-center">
                         <Text className="font-bold text-slate-800 text-base">{item.label}</Text>
-                        {item.subLabel && (
+                        {'subLabel' in item && item.subLabel ? (
                           <Text className="text-slate-500 text-xs font-medium mt-0.5">{item.subLabel}</Text>
-                        )}
+                        ) : null}
                       </View>
                       <ChevronRight size={20} color="#cbd5e1" />
                     </TouchableOpacity>
@@ -115,9 +115,9 @@ export default function MenuScreen() {
         {/* Log Out Button */}
         <Animated.View
           style={{
-            opacity: animatedValues[menuGroups.length],
+            opacity: animatedValues[menuGroups.length]!,
             transform: [{
-              translateY: animatedValues[menuGroups.length].interpolate({
+              translateY: animatedValues[menuGroups.length]!.interpolate({
                 inputRange: [0, 1],
                 outputRange: [20, 0]
               })

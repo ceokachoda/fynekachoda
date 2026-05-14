@@ -42,7 +42,7 @@ export default function HomeScreen() {
         {/* Today's Schedule */}
         <View className="mb-8">
           <View className="flex-row justify-between items-center px-6 mb-4">
-            <Text className="text-xl font-bold text-blue-900">Today's Schedule</Text>
+            <Text className="text-xl font-bold text-blue-900">Today&apos;s Schedule</Text>
             <TouchableOpacity>
               <Text className="text-yellow-500 font-semibold">See all</Text>
             </TouchableOpacity>

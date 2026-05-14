@@ -220,7 +220,7 @@ export default function VerifyScreen() {
                     style={{ fontSize: rs(13), lineHeight: rs(18), paddingHorizontal: rs(20) }}
                     className="text-slate-500 text-center font-semibold tracking-wide"
                   >
-                    We've sent a 6-digit one-time password to your mobile number.
+                    We&apos;ve sent a 6-digit one-time password to your mobile number.
                   </Text>
                 )}
               </View>
@@ -312,7 +312,7 @@ export default function VerifyScreen() {
                     style={{ fontSize: rs(12), lineHeight: rs(16) }}
                     className="text-center text-slate-500 mt-2"
                   >
-                    Didn't receive it?{' '}
+                    Didn&apos;t receive it?{' '}
                     <Text {...NO_SCALE} className="text-[#2563EB] font-semibold">
                       Resend OTP
                     </Text>

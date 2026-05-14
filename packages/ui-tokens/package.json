@@ -1,0 +1,22 @@
+{
+  "name": "@fynestudy/ui-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./colors": "./colors.ts",
+    "./typography": "./typography.ts",
+    "./spacing": "./spacing.ts",
+    "./radius": "./radius.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "echo \"no lint configured\" && exit 0",
+    "test": "echo \"no tests yet\" && exit 0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.2"
+  }
+}
