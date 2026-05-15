@@ -56,15 +56,21 @@ Both Supabase projects in `ap-south-1`. Branching (`supabase branch create`) use
 
 > SQL below is illustrative. Final migrations live under `supabase/migrations/`. Every table uses UUIDs (`gen_random_uuid()`), `created_at` and `updated_at` (`timestamptz`), and soft-delete where indicated.
 
-> **Phase 2 status note (2026-05-15):** §3.1 Identity + the audit_log are now **applied** to the dev project (`orqwyazvcthgxoadfxfv`) via these migrations:
-> - `20260514164704_init_users_roles.sql` — `app_users`, `user_roles`, `students`, `teachers`, `set_updated_at` trigger.
-> - `20260514165311_auth_helpers_rls.sql` — helper functions + RLS baseline.
-> - `20260514165545_harden_auth_helper_schema.sql` — moves the RLS helpers to a `private` schema per **D-146** (resolves advisor lints 0028/0029). The body of §5.2 below is **superseded** by this migration; use `private.is_admin()`, `private.has_role()`, `private.current_app_user_id()` in any new policies.
-> - `20260514170336_audit_log.sql` — audit_log table + admin-read policy.
+> **Status note (last sweep 2026-05-15, Phase 3 CP11):** §3.1 Identity, §3.2 Courses & Batches, §3.9 Audit Log, and the new §3.10 MFA Recovery Codes are all **applied** to the dev project (`orqwyazvcthgxoadfxfv`). RLS for those tables is also applied (see callouts inside each section).
 >
-> Other §3 sections (batches, sessions, content, quizzes, exams, mastery, etc.) are **target schema** — they land in Phases 3 through 8.
+> Applied migrations, in order:
+> - `20260514115416_init` — empty placeholder (Phase 1).
+> - `20260514164704_init_users_roles` — `app_users`, `user_roles`, `students`, `teachers`, `set_updated_at` trigger.
+> - `20260514165311_auth_helpers_rls` — helper functions + RLS baseline.
+> - `20260514165545_harden_auth_helper_schema` — moves the RLS helpers to a `private` schema per **D-146** (resolves advisor lints 0028/0029). The body of §5.2 below is **superseded** by this migration; use `private.is_admin()`, `private.has_role()`, `private.current_app_user_id()` in any new policies.
+> - `20260514170336_audit_log` — audit_log table + admin-read policy.
+> - `20260515063322_courses_batches` (Phase 3 CP1) — courses + subjects + chapters + topics + batches + batch_teachers + batch_schedule + seed data.
+> - `20260515063821_students_batch_required` (Phase 3 CP2) — backfill + `students.batch_id NOT NULL`.
+> - `20260515064428_batch_rls` (Phase 3 CP3) — RLS on the seven Phase 3 tables; teacher batch-scope read on `students`.
+> - `20260515121845_teacher_app_users_read` (Phase 3 CP10) — adds `app_users_teacher_batch_read` so a teacher can resolve student `full_name` when embedding `students(app_users!user_id(full_name))`. Closes the silent-null bug discovered when the teacher batch-detail roster on mobile rendered "—" for every name.
+> - `20260515132622_mfa_recovery_codes` (Phase 3 CP11) — `mfa_recovery_codes` table + RLS (self-read of own hashed rows, admin all). Powers the `mfa-codes-issue` / `mfa-codes-consume` edge functions.
 >
-> A full schema-drift sweep against this section is a [Phase 3 carry-over](phases/phase-2.md#14-acceptance-ledger--closed-2026-05-15) — until that sweep lands, when this doc disagrees with applied migrations, **the migrations win**.
+> Other §3 sections (sessions, content, quizzes, exams, mastery, parent reports) are **target schema** — they land in Phases 4 through 9. When this doc disagrees with the applied migrations, **the migrations win**.
 
 ### 3.1 Identity
 
@@ -115,10 +121,16 @@ create table public.students (
 
 create table public.teachers (
   user_id  uuid primary key references public.app_users(id) on delete cascade,
-  subjects text[],                                        -- e.g., {'physics','mathematics'}
+  subjects text[] not null default '{}',                  -- e.g., {'physics','mathematics'}
   bio      text
 );
 ```
+
+**Applied RLS on `app_users` (Phase 2 + CP10 addendum):**
+
+- `app_users_self_read` — `auth_user_id = auth.uid()`.
+- `app_users_admin_all` — `private.is_admin()`.
+- `app_users_teacher_batch_read` (CP10 fix) — teachers may read app_users rows for students in their assigned batches. Required so that the mobile batch-detail roster query embeds `students(app_users!user_id(full_name))` without RLS-filtering the join target to null. Locked in by `test-rls.ts` Tests 14 + 15 (own-batch read succeeds; cross-batch read denied).
 
 ### 3.2 Courses & Batches
 
@@ -534,6 +546,30 @@ create table public.audit_log (
   occurred_at  timestamptz not null default now()
 );
 ```
+
+Applied action vocabulary (as of Phase 3 CP11): `create_user`, `update_user`, `suspend`, `unsuspend`, `force_reset_password`, `password_changed`, `create_course` / `update_course` / `delete_course`, `create_subject` / `update_subject` / `delete_subject`, `create_chapter` / `update_chapter` / `delete_chapter`, `create_topic` / `update_topic` / `delete_topic`, `create_batch` / `update_batch` / `delete_batch`, `assign_teacher_to_batch` / `unassign_teacher_from_batch`, `create_schedule_row` / `delete_schedule_row`, `transfer_student`, `mfa_codes_issued`, `mfa_codes_consumed`.
+
+### 3.10 MFA Recovery Codes (Phase 3 CP11)
+
+```sql
+create table public.mfa_recovery_codes (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references public.app_users(id) on delete cascade,
+  code_hash   text not null,                              -- SHA-256 hex of normalised plaintext
+  used_at     timestamptz,                                -- null = unused; non-null = consumed
+  created_at  timestamptz not null default now()
+);
+
+create index mfa_recovery_codes_user_idx on public.mfa_recovery_codes (user_id);
+create unique index mfa_recovery_codes_user_hash_uniq
+  on public.mfa_recovery_codes (user_id, code_hash);
+```
+
+- **Plaintext is shown to the user exactly once** by `mfa-codes-issue` and never stored. Codes are 10 chars from a 31-char ambiguity-stripped alphabet (no `0`/`1`/`i`/`l`/`o`), rendered `XXXXX-XXXXX`.
+- **Issue** replaces any existing batch for the user (delete-then-insert). Each enrollment yields a fresh 10-code batch.
+- **Consume** marks the row `used_at = now()` and immediately calls the GoTrue admin API to delete every verified TOTP factor on the user. Middleware then routes the user through Stage A → `/2fa/enroll` to re-enroll, where a new batch of codes is issued.
+- **Audit:** `mfa_codes_issued` (after `{count: 10}`) and `mfa_codes_consumed` (after `{used_at, factors_deleted}`).
+- **RLS:** `mfa_recovery_self_read` lets a user see their own hashed rows (used as a "you have N unused" hint in future settings UI); `mfa_recovery_admin_all` lets admins read/delete; service-role bypasses both. There is no INSERT/UPDATE policy for `authenticated` — code issuance only happens via the edge function. Locked in by `test-rls.ts` Tests 16 + 17.
 
 ## 4. Indexes (Performance)
 

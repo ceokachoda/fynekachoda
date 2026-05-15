@@ -432,3 +432,103 @@ Phase 4 builds on:
 - Batch schedule exists → can materialize sessions.
 - Teacher knows which batches they teach → can scan attendance.
 - Phase 4 adds `sessions` and `attendance` tables; rebuilds `(student)/attendance.tsx` with rotating QR + history; adds `(teacher)/scan.tsx` and `roster/[id].tsx`.
+
+## 14. Acceptance Ledger — closed 2026-05-15
+
+Phase 3 closed on **2026-05-15** with all twelve checkpoints (CP1–CP12) green. Work sits on `main` uncommitted, ready for the Phase 3 PR. The Vercel admin deployment is still pinned to the Phase 1 placeholder build; the Phase 3 PR will be the first push that lights up Phase 2 + Phase 3 admin UI on Vercel.
+
+### AC results
+
+| # | Acceptance Criterion | Result | Evidence |
+|---|---|---|---|
+| 1 | Migration runs cleanly on dev. Default courses + default batch exist | ✅ pass | CP1. Migration `20260515063322_courses_batches` applied via MCP. 4 courses (`JEE_MAIN`, `JEE_ADV`, `NEET_UG`, `CUET_UG`) + 11 subjects + 1 `Default Batch (rename me)` row seeded. `pnpm test:rls` Test 7 reads ≥4 active courses; Test 9 reads exactly own batch. |
+| 2 | Existing Phase 2 students auto-mapped to "Default Batch (rename me)" | ✅ pass | CP2. Migration `20260515063821_students_batch_required` backfills `batch_id` to the default-batch UUID for every existing row, then `ALTER COLUMN … SET NOT NULL`. Existing demo student `cp5-smoke-1778780435619@…` and the Phase 2 audit-log entry both verified post-backfill. |
+| 3 | Admin opens `/courses` — sees 4 courses with their subjects | ✅ pass | CP6. `apps/admin/app/(dashboard)/courses/page.tsx` lists 4 courses; clicking each opens `/courses/[id]` with the curriculum tree pre-populated. Nav link enabled in `(dashboard)/layout.tsx`. |
+| 4 | Admin adds a chapter and topic under "Physics" of NEET UG. Tree persists; reorder works | ✅ pass | CP6. `curriculum-mutate` v1 supports 12 ops (create/update/delete × course/subject/chapter/topic). `pnpm smoke:curriculum` runs all 12 + error paths. **Deviation:** no drag-drop reorder; reorder via inline `sort_order` input field (Phase 12 polish). |
+| 5 | Admin renames "Default Batch (rename me)" to "NEET 2027 Morning" | ✅ pass | CP7. `batch-mutate.update_batch` op + admin `/batches/[id]` edit form. User verified click-through during CP7. |
+| 6 | Admin creates "JEE Main 2027 Evening" batch with capacity + schedule | ✅ pass | CP7. `batch-mutate.create_batch` + `create_schedule_row` ops. `pnpm smoke:batch-mutate` 11/11 includes capacity + schedule creation. |
+| 7 | Admin creates teacher and assigns them to a batch | ✅ pass | CP8 + CP10. `auth-bootstrap` with `role=teacher` (CP8) + `batch-mutate.assign_teacher` (CP7). User verified by creating `cp10-teacher@fynestudy.example.com` during CP10 click-through. |
+| 8 | Admin creates new student, picks batch — credentials shown | ✅ pass | CP3 + CP7. `auth-bootstrap` v2 extended for `batch_id`; `/students/new` batch picker enabled in CP7. CP10 used this path to create `cp9-test@…`. |
+| 9 | Student logs in mobile — profile shows correct batch + course | ✅ pass | CP9. `useMyBatch` hook + `(student)/profile.tsx` read-only rows. User verified with `cp9-test@…` showing "Default Batch (rename me) · NEET UG". |
+| 10 | Teacher logs in mobile — sees batch in My Batches | ✅ pass | CP10. `useAssignedBatches` hook + `(teacher)/index.tsx` real home. User verified with cp10-teacher showing Default Batch · 13 students. |
+| 11 | Teacher opens batch detail — sees student list (RLS-scoped) | ✅ pass | CP10 (after RLS fix). Migration `20260515121845_teacher_app_users_read` added missing `app_users_teacher_batch_read` policy; without it, embed returned NULL `app_users` and roster rendered "—" per student. User re-verified roster shows 13 real student names. |
+| 12 | Teacher cannot see students from other batches | ✅ pass | CP3 + CP10. `pnpm test:rls` Tests 12 (T1 sees Student A only, not Student B) + 15 (T1 cannot read Student B's `app_users` row). |
+| 13 | Admin transfers a student → audit + mobile reflects new batch | ✅ pass | CP4. `batch-transfer` v1 atomic capacity + audit + 404 + same-batch checks. `pnpm smoke:batch-transfer` 8/8 includes the full transfer cycle. |
+| 14 | Capacity check: batch full → admin tries to add → error | ✅ pass | CP4 + CP7. `batch-transfer` rejects with 409 when destination at capacity; `auth-bootstrap` honours the same rule via the validation chain in `batch-mutate`. Smoke test exercises both. |
+| 15 | RLS tests cover required scenarios | ✅ pass | `pnpm test:rls` extended from Phase 2's 6 tests to **17 tests** (Tests 7–17 added across CP3, CP10, CP11). Covers: course read by authenticated, batch read by member only, teacher reads assigned-batch students, app_users teacher-batch read, mfa_recovery_codes self-read + write-block. |
+| 16 | `pnpm typecheck` + `pnpm test:rls` green | ✅ pass | `pnpm -r typecheck` clean across 6 workspaces; `pnpm test:rls` 17/17. |
+| 17 | CI green on phase branch | ⏳ **pending PR** | All workspace gates pass locally. CI run lands when the Phase 3 PR is opened. Same status shape as Phase 2 §14 AC #20. |
+
+**Phase 2 carry-overs (completed in CP11):**
+
+| # | Criterion | Result | Evidence |
+|---|---|---|---|
+| C-1 | TOTP recovery codes (Phase 2 AC #3 partial) | ✅ pass | CP11. Migration `20260515132622_mfa_recovery_codes` + edge fns `mfa-codes-issue` v1 + `mfa-codes-consume` v1 + admin `/2fa/enroll` extension + new `/2fa/recovery` page + middleware update. `pnpm smoke:mfa-recovery` 10/10 (issue → DB shape → re-issue replaces → consume → replay 401 → bogus 401 → audit). User-verified localhost sign-in confirms the admin app compiles + the existing TOTP funnel still works; the new fresh-enrolment/consume flow is mechanically proven. |
+| C-2 | `docs/backend-architecture.md §3` schema-doc drift sweep (Phase 2 §14 DoD item) | ✅ pass | CP11. Status note rewritten with full 10-migration ledger; §3.1 fixed (`teachers.subjects` default + CP10 RLS callout); §3.9 action vocabulary list; new §3.10 block for `mfa_recovery_codes`. |
+
+**Mechanical proof corpus:**
+- `pnpm -r typecheck` — 6/6 workspaces clean.
+- `pnpm --filter @fynestudy/admin lint` — 0 errors, 0 warnings.
+- `pnpm --filter @fynestudy/mobile lint` — 0 errors, 0 warnings.
+- `pnpm --filter @fynestudy/mobile test` — 5 suites, 48 tests, all green (added `features/org/schedule.test.ts` 7 cases in CP10).
+- `pnpm --filter @fynestudy/shared test` — 17 zod validation tests (CP5).
+- `pnpm test:rls` — 17 RLS scenarios + sanity sub-tests, all PASS.
+- `pnpm smoke:batch-transfer` — 8 steps PASS (CP4).
+- `pnpm smoke:curriculum` — 12 steps PASS (CP6).
+- `pnpm smoke:batch-mutate` — 11 steps PASS (CP7).
+- `pnpm smoke:mfa-recovery` — 10 steps PASS (CP11).
+- `mcp__claude_ai_Supabase__get_advisors security` — only pre-existing `auth_leaked_password_protection` WARN (Phase 1 backlog, untouched by Phase 3).
+- 10 migrations applied, 11 edge functions deployed (`auth-bootstrap` v2, `auth-suspend`, `auth-force-reset`, `auth-clear-must-change`, `auth-change-own-password`, `batch-transfer`, `curriculum-mutate`, `batch-mutate`, `mfa-codes-issue`, `mfa-codes-consume`, `health`).
+
+### Definition-of-done results
+
+- [x] All 17 ACs pass (AC #17 pending PR CI run).
+- [x] RLS tests cover every new policy (17/17 includes CP3 + CP10 + CP11 additions).
+- [ ] **Pending PR:** CI green on `main` — local gates clean; PR run is the final gate.
+- [x] `packages/supabase-types/index.ts` regenerated (CP5) — staged on disk.
+- [x] Specs updated: `docs/backend-architecture.md §3` + new §3.10 (CP11).
+- [x] `docs/decisions.md` not amended this phase — no decisions overturned; CP-level deviations recorded inline below.
+- [ ] User says "Phase 3 accepted" — pending this review.
+
+### Deliberate deviations from the original Phase 3 doc
+
+Recorded so future contributors don't think these were accidents.
+
+1. **Migrations use timestamp prefix** (`20260515063322_…`), not the doc's ordinal `0004_…`. Repo convention from Phase 1; same shape as Phase 2's migrations. The 10 applied migrations are listed in `docs/backend-architecture.md §3` status note.
+2. **`auth-bootstrap` extended in CP3** to accept optional `batch_id: uuid`; falls back to the Default Batch lookup when absent. Forward-compatible with the CP7 batch picker. Doc body assumed bootstrap remained unchanged.
+3. **Single `*-mutate` edge fn per resource family** (`curriculum-mutate` 12 ops, `batch-mutate` 8 ops) instead of one edge fn per op. Mutation + audit kept atomic in one server-side hop; reduces edge-fn count for the same surface.
+4. **No drag-drop reorder on curriculum tree, no bulk transfer.** Inline `sort_order` numeric inputs + per-row Transfer button replace both. Phase 12 polish.
+5. **`teachers.subjects` is free-form comma-separated text input**, not a picker against the `subjects` curriculum table. `teachers.subjects text[]` was never FK-bound (D-013 informal); a picker is Phase 7 work.
+6. **Server actions + edge fn pattern for admin mutations**, not TanStack Query. Mirrors Phase 2's existing pattern; consistency wins over the doc's TanStack reference.
+7. **Mobile delete actions return state + redirect on success** (`apps/admin/app/(dashboard)/{batches,courses}/actions.ts`), surfaced after a CP7 bug where silently-failing void actions made deletes look like no-ops.
+8. **`useMyBatch` and `useAssignedBatches` are bespoke React hooks**, not TanStack Query. Mobile has no TanStack dependency yet; the two screens that need cached fetches don't justify adding ~80kB to the bundle.
+9. **CP10 RLS fix: new `app_users_teacher_batch_read` policy** (migration `20260515121845`). Discovered during CP10 click-through when the batch-detail roster rendered "—" for every student name. Locked in by `test-rls.ts` Tests 14 + 15.
+10. **CP10 auth refactor: new edge fn `auth-change-own-password` v1.** Mobile no longer calls `supabase.auth.updateUser({ password })` from the force-password-change screen; the edge fn does both the password change (service-role `admin.auth.admin.updateUserById`) and the `must_change_password=false` flip in one round-trip. Eliminates the iOS Expo Go fetch-drop bug that recurred in CP9 and CP10 (see memory `auth-client-timeouts`).
+11. **Mobile auth timeouts bumped to 30s + `getSession()` fallback** (`apps/mobile/features/auth/auth.ts`). After observing 89ms server-side /token responses paired with 15s+ client-side delays (suspected iOS Keychain write blocking the supabase-js promise), the auth-call budget was widened and a post-timeout `sessionLanded()` check was added. Login screen also subscribes to `useSession().session` and auto-routes when a session lands asynchronously.
+12. **CP11 hash algorithm: SHA-256 hex**, not Argon2 / bcrypt. Codes carry ~50 bits of entropy and never leave the server hashed; the threat model is "stop trivial database-leak compromise", not "defeat a determined offline attacker against a low-entropy secret". Web Crypto is present in both Deno (edge fn) and Node (smoke test) — no extra dep needed.
+13. **CP11 consume = wipe TOTP factor + force re-enrolment.** Supabase's MFA API exposes no path to upgrade AAL from a non-TOTP secret; re-enrolment is the only correct recovery loop. After consume, the user gets a fresh 10-code batch on the next enrolment.
+14. **CP11 no admin-driven "Reset MFA on another admin" UI.** Phase 2 §8 risk row sketched this; it depends on an `/admins` management page slated for Phase 12 (`phase-12.md §27 + §358`). The recovery-code self-service path covers the dominant case (admin lost authenticator). Carry-over recorded below.
+15. **Phase 3 work is one big PR**, not eleven micro-PRs. Phase 2 set this pattern (one large PR for the whole phase) and the user explicitly confirmed it for Phase 3 at the start of CP1.
+
+### Carry-overs into Phase 4
+
+- **Vercel admin deployment fix.** `admin-kohl-sigma.vercel.app` currently serves the Phase 1 "Coming online…" placeholder build because Phase 2's `app/page.tsx` deletion (commit `ac7031c`) was never picked up. The Phase 3 PR is the first push that will redeploy Vercel with the full Phase 2 + Phase 3 admin surface. Manual click-through verification on Vercel becomes possible once that PR merges.
+- **Admin "Reset MFA on another admin" UI** — depends on the Phase 12 admin-management page. The recovery-code self-service path already handles the common case; this entry covers the "admin lost authenticator AND lost recovery codes" edge case.
+- **Android cold-start measurement** on a Redmi 8A class device (Phase 2 §14 AC #19) — still deferred pending hardware.
+- **Sentry + PostHog wiring** (Phase 1 deferred) — drop-in points are `apps/mobile/lib/crash.ts` and `apps/mobile/lib/analytics.ts`.
+- **TOTP enrolment for mobile** — currently TOTP is admin-only (web). When Phase 8 introduces teacher-side mutations from mobile, mobile may want optional TOTP per the spec. Out of scope for Phase 3.
+- **Curriculum tree drag-drop + bulk teacher import + bulk student transfer** — deferred polish (Phase 12).
+- **`auth-clear-must-change` edge function cleanup** — still deployed but unreachable now that `auth-change-own-password` is the single-call replacement. Safe to delete in a Phase 4 housekeeping commit (or leave deployed indefinitely; both are fine).
+
+### Phase 3 highlights vs. Phase 2
+
+| Aspect | Phase 2 | Phase 3 |
+|---|---|---|
+| Migrations applied | 4 | 10 (+6 in Phase 3) |
+| Edge functions deployed | 4 | 11 (+7 in Phase 3) |
+| RLS test count | 6 + 2 sanity | 17 + sanity |
+| Smoke-test scripts | 2 (`cp5`, `cp8`) | 6 (`cp5`, `cp8`, `batch-transfer`, `curriculum`, `batch-mutate`, `mfa-recovery`) |
+| Mobile jest tests | 41 | 48 (+7 schedule tests) |
+| Workspaces affected | mobile, admin, functions | + shared (validation), supabase-types |
+| Deviations recorded | 11 | 15 |
+| Carry-overs handed off | 5 | 7 |

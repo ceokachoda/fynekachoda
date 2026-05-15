@@ -22,8 +22,8 @@
 |---|---|---|---|
 | 1 | Foundation & Infrastructure | ✅ **accepted 2026-05-14** — see [`phase-1.md §13`](phase-1.md) | `pnpm typecheck`, `pnpm dev:mobile`, visit admin Vercel preview |
 | 2 | Identity & Authentication | ✅ **accepted 2026-05-15** — see [`phase-2.md §14`](phase-2.md) | `pnpm typecheck`, `pnpm --filter @fynestudy/mobile test`, `pnpm smoke:cp5`, `pnpm smoke:cp8`, `pnpm test:rls` |
-| 3 | Courses, Batches, Curriculum | ⏳ next | Manual flow per `phase-3.md §AC` |
-| 4 | Sessions & Attendance | pending | Manual flow per `phase-4.md §AC` |
+| 3 | Courses, Batches, Curriculum | ✅ **accepted 2026-05-15** — see [`phase-3.md §14`](phase-3.md) | `pnpm typecheck`, `pnpm --filter @fynestudy/mobile test`, `pnpm --filter @fynestudy/shared test`, `pnpm test:rls`, `pnpm smoke:batch-transfer`, `pnpm smoke:curriculum`, `pnpm smoke:batch-mutate`, `pnpm smoke:mfa-recovery` |
+| 4 | Sessions & Attendance | ⏳ next | Manual flow per `phase-4.md §AC` |
 | 5 | Study Materials Library | pending | Manual flow per `phase-5.md §AC` |
 | 6 | Practice Quizzes | pending | Manual flow per `phase-6.md §AC` |
 | 7 | Graded Exams | pending | Manual flow per `phase-7.md §AC` |
@@ -51,11 +51,15 @@ Accepted in PR #1 (commit `ef8c0cf` merged to `main` as `bea08b2`). Full ledger 
 
 ## ✅ Phase 2 — Identity & Authentication — closed 2026-05-15
 
-Accepted with all checkpoints CP1–CP9 green; ledger in [`phase-2.md §14`](phase-2.md). 16 of 20 ACs pass, 2 partial (#3 TOTP recovery codes, #10 profile phone/DOB display), 1 deferred (#19 Redmi 8A cold-start), 1 pending PR (#20 CI). Carry-overs handed off to Phase 3. Do not re-run this prompt.
+Accepted with all checkpoints CP1–CP9 green; ledger in [`phase-2.md §14`](phase-2.md). 16 of 20 ACs pass, 2 partial (#3 TOTP recovery codes, #10 profile phone/DOB display) — **both fully resolved in Phase 3 CP9/CP11**. 1 deferred (#19 Redmi 8A cold-start), 1 pending PR (#20 CI). Carry-overs handed off to Phase 3. Do not re-run this prompt.
+
+## ✅ Phase 3 — Courses, Batches, Curriculum — closed 2026-05-15
+
+Accepted with all checkpoints CP1–CP12 green; ledger in [`phase-3.md §14`](phase-3.md). 16 of 17 ACs pass, 1 pending PR (#17 CI). Phase 2 carry-overs resolved: TOTP recovery codes (CP11), profile phone/DOB display (CP9), backend-architecture §3 sweep (CP11). Three durable architectural decisions added: D-152 (teacher batch-scope on `app_users`), D-153 (single-call `auth-change-own-password` supersedes mobile-side `updateUser`), D-154 (30s auth timeout + `sessionLanded()` fallback for iOS Expo Go). Carry-overs handed off to Phase 4: Vercel admin deployment fix (currently stuck on Phase 1 placeholder), admin "Reset MFA on another admin" UI (Phase-12-dependent), Android cold-start measurement, Sentry+PostHog wiring, 16 performance advisor INFOs. Do not re-run this prompt.
 
 ---
 
-## 🏫 Phase 3 — Courses, Batches, Curriculum
+## 🏫 Phase 3 — Courses, Batches, Curriculum (kickoff prompt — closed, do not re-run)
 
 ```
 You are continuing work on FyneStudy — a hybrid coaching-institute OS for JEE/NEET/CUET prep, built as a pnpm monorepo (mobile + admin + Supabase backend).
@@ -107,20 +111,36 @@ START: After reading the files above, say "Ready to start Phase 3 CP1." with a o
 ## 🎟️ Phase 4 — Sessions & Attendance
 
 ```
-You are continuing work on FyneStudy. Phase 3 (Courses, Batches, Curriculum) is accepted — see docs/phases/phase-3.md §X Acceptance Ledger.
+You are continuing work on FyneStudy — a hybrid coaching-institute OS for JEE/NEET/CUET prep, built as a pnpm monorepo (mobile + admin + Supabase backend). Phase 3 (Courses, Batches, Curriculum) is accepted — full ledger in docs/phases/phase-3.md §14.
 
 REPO: C:\Users\kaust\OneDrive\Desktop\FyneStudyLive
 SUPABASE DEV PROJECT REF: orqwyazvcthgxoadfxfv
+GIT BRANCH: main (Phase 2 + Phase 3 work is uncommitted; one big PR opens before Phase 4 lands a commit)
 
-READ FIRST (in order):
-1. CLAUDE.md — confirm Status block shows Phase 3 ✅ accepted.
-2. Every file linked from ~/.claude/projects/C--Users-kaust-OneDrive-Desktop-FyneStudyLive/memory/MEMORY.md.
-3. docs/phases/phase-4.md — this phase's spec. Mandatory pause at every "STOP. Checkpoint X."
-4. docs/phases/phase-3.md §14 (or whichever §) — Phase 3 ledger + hand-off + carry-overs.
-5. docs/decisions.md — search for D-NNN touching attendance, QR, HMAC, rotating tokens, session correctness.
+BEFORE WRITING ANY CODE, read these files in order:
+1. CLAUDE.md (repo root) — confirm the "Status" block shows Phase 3 ✅ done — 2026-05-15 with all 12 CPs green. Hard rules, tech stack, module map, debugging map all live here.
+2. Every file linked from ~/.claude/projects/C--Users-kaust-OneDrive-Desktop-FyneStudyLive/memory/MEMORY.md — durable user preferences + project decisions + hard-learned lessons. Read ALL of them. The Phase-3-specific memories are project_phase-3-status.md, project_phase-3-decisions.md, project_auth-client-timeouts.md.
+3. docs/phases/phase-4.md — this phase's spec. Read end to end. The "STOP. Checkpoint X." markers are mandatory pause points.
+4. docs/phases/phase-3.md §14 (Acceptance Ledger) — Phase 3 ledger + hand-off + 7 carry-overs into Phase 4 (notably Vercel admin redeploy, admin "Reset MFA" UI, performance-advisor housekeeping).
+5. docs/decisions.md — search for D-NNN touching attendance, QR, HMAC, rotating tokens, session correctness, sessions table, batch_schedule materialisation. Specs disagree with decisions.md → decisions.md wins.
 6. docs/spec/attendance.md — feature spec. Section on HMAC freshness + replay protection is the high-stakes part of Phase 4.
+7. docs/backend-architecture.md §3.3 — target schema for sessions + attendance (currently target, not applied).
 
-USER + WORKING PROTOCOL: same as Phase 3 prompt above — coding-newcomer user, click-by-click verification, checkpoint pauses with five-section summaries, no auto-commit, ledger writeup at the end, save to memory before /compact, MCP for Supabase, AskUserQuestion at real forks, sub-agents for broad exploration.
+USER CONTEXT (durable, from memory; DO NOT need to re-confirm):
+- User is new to coding. Every "verify this" must be click-by-click with exact URLs, exact button names, exact expected screen output.
+- User invites deep Q&A on specs but trusts the AI to drive implementation. "Choose what's best" is genuine — pick aggressively, summarize defaults in a table.
+- Demo owner: owner@fynestudy.example.com / FyneStudy01 / TOTP-enrolled. Memory file project_demo-owner.md has full credentials.
+
+WORKING PROTOCOL:
+1. Work through phase-4.md in order, one checkpoint at a time.
+2. At each "STOP. Checkpoint X." in the doc, produce a structured summary with five sections: (a) what was done, (b) mechanical verification you ran with exit codes / pass counts, (c) deliberate deviations from the doc + why, (d) what the user must verify manually (click-by-click with exact URLs / button names / expected text), (e) what they do NOT need to verify (mechanical proof above is sufficient). Then PAUSE and wait for "Checkpoint X OK" before continuing.
+3. Never auto-commit. Never push. Never open a PR without explicit "open the PR" approval.
+4. Never auto-accept the phase. After the last checkpoint, append §14 Acceptance Ledger to phase-4.md mirroring the format of phase-3.md §14, then PAUSE and wait for "Phase 4 accepted" before any tag / merge.
+5. Use the Supabase MCP for all DB work: list_migrations, apply_migration, execute_sql, get_logs, deploy_edge_function, get_advisors. Resolve every NEW advisor lint that fires on your migrations — don't ship with red advisors.
+6. Use Bash for repo-local commands (pnpm, git status, lint, test). For long outputs use sub-agents (Explore, general-purpose) — don't pull a full grep result into main context.
+7. Use AskUserQuestion at real forks (two roughly equal options with different trade-offs). Don't ask for trivial choices.
+8. Use TaskCreate + TaskUpdate to track CPs from the start. Recreate the task list immediately.
+9. Before any /compact, save anything cross-conversation-worthy to ~/.claude/projects/C--Users-kaust-OneDrive-Desktop-FyneStudyLive/memory/. Update MEMORY.md index.
 
 HARD RULES carried from CLAUDE.md (non-negotiable):
 - All Phase 1–3 hard rules still apply. Specifically for Phase 4:
@@ -128,10 +148,22 @@ HARD RULES carried from CLAUDE.md (non-negotiable):
 - "Every edge function checks app_users.is_active=true after JWT verification."
 - D-030 (rotating QR, 30-second HMAC-signed token, replay-impossible) — verify on a real phone, not just unit tests.
 - HMAC secret rotation policy (D-104, quarterly with 24h grace).
+- D-146: RLS helper functions live in `private` schema, not `public`. Use private.is_admin() / private.has_role() / private.current_app_user_id() in new policies.
+- D-152 (Phase 3 CP10): when a new table needs teacher batch-scope read for use in mobile embeds, mirror the `app_users_teacher_batch_read` policy shape — without it, embedded joins silently RLS-null.
+- D-153 (Phase 3 CP10): mobile NEVER calls `supabase.auth.updateUser` itself in the force-password-change flow. The `auth-change-own-password` edge fn is the single-call replacement. If Phase 4 needs to mutate sessions / users, use the same server-side pattern.
+- D-154 (Phase 3 CP10): all mobile `supabase.auth.*` calls wrap in `withTimeout(_, 30_000)` and check `supabase.auth.getSession()` after a timeout. All mobile `supabase.from()` / `supabase.functions.invoke()` calls wrap in `withTimeout(_, 15_000)` (default).
 
-PHASE 4 SCOPE: QR display screen (student) + QR scanner (teacher) + sessions table + attendance table + corrections audit trail. Manual roster fallback. NOT in scope: live class hookup (Phase 9) or attendance-driven leaderboard score (Phase 10).
+PHASE 4 SCOPE (high-level — see phase-4.md for detail):
+- DB tables: `sessions` (materialised from `batch_schedule` + ad-hoc), `attendance` (per-student per-session record).
+- Edge fns: `attendance-qr-sign` (student-side, emits HMAC payload), `attendance-qr-verify` (teacher-side, validates HMAC + freshness + dedup), `attendance-correct` (teacher amends, audit row).
+- Mobile: `(student)/attendance.tsx` (rotating QR display), `(teacher)/scan.tsx` (camera + decode + verify), `(teacher)/roster/[id].tsx` (manual fallback).
+- Admin: session list + per-session attendance report. NOT in scope: live class hookup (Phase 9) or attendance-driven leaderboard score (Phase 10).
 
-START: After reading, say "Ready to start Phase 4 CP1." with a one-paragraph plan, then PAUSE.
+KNOWN PHASE-3 CARRY-OVERS (to address opportunistically or defer):
+- Vercel admin deployment is currently stuck on the Phase 1 "Coming online…" placeholder. The Phase 3 PR (opened before Phase 4 begins coding) is the first push that rebuilds Vercel with Phase 2 + Phase 3 admin surface.
+- 16 performance advisor INFOs on existing Phase 2/3 tables (multiple permissive policies on every authenticated SELECT — intentional pattern; unindexed FKs on rare-query columns; one auth_rls_initplan on `app_users_self_read`). Phase 4 should not regress these and may opportunistically tidy with a small migration if it doesn't bloat the phase.
+
+START: After reading the files above, say "Ready to start Phase 4 CP1." with a one-paragraph plan of CP1's scope drawn from phase-4.md, then PAUSE and wait for "go". Do NOT recreate any work already done in Phase 3 — verify via list_migrations / Glob / git status before adding anything.
 ```
 
 ## 📚 Phase 5 — Study Materials Library

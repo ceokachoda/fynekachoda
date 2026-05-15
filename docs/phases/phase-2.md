@@ -602,8 +602,10 @@ Recorded here so future contributors don't think these were accidents.
 
 ### Carry-overs into Phase 3
 
-- TOTP **recovery codes** (AC #3) — implement via a custom 10-code generation on enrollment + hashed storage + fallback verify flow. Bundle with the "Admin: reset MFA" owner-only flow per phase-2.md §8 risk row.
-- Profile **phone + DOB display** (AC #10) — extend `SessionProvider` to also load the `students` extension row (or fetch via TanStack Query on profile mount). Will land naturally when Phase 3 introduces the batch UI that also reads `students.batch_id`.
-- `docs/backend-architecture.md §3.1` **schema drift sweep** — update the table/policy SQL examples to match the four applied migrations.
-- **Android cold-start measurement** (AC #19) — when a Redmi 8A or equivalent low-end Android device is available, install the next EAS build and capture cold-start times into `docs/perf-baselines/`.
-- **Sentry + PostHog wiring** still deferred from Phase 1 (drop-in points are `lib/crash.ts` and `lib/analytics.ts`).
+> **Status (2026-05-15, Phase 3 closed):** three of the five items below were fully resolved in Phase 3. The remaining two (Android cold-start, Sentry+PostHog) have been re-carried into Phase 4's hand-off.
+
+- ✅ **Resolved in Phase 3 CP11.** TOTP **recovery codes** (AC #3) — new `mfa_recovery_codes` table + `mfa-codes-issue` + `mfa-codes-consume` edge fns + admin `/2fa/enroll` codes display + `/2fa/recovery` page. SHA-256-hashed 10-code batch per enrolment; consume = wipe TOTP factor + force re-enrol. See [`phase-3.md §14 C-1`](phase-3.md#14-acceptance-ledger--closed-2026-05-15) and decision **D-155**. The "Admin: reset MFA on another admin" UI from phase-2 §8 was deferred to Phase 12 (depends on admin-management page) — the recovery-code self-service path covers the dominant case.
+- ✅ **Resolved in Phase 3 CP9.** Profile **phone + DOB display** (AC #10) — `SessionProvider` now loads phone + dob columns on `app_users`; `(student)/profile.tsx` shows them with lock icons + "Contact admin" CTA. See [`phase-3.md §14 AC #9`](phase-3.md#14-acceptance-ledger--closed-2026-05-15).
+- ✅ **Resolved in Phase 3 CP11.** `docs/backend-architecture.md §3.1` **schema drift sweep** — status note rewritten with full 10-migration ledger, §3.1 fixed (`teachers.subjects` default + new CP10 `app_users_teacher_batch_read` policy callout), §3.9 action vocabulary listed, new §3.10 block for `mfa_recovery_codes`.
+- ⏳ **Re-carried into Phase 4.** **Android cold-start measurement** (AC #19) — still deferred pending Redmi 8A class hardware.
+- ⏳ **Re-carried into Phase 4.** **Sentry + PostHog wiring** still deferred from Phase 1 (drop-in points are `lib/crash.ts` and `lib/analytics.ts`).

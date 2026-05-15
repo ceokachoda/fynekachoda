@@ -154,6 +154,36 @@ Format:
   - Impacts: `apps/mobile/features/auth/auth.ts requestPasswordReset`.
   - Status: Locked.
 
+- **D-150 (2026-05-15, Phase 3 CP3):** `auth-bootstrap` accepts an optional `batch_id: uuid` for the student role; falls back to the "Default Batch (rename me)" lookup when absent.
+  - Why: lets CP7's `/students/new` form pass the picker selection directly; keeps the v1 path (no batch_id) working for the demo bootstrap script and any other backwards-compat callers. One edge fn, two callers, zero churn for the older one.
+  - Impacts: `apps/functions/auth-bootstrap/index.ts`, `apps/functions/_shared/schemas.ts BootstrapInputSchema`, `apps/admin/app/(dashboard)/students/new/actions.ts`.
+  - Status: Locked.
+
+- **D-151 (2026-05-15, Phase 3 CP6 + CP7):** **One `*-mutate` edge function per resource family** (`curriculum-mutate` 12 ops via discriminated-union body, `batch-mutate` 8 ops) instead of one edge fn per op (20 functions would otherwise have been needed).
+  - Why: mutation + audit + capacity check + RLS validation belong server-side; consolidating keeps the audit pattern uniform and reduces edge-fn count. The op switch is a single `discriminatedUnion` zod schema; bodies are tiny.
+  - Impacts: `apps/functions/curriculum-mutate/`, `apps/functions/batch-mutate/`, `_shared/schemas.ts (CurriculumMutateInputSchema, BatchMutateInputSchema)`.
+  - Status: Locked. Same shape applies for future resource families that need >2 admin ops.
+
+- **D-152 (2026-05-15, Phase 3 CP10):** When a mobile screen embeds another user's row through a join (e.g., `students.select("user_id, app_users!user_id(full_name)")`), the target table needs an RLS policy granting the calling role access — not just the bridge table. The CP10 fix added `app_users_teacher_batch_read` to `public.app_users` so teachers can resolve student names for embedded joins.
+  - Why: PostgREST silently returns NULL on the embedded relation when RLS blocks the join target — there's no error, just empty fields. CP10's batch-detail screen rendered every student name as "—" because of this exact pattern. Locked in by `test-rls.ts` Tests 14 + 15.
+  - Impacts: any future "teacher/admin views another user's profile through an embed" surface — Phase 4 attendance roster, Phase 8 mastery dashboards, Phase 10 leaderboards. Mirror this policy shape on `app_users` for the requesting role.
+  - Status: Locked.
+
+- **D-153 (2026-05-15, Phase 3 CP10):** Mobile **NEVER** calls `supabase.auth.updateUser({ password })` itself in the force-password-change or password-reset flows. The `auth-change-own-password` edge function is the single-call replacement; it uses service-role `admin.auth.admin.updateUserById` + clears `must_change_password` + writes the audit row, all server-side. **Supersedes the second-call portion of D-148** (the `auth-clear-must-change` invoke) and the original two-step flow in `phase-2.md §5.8`.
+  - Why: on iOS Expo Go, `supabase.auth.updateUser` rotates the session JWT under the hood and the next RN fetch (whether raw `fetch` or `supabase.functions.invoke`) silently dies before reaching the wire. Three separate incidents (Phase 2 CP8, Phase 3 CP9, Phase 3 CP10) all displayed as "Couldn't reach the server" while server logs showed the password actually changed. Collapsing both steps into a single edge-fn call eliminates the JWT-rotation race entirely.
+  - Impacts: `apps/functions/auth-change-own-password/index.ts` (deployed v1), `apps/mobile/features/auth/auth.ts changeOwnPassword + setPasswordAfterReset`. The original `auth-clear-must-change` edge fn is still deployed but unreachable; safe to leave or delete in future housekeeping.
+  - Status: Locked.
+
+- **D-154 (2026-05-15, Phase 3 CP10):** Mobile `supabase.auth.*` calls use `withTimeout(_, 30_000)` (30s budget, **refining D-148's 15s default**) AND check `supabase.auth.getSession()` after any timeout / network-error path to detect a session that landed asynchronously after the UI gave up. `apps/mobile/app/login.tsx` additionally subscribes to `useSession().session` and auto-routes to `/` when a session arrives while the user is still on the login screen.
+  - Why: server-side auth `/token` returns 200 in ~89ms but the supabase-js promise can take 15+ seconds to resolve when iOS Expo Go is slow writing the session into the Keychain. The 30s timeout + post-timeout `sessionLanded()` check + login-screen session watcher cover three failure modes in concert. **All mobile `supabase.from()` / `supabase.functions.invoke()` calls continue to use D-148's 15s default** — only auth calls bump to 30s.
+  - Impacts: `apps/mobile/features/auth/auth.ts AUTH_TIMEOUT_MS + sessionLanded`, `apps/mobile/app/login.tsx useEffect on session`.
+  - Status: Locked.
+
+- **D-155 (2026-05-15, Phase 3 CP11):** TOTP recovery codes are **10 codes per enrolment**, format `XXXXX-XXXXX` (10 chars + hyphen) from a 31-char ambiguity-stripped alphabet (`abcdefghjkmnpqrstuvwxyz23456789` — no `0/1/i/l/o`), stored as **SHA-256 hex hashes** in `public.mfa_recovery_codes`. **Consume = mark `used_at` + delete every verified TOTP factor on the user via GoTrue admin API + force re-enrol via middleware Stage A.**
+  - Why: SHA-256 is in Web Crypto (Deno + Node both) — no Argon2 dep. ~50 bits of entropy per code is plenty against a hashed-leak attacker. The "delete factor + re-enrol" recovery loop is the only correct path because Supabase's MFA API has no public way to upgrade AAL using a non-TOTP secret.
+  - Impacts: migration `20260515132622_mfa_recovery_codes`, `apps/functions/mfa-codes-issue/`, `apps/functions/mfa-codes-consume/`, `apps/admin/app/2fa/{enroll,recovery,verify}/*`, `apps/admin/middleware.ts FUNNEL_PATH_PREFIXES + Stage B`.
+  - Status: Locked. Admin-driven "Reset MFA on another admin" UI deferred to Phase 12 (depends on admin-management page).
+
 ## Attendance
 
 - **D-030 (2026-05-14):** **Rotating QR**, 30-second HMAC-signed token. Student displays, teacher scans.
