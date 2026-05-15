@@ -58,7 +58,13 @@ function Field({
   );
 }
 
-export function NewStudentForm() {
+interface BatchOption {
+  id: string;
+  name: string;
+  course: string;
+}
+
+export function NewStudentForm({ batches }: { batches: BatchOption[] }) {
   const [state, formAction, pending] = useActionState(
     createStudentAction,
     initial,
@@ -155,8 +161,34 @@ export function NewStudentForm() {
               error={state.fieldErrors?.current_class}
             />
           </div>
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-            Batch and course assignment unlocks in Phase 3.
+          <div className="space-y-1">
+            <label htmlFor="batch_id" className="text-sm font-medium text-slate-700">
+              Batch
+            </label>
+            <select
+              id="batch_id"
+              name="batch_id"
+              required
+              defaultValue=""
+              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm"
+              aria-invalid={state.fieldErrors?.batch_id ? "true" : undefined}
+            >
+              <option value="" disabled>
+                {batches.length === 0 ? "No active batches — create one first" : "Pick a batch"}
+              </option>
+              {batches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name} — {b.course}
+                </option>
+              ))}
+            </select>
+            {state.fieldErrors?.batch_id ? (
+              <p className="text-xs text-red-600">{state.fieldErrors.batch_id}</p>
+            ) : (
+              <p className="text-xs text-slate-500">
+                The student&apos;s course is derived from the batch (D-013).
+              </p>
+            )}
           </div>
         </Section>
 

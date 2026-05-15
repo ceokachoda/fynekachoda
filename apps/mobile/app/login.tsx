@@ -18,6 +18,7 @@ import Svg, { Circle, G, Path, Rect } from "react-native-svg";
 import { FyneStudyLogo } from "@/components/FyneStudyLogo";
 import { signInWithPassword } from "@/features/auth/auth";
 import { LoginSchema } from "@/features/auth/schemas";
+import { useSession } from "@/features/auth/useSession";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -125,12 +126,22 @@ function FloatingLabelInput({
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { session } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const illustrationOpacity = useRef(new Animated.Value(1)).current;
+
+  // If a session arrives (either from the in-flight signInWithPassword or
+  // from supabase-js's auto-restore on app open), bounce to root which will
+  // route us by role. Covers the iOS Expo Go case where /token returns 200
+  // but the supabase-js promise misses the 30s window — onAuthStateChange
+  // still fires later and SessionProvider's session becomes non-null.
+  useEffect(() => {
+    if (session) router.replace("/");
+  }, [session, router]);
 
   useEffect(() => {
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";

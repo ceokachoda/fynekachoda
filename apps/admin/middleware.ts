@@ -14,6 +14,7 @@ const PUBLIC_PATH_PREFIXES = [
 const FUNNEL_PATH_PREFIXES = [
   "/2fa/enroll",
   "/2fa/verify",
+  "/2fa/recovery",
   "/force-password-change",
 ];
 
@@ -81,8 +82,15 @@ export async function middleware(req: NextRequest) {
   }
 
   // Stage B: verified factor exists, but this session hasn't satisfied it.
+  // /2fa/recovery is the emergency exit — consuming a code deletes the
+  // factor and Stage A will re-route to /2fa/enroll on the next request.
   if (!mfaSatisfied) {
-    if (pathname.startsWith("/2fa/verify")) return response;
+    if (
+      pathname.startsWith("/2fa/verify") ||
+      pathname.startsWith("/2fa/recovery")
+    ) {
+      return response;
+    }
     const url = req.nextUrl.clone();
     url.pathname = "/2fa/verify";
     return NextResponse.redirect(url);

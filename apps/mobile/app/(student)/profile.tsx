@@ -1,18 +1,45 @@
 import { Alert, Linking, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { ChevronRight, Lock, LogOut, Mail, Phone, ShieldQuestion, User as UserIcon } from "lucide-react-native";
+import {
+  BookOpen,
+  CalendarDays,
+  ChevronRight,
+  GraduationCap,
+  Lock,
+  LogOut,
+  Mail,
+  Phone,
+  ShieldQuestion,
+  User as UserIcon,
+} from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "@/features/auth/useSession";
 import { signOut } from "@/features/auth/auth";
+import { useMyBatch } from "@/features/org/useMyBatch";
 
 const ADMIN_CONTACT_EMAIL = "admin@fynestudy.example.com";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { appUser, user } = useSession();
+  const myBatch = useMyBatch();
 
   const fullName = appUser?.full_name ?? user?.email ?? "Student";
   const email = appUser?.email ?? user?.email ?? "";
+  const phone = appUser?.phone ?? "—";
+  const dob = appUser?.dob ?? "—";
+  const batchLabel = myBatch.isLoading
+    ? "Loading…"
+    : myBatch.error
+      ? "—"
+      : myBatch.data?.batch_name ?? "—";
+  const courseLabel = myBatch.isLoading
+    ? "Loading…"
+    : myBatch.error
+      ? "—"
+      : myBatch.data
+        ? `${myBatch.data.course_code} · ${myBatch.data.course_name}`
+        : "—";
 
   async function handleSignOut() {
     await signOut();
@@ -75,14 +102,43 @@ export default function ProfileScreen() {
               icon={<Phone size={20} color="#10b981" />}
               tone="bg-emerald-50"
               label="Phone"
-              value="—"
+              value={phone}
+            />
+            <ReadOnlyRow
+              icon={<CalendarDays size={20} color="#a855f7" />}
+              tone="bg-purple-50"
+              label="Date of birth"
+              value={dob}
+              isLast
+            />
+          </View>
+        </View>
+
+        <View className="px-6 mb-8">
+          <Text className="text-lg font-bold text-slate-900 mb-4 px-2">
+            Academic
+          </Text>
+
+          <View className="bg-white rounded-[28px] shadow-sm shadow-slate-200/50 border border-slate-100 overflow-hidden">
+            <ReadOnlyRow
+              icon={<GraduationCap size={20} color="#0ea5e9" />}
+              tone="bg-sky-50"
+              label="Batch"
+              value={batchLabel}
+            />
+            <ReadOnlyRow
+              icon={<BookOpen size={20} color="#f59e0b" />}
+              tone="bg-amber-50"
+              label="Course"
+              value={courseLabel}
+              isLast
             />
           </View>
 
           <View className="mt-3 px-3">
             <Text className="text-xs text-slate-500 leading-4">
               Identity fields are read-only. To update your name, email, phone,
-              or batch, contact your institute admin.
+              date of birth, or batch, contact your institute admin.
             </Text>
           </View>
         </View>
@@ -130,14 +186,18 @@ function ReadOnlyRow({
   tone,
   label,
   value,
+  isLast = false,
 }: {
   icon: React.ReactNode;
   tone: string;
   label: string;
   value: string;
+  isLast?: boolean;
 }) {
   return (
-    <View className="flex-row items-center p-4 border-b border-slate-50">
+    <View
+      className={`flex-row items-center p-4 ${isLast ? "" : "border-b border-slate-50"}`}
+    >
       <View
         className={`w-12 h-12 ${tone} rounded-2xl items-center justify-center mr-4`}
       >
@@ -147,8 +207,14 @@ function ReadOnlyRow({
         <Text className="text-slate-500 text-xs font-semibold uppercase tracking-wide">
           {label}
         </Text>
-        <Text className="font-bold text-slate-800 text-base mt-0.5">{value}</Text>
+        <Text
+          className="font-bold text-slate-800 text-base mt-0.5"
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
       </View>
+      <Lock size={14} color="#94a3b8" />
     </View>
   );
 }

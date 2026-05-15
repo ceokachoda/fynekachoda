@@ -31,14 +31,14 @@ export const DEFAULT_TIMEOUT_MS = 15_000;
 // doesn't expose AbortController). The server side may still complete — that
 // is acceptable because every auth mutation we issue is idempotent on retry.
 export function withTimeout<T>(
-  p: Promise<T>,
+  p: PromiseLike<T>,
   ms: number = DEFAULT_TIMEOUT_MS,
 ): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new TimeoutError()), ms);
   });
-  return Promise.race([p, timeoutPromise]).finally(() => {
+  return Promise.race([Promise.resolve(p), timeoutPromise]).finally(() => {
     if (timer) clearTimeout(timer);
   });
 }

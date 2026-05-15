@@ -12,10 +12,10 @@ interface NavItem {
 const NAV: readonly NavItem[] = [
   { label: "Overview", href: "/" },
   { label: "Students", href: "/students" },
-  { label: "Teachers", href: "/teachers", comingPhase: "Phase 3" },
+  { label: "Teachers", href: "/teachers" },
   { label: "Admins", href: "/admins", ownerOnly: true, comingPhase: "Phase 11" },
-  { label: "Batches", href: "/batches", comingPhase: "Phase 3" },
-  { label: "Courses", href: "/courses", comingPhase: "Phase 3" },
+  { label: "Batches", href: "/batches" },
+  { label: "Courses", href: "/courses" },
   { label: "Audit log", href: "/audit", comingPhase: "Phase 11" },
 ] as const;
 

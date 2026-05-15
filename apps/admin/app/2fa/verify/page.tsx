@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { VerifyForm } from "./verify-form";
@@ -32,6 +33,14 @@ export default async function VerifyPage() {
         <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <VerifyForm factorId={factor.id} />
         </div>
+        <p className="text-center text-sm">
+          <Link
+            href="/2fa/recovery"
+            className="text-slate-600 underline-offset-2 hover:underline"
+          >
+            Lost your authenticator? Use a recovery code
+          </Link>
+        </p>
       </div>
     </main>
   );

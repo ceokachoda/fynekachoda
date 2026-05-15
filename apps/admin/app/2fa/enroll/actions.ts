@@ -1,9 +1,9 @@
 "use server";
 
 import { z } from "zod";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { callEdgeFn, requireAdmin } from "@/lib/auth";
 
 export interface EnrollSetup {
   factorId: string;
@@ -24,9 +24,6 @@ export async function startTotpEnrollment(): Promise<
   const { data: factorsData, error: listErr } = await supabase.auth.mfa.listFactors();
   if (listErr) return { ok: false, error: listErr.message };
 
-  // `factorsData.totp` is already filtered to verified factors by the SDK;
-  // unverified leftovers live in `factorsData.all`. Drop them so we don't
-  // accumulate dead enrollment attempts.
   for (const f of factorsData?.all ?? []) {
     if (f.factor_type === "totp" && f.status === "unverified") {
       await supabase.auth.mfa.unenroll({ factorId: f.id }).catch(() => {});
@@ -60,6 +57,7 @@ const VerifyInput = z.object({
 export interface VerifyEnrollState {
   error?: string;
   fieldError?: string;
+  codes?: string[];
 }
 
 export async function verifyEnrollmentAction(
@@ -75,12 +73,31 @@ export async function verifyEnrollmentAction(
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.mfa.challengeAndVerify({
+  const { error: verifyErr } = await supabase.auth.mfa.challengeAndVerify({
     factorId: parsed.data.factor_id,
     code: parsed.data.code,
   });
-  if (error) return { error: error.message };
+  if (verifyErr) return { error: verifyErr.message };
+
+  // TOTP verified server-side. Issue the recovery batch in the same action so
+  // the user can't reach the dashboard without first seeing the codes.
+  const session = await requireAdmin();
+  const result = await callEdgeFn<{ codes: string[]; count: number }>(
+    "mfa-codes-issue",
+    {},
+    session.access_token,
+  );
+  if (result.status !== 200) {
+    const detail =
+      typeof result.data === "object" && result.data && "error" in result.data
+        ? String((result.data as { error: unknown }).error)
+        : `status ${result.status}`;
+    return {
+      error: `2FA enrolled, but recovery codes could not be issued (${detail}). Sign out and back in, then visit Settings to generate them.`,
+    };
+  }
+  const { codes } = result.data as { codes: string[] };
 
   revalidatePath("/", "layout");
-  redirect("/");
+  return { codes };
 }

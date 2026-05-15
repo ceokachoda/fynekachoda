@@ -1,11 +1,35 @@
 import Link from "next/link";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { NewStudentForm } from "./new-student-form";
 
 export const metadata = {
   title: "New student · FyneStudy Admin",
 };
 
-export default function NewStudentPage() {
+async function fetchActiveBatches(): Promise<{
+  id: string;
+  name: string;
+  course: string;
+}[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("batches")
+    .select("id, name, courses(code, name)")
+    .eq("is_active", true)
+    .order("name");
+  return ((data ?? []) as unknown as Array<{
+    id: string;
+    name: string;
+    courses: { code: string; name: string } | null;
+  }>).map((b) => ({
+    id: b.id,
+    name: b.name,
+    course: b.courses ? `${b.courses.code} · ${b.courses.name}` : "—",
+  }));
+}
+
+export default async function NewStudentPage() {
+  const batches = await fetchActiveBatches();
   return (
     <div className="space-y-6">
       <div>
@@ -20,13 +44,13 @@ export default function NewStudentPage() {
         </h1>
         <p className="text-sm text-slate-500">
           Creating the account generates an initial password that the admin
-          must share with the student. Batch and course are assigned later
-          (Phase 3).
+          must share with the student. Pick the student&apos;s batch — the
+          course is derived from the batch.
         </p>
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-6">
-        <NewStudentForm />
+        <NewStudentForm batches={batches} />
       </div>
     </div>
   );

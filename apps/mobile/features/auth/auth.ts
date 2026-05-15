@@ -1,7 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { env } from "@/lib/env";
 import {
-  DEFAULT_TIMEOUT_MS,
   isNetworkError,
   NETWORK_ERROR_MESSAGE,
   withTimeout,
@@ -13,6 +11,21 @@ export type AuthResult =
   | { ok: true }
   | { ok: false; error: string; suspended?: boolean };
 
+// 30s for auth calls — iOS Expo Go can be slow writing the session into the
+// Keychain after the /token response arrives, blocking the supabase-js
+// promise well past the 15s default. The auth /token endpoint itself
+// typically returns in <200ms; the delay is post-response storage work.
+const AUTH_TIMEOUT_MS = 30_000;
+
+async function sessionLanded(): Promise<boolean> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return Boolean(data.session);
+  } catch {
+    return false;
+  }
+}
+
 export async function signInWithPassword(
   email: string,
   password: string,
@@ -23,77 +36,52 @@ export async function signInWithPassword(
         email: email.trim().toLowerCase(),
         password,
       }),
+      AUTH_TIMEOUT_MS,
     );
-    if (error) {
-      if (isNetworkError(error)) {
-        return { ok: false, error: NETWORK_ERROR_MESSAGE };
-      }
-      return { ok: false, error: "Invalid email or password." };
+    if (!error) return { ok: true };
+    if (isNetworkError(error)) {
+      // Server logs show /token returning 200 even when our promise times out
+      // — the response can land after withTimeout fires. Check for a stashed
+      // session before surfacing the network error.
+      if (await sessionLanded()) return { ok: true };
+      return { ok: false, error: NETWORK_ERROR_MESSAGE };
     }
-    return { ok: true };
+    return { ok: false, error: "Invalid email or password." };
   } catch (err) {
     if (isNetworkError(err)) {
+      if (await sessionLanded()) return { ok: true };
       return { ok: false, error: NETWORK_ERROR_MESSAGE };
     }
     return { ok: false, error: "Something went wrong. Please try again." };
   }
 }
 
-// Two-step per spec §5.8: updateUser then auth-clear-must-change. The edge
-// function flips must_change_password=false and writes the audit row.
+// Single edge-fn call. Server-side admin.auth.updateUserById changes the
+// password AND clears must_change_password AND writes the audit row. Avoids
+// the iOS Expo Go fetch-drop bug that hit us in CP9/CP10 — calling
+// supabase.auth.updateUser from mobile rotates the session JWT, and the next
+// RN fetch in the same screen silently dies before reaching the wire.
+// See memory `auth-client-timeouts`.
 export async function changeOwnPassword(
   newPassword: string,
 ): Promise<AuthResult> {
   try {
-    const { error: updErr } = await withTimeout(
-      supabase.auth.updateUser({ password: newPassword }),
+    const { data, error } = await withTimeout(
+      supabase.functions.invoke("auth-change-own-password", {
+        body: { new_password: newPassword },
+      }),
     );
-    if (updErr) {
-      if (isNetworkError(updErr)) {
+    if (error) {
+      if (isNetworkError(error)) {
         return { ok: false, error: NETWORK_ERROR_MESSAGE };
       }
-      return { ok: false, error: updErr.message };
-    }
-  } catch (err) {
-    if (isNetworkError(err)) {
-      return { ok: false, error: NETWORK_ERROR_MESSAGE };
-    }
-    throw err;
-  }
-
-  return await clearMustChange();
-}
-
-// Idempotent. Called after updateUser by both force-password-change and reset
-// flows. AbortController gives us real cancellation on the fetch side so the
-// request actually stops trying after the timeout (unlike supabase-js calls).
-async function clearMustChange(): Promise<AuthResult> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    return { ok: false, error: "Session lost while saving. Sign in again." };
-  }
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-  try {
-    const res = await fetch(
-      `${env.supabaseUrl}/functions/v1/auth-clear-must-change`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-        signal: controller.signal,
-      },
-    );
-    if (!res.ok) {
-      return {
-        ok: false,
-        error: `Could not clear must-change flag (HTTP ${res.status}). Try again.`,
-      };
+      const msg =
+        (data && typeof data === "object" && "error" in data
+          ? String((data as { error: unknown }).error)
+          : null) ??
+        (error as { message?: string }).message ??
+        "Couldn't change password.";
+      return { ok: false, error: msg };
     }
     return { ok: true };
   } catch (err) {
@@ -101,8 +89,6 @@ async function clearMustChange(): Promise<AuthResult> {
       return { ok: false, error: NETWORK_ERROR_MESSAGE };
     }
     return { ok: false, error: "Something went wrong saving your password." };
-  } finally {
-    clearTimeout(timer);
   }
 }
 
@@ -133,31 +119,13 @@ export async function requestPasswordReset(email: string): Promise<AuthResult> {
   }
 }
 
-// After the email-link reset succeeds, also clear must_change_password.
-// A user who forgot their admin-issued temp password and reset via email
-// would otherwise be bounced to /force-password-change after just changing
-// it. auth-clear-must-change is idempotent so this is safe in both cases.
+// After the email-link reset puts the user in a recovery session, use the
+// same single-call edge fn so the must_change_password flag is also cleared
+// in one round-trip.
 export async function setPasswordAfterReset(
   newPassword: string,
 ): Promise<AuthResult> {
-  try {
-    const { error } = await withTimeout(
-      supabase.auth.updateUser({ password: newPassword }),
-    );
-    if (error) {
-      if (isNetworkError(error)) {
-        return { ok: false, error: NETWORK_ERROR_MESSAGE };
-      }
-      return { ok: false, error: error.message };
-    }
-  } catch (err) {
-    if (isNetworkError(err)) {
-      return { ok: false, error: NETWORK_ERROR_MESSAGE };
-    }
-    throw err;
-  }
-
-  return await clearMustChange();
+  return await changeOwnPassword(newPassword);
 }
 
 export async function signOut(): Promise<void> {

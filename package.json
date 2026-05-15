@@ -19,6 +19,10 @@
     "bootstrap:owner": "tsx scripts/bootstrap-owner.ts",
     "smoke:cp5": "tsx scripts/smoke-test-cp5.ts",
     "smoke:cp8": "tsx scripts/smoke-test-cp8.ts",
+    "smoke:batch-transfer": "tsx scripts/smoke-test-batch-transfer.ts",
+    "smoke:curriculum": "tsx scripts/smoke-test-curriculum.ts",
+    "smoke:batch-mutate": "tsx scripts/smoke-test-batch-mutate.ts",
+    "smoke:mfa-recovery": "tsx scripts/smoke-test-mfa-recovery.ts",
     "test:rls": "tsx scripts/test-rls.ts"
   },
   "devDependencies": {

@@ -43,6 +43,7 @@ const FormSchema = z.object({
     .enum(["verbal", "written", "form"])
     .optional()
     .or(z.literal("")),
+  batch_id: z.string().uuid("Pick a batch"),
 });
 
 export interface CreateStudentState {
@@ -92,6 +93,7 @@ export async function createStudentAction(
     parent_phone_1: nilIfBlank(parsed.data.parent_phone_1),
     parent_phone_2: nilIfBlank(parsed.data.parent_phone_2),
     parent_consent_method: nilIfBlank(parsed.data.parent_consent_method),
+    batch_id: parsed.data.batch_id,
   };
 
   const result = await callEdgeFn<{

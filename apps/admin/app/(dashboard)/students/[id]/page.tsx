@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { listAuditForEntity } from "@/lib/audit";
 import { ActionButtons } from "./action-buttons";
+import { TransferBatchButton } from "./transfer-batch-button";
 
 interface StudentDetail {
   id: string;
@@ -26,8 +27,36 @@ interface StudentDetail {
         parent_phone_2: string | null;
         parent_consent_method: string | null;
         parent_consent_at: string | null;
+        batch_id: string | null;
+        batches: {
+          id: string;
+          name: string;
+          courses: { code: string; name: string } | null;
+        } | null;
       }
     | null;
+}
+
+interface BatchOption { id: string; name: string; course: string }
+
+async function fetchOtherBatches(currentBatchId: string | null): Promise<BatchOption[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from("batches")
+    .select("id, name, is_active, courses(code, name)")
+    .eq("is_active", true)
+    .order("name");
+  return ((data ?? []) as unknown as Array<{
+    id: string;
+    name: string;
+    courses: { code: string; name: string } | null;
+  }>)
+    .filter((b) => b.id !== currentBatchId)
+    .map((b) => ({
+      id: b.id,
+      name: b.name,
+      course: b.courses ? `${b.courses.code} · ${b.courses.name}` : "—",
+    }));
 }
 
 async function fetchStudent(id: string): Promise<StudentDetail | null> {
@@ -36,7 +65,7 @@ async function fetchStudent(id: string): Promise<StudentDetail | null> {
   const { data, error } = await supabase
     .from("app_users")
     .select(
-      "id, full_name, email, phone, dob, gender, is_active, must_change_password, suspended_at, suspended_reason, created_at, user_roles!user_id!inner(role), students!user_id(school_name, board, current_class, address, parent_phone_1, parent_phone_2, parent_consent_method, parent_consent_at)",
+      "id, full_name, email, phone, dob, gender, is_active, must_change_password, suspended_at, suspended_reason, created_at, user_roles!user_id!inner(role), students!user_id(school_name, board, current_class, address, parent_phone_1, parent_phone_2, parent_consent_method, parent_consent_at, batch_id, batches(id, name, courses(code, name)))",
     )
     .eq("id", id)
     .eq("user_roles.role", "student")
@@ -65,6 +94,7 @@ export default async function StudentDetailPage({
 
   const student = await fetchStudent(id);
   if (!student) notFound();
+  const otherBatches = await fetchOtherBatches(student.students?.batch_id ?? null);
 
   return (
     <div className="space-y-6">
@@ -94,7 +124,9 @@ export default async function StudentDetailPage({
 
       <Tabs id={student.id} active={tab} />
 
-      {tab === "identity" ? <IdentityTab student={student} /> : null}
+      {tab === "identity" ? (
+        <IdentityTab student={student} otherBatches={otherBatches} />
+      ) : null}
       {tab === "activity" ? <ActivityTab /> : null}
       {tab === "audit" ? <AuditTab studentId={student.id} /> : null}
     </div>
@@ -162,7 +194,17 @@ function Tabs({ id, active }: { id: string; active: Tab }) {
   );
 }
 
-function IdentityTab({ student }: { student: StudentDetail }) {
+function IdentityTab({
+  student,
+  otherBatches,
+}: {
+  student: StudentDetail;
+  otherBatches: BatchOption[];
+}) {
+  const batchName = student.students?.batches?.name ?? "—";
+  const courseLabel = student.students?.batches?.courses
+    ? `${student.students.batches.courses.code} · ${student.students.batches.courses.name}`
+    : "—";
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card title="Personal">
@@ -172,11 +214,23 @@ function IdentityTab({ student }: { student: StudentDetail }) {
         <Row label="Date of birth" value={student.dob ?? "—"} />
         <Row label="Gender" value={student.gender ?? "—"} />
       </Card>
-      <Card title="Academic">
+      <Card
+        title="Academic"
+        action={
+          student.students?.batch_id ? (
+            <TransferBatchButton
+              studentId={student.id}
+              currentBatchName={batchName}
+              otherBatches={otherBatches}
+            />
+          ) : null
+        }
+      >
         <Row label="School" value={student.students?.school_name ?? "—"} />
         <Row label="Board" value={student.students?.board ?? "—"} />
         <Row label="Class" value={student.students?.current_class ?? "—"} />
-        <Row label="Batch" value="— (Phase 3)" />
+        <Row label="Batch" value={batchName} />
+        <Row label="Course" value={courseLabel} />
       </Card>
       <Card title="Parents">
         <Row label="Parent 1" value={student.students?.parent_phone_1 ?? "—"} />
@@ -209,9 +263,9 @@ function IdentityTab({ student }: { student: StudentDetail }) {
         />
       </Card>
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 lg:col-span-2">
-        Field-level editing of identity data is locked in Phase 2 per
-        decision D-016 (admin is single source of truth). Inline editing
-        ships in Phase 3 alongside the batch picker.
+        Identity fields stay read-only per D-016 (admin is the single source
+        of truth). Batch transfer is allowed via the action button above,
+        which records an audit entry with the reason.
       </div>
     </div>
   );
@@ -270,15 +324,18 @@ async function AuditTab({ studentId }: { studentId: string }) {
 function Card({
   title,
   children,
+  action,
 }: {
   title: string;
   children: React.ReactNode;
+  action?: React.ReactNode;
 }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-5">
-      <h2 className="mb-3 text-xs uppercase tracking-wide text-slate-500">
-        {title}
-      </h2>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-xs uppercase tracking-wide text-slate-500">{title}</h2>
+        {action ?? null}
+      </div>
       <dl className="space-y-2">{children}</dl>
     </div>
   );

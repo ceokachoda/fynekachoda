@@ -97,9 +97,41 @@ Deno.serve(async (req: Request) => {
       return jsonError(500, "user_roles insert failed", origin, roleErr.message);
     }
 
+    let resolvedBatchId: string | null = null;
     if (input.role === "student") {
+      resolvedBatchId = input.batch_id ?? null;
+      if (resolvedBatchId) {
+        const { data: existsBatch, error: batchLookupErr } = await admin
+          .from("batches")
+          .select("id")
+          .eq("id", resolvedBatchId)
+          .maybeSingle();
+        if (batchLookupErr) {
+          return jsonError(500, "batch lookup failed", origin, batchLookupErr.message);
+        }
+        if (!existsBatch) {
+          return jsonError(400, "batch_id not found", origin);
+        }
+      } else {
+        const { data: defaultBatch, error: defaultErr } = await admin
+          .from("batches")
+          .select("id")
+          .eq("name", "Default Batch (rename me)")
+          .maybeSingle();
+        if (defaultErr || !defaultBatch) {
+          return jsonError(
+            500,
+            "no batch_id provided and Default Batch missing",
+            origin,
+            defaultErr?.message,
+          );
+        }
+        resolvedBatchId = defaultBatch.id as string;
+      }
+
       const { error: studentErr } = await admin.from("students").insert({
         user_id: appUserId,
+        batch_id: resolvedBatchId,
         school_name: input.school_name ?? null,
         board: input.board ?? null,
         current_class: input.current_class ?? null,
@@ -140,6 +172,7 @@ Deno.serve(async (req: Request) => {
         email: input.email,
         role: input.role,
         must_change_password: true,
+        ...(resolvedBatchId ? { batch_id: resolvedBatchId } : {}),
       },
       ip_address: clientIp(req),
       user_agent: req.headers.get("user-agent"),

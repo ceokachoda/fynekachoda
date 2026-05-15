@@ -30,6 +30,7 @@ export const BootstrapInputSchema = z.discriminatedUnion("role", [
     current_class: z.string().trim().max(50).optional(),
     address: z.string().trim().max(500).optional(),
     parent_consent_method: ConsentMethod.optional(),
+    batch_id: z.string().uuid().optional(),
   }),
   z.object({
     role: z.literal("teacher"),
@@ -63,3 +64,190 @@ export const SuspendInputSchema = z.object({
 export const ForceResetInputSchema = z.object({
   user_id: z.string().uuid(),
 });
+
+export const ChangeOwnPasswordInputSchema = z.object({
+  new_password: z
+    .string()
+    .min(10, "Use at least 10 characters")
+    .max(200)
+    .regex(/[a-z]/, "Include a lowercase letter")
+    .regex(/[A-Z]/, "Include an uppercase letter")
+    .regex(/\d/, "Include a digit")
+    .regex(/^\S+$/, "No spaces allowed"),
+});
+export type ChangeOwnPasswordInput = z.infer<typeof ChangeOwnPasswordInputSchema>;
+
+// Recovery codes are displayed in XXXXX-XXXXX form (10 chars + hyphen).
+// We accept any number of hyphens / whitespace on input — normalised before
+// hashing — so users can paste with or without dashes.
+const RECOVERY_CODE_ALPHA = "abcdefghjkmnpqrstuvwxyz23456789"; // no 0/1/i/l/o
+export const RECOVERY_CODE_LENGTH = 10;
+export const RECOVERY_CODE_ALPHABET = RECOVERY_CODE_ALPHA;
+export const RECOVERY_CODE_BATCH_SIZE = 10;
+
+export const ConsumeRecoveryCodeInputSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(1, "Enter a recovery code"),
+});
+export type ConsumeRecoveryCodeInput = z.infer<typeof ConsumeRecoveryCodeInputSchema>;
+
+export const BatchTransferInputSchema = z.object({
+  student_id: z.string().uuid(),
+  to_batch_id: z.string().uuid(),
+  reason: z.string().trim().min(3).max(500),
+});
+export type BatchTransferInput = z.infer<typeof BatchTransferInputSchema>;
+
+const CurriculumCode = z
+  .string()
+  .trim()
+  .min(2)
+  .max(30)
+  .regex(/^[A-Z][A-Z0-9_]*$/);
+const CurriculumName = z.string().trim().min(2).max(120);
+const NodeName = z.string().trim().min(1).max(120);
+const SortOrder = z.number().int().min(0).max(10_000);
+
+export const CurriculumMutateInputSchema = z.discriminatedUnion("op", [
+  z.object({
+    op: z.literal("create_course"),
+    payload: z.object({
+      code: CurriculumCode,
+      name: CurriculumName,
+      description: z.string().trim().max(2000).optional(),
+      is_active: z.boolean().default(true),
+    }),
+  }),
+  z.object({
+    op: z.literal("update_course"),
+    id: z.string().uuid(),
+    patch: z
+      .object({
+        name: CurriculumName.optional(),
+        description: z.string().trim().max(2000).nullish(),
+        is_active: z.boolean().optional(),
+      })
+      .refine((p) => Object.keys(p).length > 0, "empty patch"),
+  }),
+  z.object({ op: z.literal("delete_course"), id: z.string().uuid() }),
+
+  z.object({
+    op: z.literal("create_subject"),
+    payload: z.object({
+      course_id: z.string().uuid(),
+      name: NodeName,
+      sort_order: SortOrder.default(0),
+    }),
+  }),
+  z.object({
+    op: z.literal("update_subject"),
+    id: z.string().uuid(),
+    patch: z
+      .object({ name: NodeName.optional(), sort_order: SortOrder.optional() })
+      .refine((p) => Object.keys(p).length > 0, "empty patch"),
+  }),
+  z.object({ op: z.literal("delete_subject"), id: z.string().uuid() }),
+
+  z.object({
+    op: z.literal("create_chapter"),
+    payload: z.object({
+      subject_id: z.string().uuid(),
+      name: NodeName,
+      sort_order: SortOrder.default(0),
+    }),
+  }),
+  z.object({
+    op: z.literal("update_chapter"),
+    id: z.string().uuid(),
+    patch: z
+      .object({ name: NodeName.optional(), sort_order: SortOrder.optional() })
+      .refine((p) => Object.keys(p).length > 0, "empty patch"),
+  }),
+  z.object({ op: z.literal("delete_chapter"), id: z.string().uuid() }),
+
+  z.object({
+    op: z.literal("create_topic"),
+    payload: z.object({
+      chapter_id: z.string().uuid(),
+      name: NodeName,
+      sort_order: SortOrder.default(0),
+    }),
+  }),
+  z.object({
+    op: z.literal("update_topic"),
+    id: z.string().uuid(),
+    patch: z
+      .object({ name: NodeName.optional(), sort_order: SortOrder.optional() })
+      .refine((p) => Object.keys(p).length > 0, "empty patch"),
+  }),
+  z.object({ op: z.literal("delete_topic"), id: z.string().uuid() }),
+]);
+export type CurriculumMutateInput = z.infer<typeof CurriculumMutateInputSchema>;
+
+const BatchName = z.string().trim().min(2).max(120);
+const Capacity = z.number().int().min(1).max(10_000);
+const Weekday = z.number().int().min(0).max(6);
+const TimeHHMM = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
+
+export const BatchMutateInputSchema = z.discriminatedUnion("op", [
+  z.object({
+    op: z.literal("create_batch"),
+    payload: z
+      .object({
+        course_id: z.string().uuid(),
+        name: BatchName,
+        starts_on: IsoDate,
+        ends_on: IsoDate.optional(),
+        capacity: Capacity.default(80),
+        is_active: z.boolean().default(true),
+      })
+      .refine(
+        (b) => !b.ends_on || b.ends_on >= b.starts_on,
+        { message: "ends_on must be on or after starts_on", path: ["ends_on"] },
+      ),
+  }),
+  z.object({
+    op: z.literal("update_batch"),
+    id: z.string().uuid(),
+    patch: z
+      .object({
+        name: BatchName.optional(),
+        starts_on: IsoDate.optional(),
+        ends_on: IsoDate.nullish(),
+        capacity: Capacity.optional(),
+        is_active: z.boolean().optional(),
+      })
+      .refine((p) => Object.keys(p).length > 0, "empty patch"),
+  }),
+  z.object({ op: z.literal("delete_batch"), id: z.string().uuid() }),
+  z.object({
+    op: z.literal("assign_teacher"),
+    batch_id: z.string().uuid(),
+    teacher_id: z.string().uuid(),
+  }),
+  z.object({
+    op: z.literal("unassign_teacher"),
+    batch_id: z.string().uuid(),
+    teacher_id: z.string().uuid(),
+  }),
+  z.object({
+    op: z.literal("create_schedule_row"),
+    payload: z
+      .object({
+        batch_id: z.string().uuid(),
+        weekday: Weekday,
+        start_time: TimeHHMM,
+        end_time: TimeHHMM,
+        subject_id: z.string().uuid().optional(),
+        is_active: z.boolean().default(true),
+      })
+      .refine((s) => s.end_time > s.start_time, {
+        message: "end_time must be after start_time",
+        path: ["end_time"],
+      }),
+  }),
+  z.object({ op: z.literal("delete_schedule_row"), id: z.string().uuid() }),
+]);
+export type BatchMutateInput = z.infer<typeof BatchMutateInputSchema>;

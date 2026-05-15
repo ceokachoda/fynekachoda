@@ -16,6 +16,8 @@ export interface AppUser {
   id: string;
   full_name: string;
   email: string;
+  phone: string | null;
+  dob: string | null;
   is_active: boolean;
   must_change_password: boolean;
 }
@@ -45,7 +47,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
     const { data: au } = await supabase
       .from("app_users")
-      .select("id, full_name, email, is_active, must_change_password")
+      .select("id, full_name, email, phone, dob, is_active, must_change_password")
       .eq("auth_user_id", s.user.id)
       .maybeSingle();
     if (!au) {
