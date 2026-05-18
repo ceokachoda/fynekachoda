@@ -493,11 +493,160 @@ async function main(): Promise<void> {
   }
   pass(`Student A insert blocked (status ${t17Res.status})`);
 
-  console.log(`\nALL 17 RLS TESTS PASSED.`);
+  // ──────────────────────────────────────────────────────────────────
+  // Phase 4 CP2 — sessions / attendance / attendance_corrections / activity_days RLS.
+  // Service-role seeds the fixtures; we then sign in as each role and confirm
+  // the row-level scope holds.
+  // ──────────────────────────────────────────────────────────────────
+
+  header("Setup — seed one session per batch + attendance per student");
+  // Session A — Batch A (Student A, Teacher T1)
+  const startA = new Date(Date.now() + 60 * 60 * 1000); // +1h
+  const endA = new Date(Date.now() + 2 * 60 * 60 * 1000); // +2h
+  const { data: sessA, error: sessAErr } = await admin
+    .from("sessions")
+    .insert({
+      batch_id: studentABatchId,
+      scheduled_start: startA.toISOString(),
+      scheduled_end: endA.toISOString(),
+    })
+    .select("id")
+    .single();
+  if (sessAErr || !sessA) fail(`seed session A: ${sessAErr?.message}`);
+  const sessionAId = sessA.id as string;
+
+  // Session B — Batch B (Student B; no teacher assigned)
+  const { data: sessB, error: sessBErr } = await admin
+    .from("sessions")
+    .insert({
+      batch_id: batchBId,
+      scheduled_start: startA.toISOString(),
+      scheduled_end: endA.toISOString(),
+    })
+    .select("id")
+    .single();
+  if (sessBErr || !sessB) fail(`seed session B: ${sessBErr?.message}`);
+  const sessionBId = sessB.id as string;
+
+  // Attendance — Student A in Session A; Student B in Session B
+  await admin.from("attendance").delete().in("session_id", [sessionAId, sessionBId]);
+  const { error: attAErr } = await admin
+    .from("attendance")
+    .insert([
+      {
+        session_id: sessionAId,
+        student_id: sA.user_id,
+        status: "present",
+        method: "manual",
+        marked_by: t1.user_id,
+      },
+      {
+        session_id: sessionBId,
+        student_id: sB.user_id,
+        status: "present",
+        method: "manual",
+      },
+    ]);
+  if (attAErr) fail(`seed attendance: ${attAErr.message}`);
+
+  // activity_days for Student A (today IST-ish; date is fine)
+  const todayDay = new Date().toISOString().slice(0, 10);
+  await admin
+    .from("activity_days")
+    .delete()
+    .in("student_id", [sA.user_id, sB.user_id]);
+  const { error: adErr } = await admin
+    .from("activity_days")
+    .insert([
+      { student_id: sA.user_id, day: todayDay },
+      { student_id: sB.user_id, day: todayDay },
+    ]);
+  if (adErr) fail(`seed activity_days: ${adErr.message}`);
+  pass(`Sessions A+B, attendance for sA/sB, activity_days for sA/sB seeded`);
+
+  header("Test 18 — Anonymous cannot read sessions");
+  const t18Res = await rest<unknown[]>("GET", `sessions?select=id`, null);
+  if (!Array.isArray(t18Res.body) || t18Res.body.length !== 0) {
+    fail(`anon saw sessions: ${JSON.stringify(t18Res.body)}`);
+  }
+  pass(`Anon sees 0 sessions`);
+
+  header("Test 19 — Student A reads only own batch's sessions (Session A, not Session B)");
+  const t19Res = await rest<{ id: string }[]>("GET", `sessions?select=id`, sAJwt);
+  if (!Array.isArray(t19Res.body)) fail(`expected array, got ${JSON.stringify(t19Res.body)}`);
+  const t19Ids = t19Res.body.map((r) => r.id);
+  if (!t19Ids.includes(sessionAId)) fail(`Student A missing Session A; got: ${JSON.stringify(t19Ids)}`);
+  if (t19Ids.includes(sessionBId)) fail(`Student A leaked Session B: ${JSON.stringify(t19Ids)}`);
+  pass(`Student A sees Session A only (count=${t19Ids.length}, Session B excluded)`);
+
+  header("Test 20 — Teacher T1 reads only assigned-batch sessions (Session A, not Session B)");
+  const t20Res = await rest<{ id: string }[]>("GET", `sessions?select=id`, t1Jwt);
+  if (!Array.isArray(t20Res.body)) fail(`expected array, got ${JSON.stringify(t20Res.body)}`);
+  const t20Ids = t20Res.body.map((r) => r.id);
+  if (!t20Ids.includes(sessionAId)) fail(`Teacher T1 missing Session A; got: ${JSON.stringify(t20Ids)}`);
+  if (t20Ids.includes(sessionBId)) fail(`Teacher T1 leaked Session B: ${JSON.stringify(t20Ids)}`);
+  pass(`Teacher T1 sees Session A only (count=${t20Ids.length}, Session B excluded)`);
+
+  header("Test 21 — Student A reads only own attendance row");
+  const t21Res = await rest<{ student_id: string }[]>(
+    "GET",
+    `attendance?select=student_id`,
+    sAJwt,
+  );
+  if (!Array.isArray(t21Res.body)) fail(`expected array, got ${JSON.stringify(t21Res.body)}`);
+  if (t21Res.body.length !== 1) fail(`Student A expected 1 attendance row, got ${t21Res.body.length}`);
+  if (t21Res.body[0].student_id !== sA.user_id) {
+    fail(`Student A leaked another student's attendance: ${JSON.stringify(t21Res.body)}`);
+  }
+  pass(`Student A sees exactly 1 own attendance row`);
+
+  header("Test 22 — Teacher T1 reads Session A attendance only (Student A), not Student B");
+  const t22Res = await rest<{ session_id: string; student_id: string }[]>(
+    "GET",
+    `attendance?select=session_id,student_id`,
+    t1Jwt,
+  );
+  if (!Array.isArray(t22Res.body)) fail(`expected array, got ${JSON.stringify(t22Res.body)}`);
+  if (t22Res.body.some((r) => r.session_id === sessionBId)) {
+    fail(`Teacher T1 leaked Session B attendance: ${JSON.stringify(t22Res.body)}`);
+  }
+  const t22Mine = t22Res.body.filter((r) => r.session_id === sessionAId);
+  if (t22Mine.length !== 1 || t22Mine[0].student_id !== sA.user_id) {
+    fail(`Teacher T1 should see Student A in Session A; got: ${JSON.stringify(t22Res.body)}`);
+  }
+  pass(`Teacher T1 sees Session A attendance only (count=${t22Res.body.length}, Session B excluded)`);
+
+  header("Test 23 — Student A cannot INSERT into attendance (writes go through edge fn)");
+  const t23Res = await rest<unknown>("POST", `attendance`, sAJwt, {
+    session_id: sessionAId,
+    student_id: sA.user_id,
+    status: "present",
+    method: "manual",
+  });
+  if (t23Res.status >= 200 && t23Res.status < 300) {
+    fail(`RLS leak: student inserted attendance with status ${t23Res.status}`);
+  }
+  pass(`Student A attendance INSERT blocked (status ${t23Res.status})`);
+
+  header("Test 24 — Student A reads only own activity_days row");
+  const t24Res = await rest<{ student_id: string }[]>(
+    "GET",
+    `activity_days?select=student_id`,
+    sAJwt,
+  );
+  if (!Array.isArray(t24Res.body)) fail(`expected array, got ${JSON.stringify(t24Res.body)}`);
+  if (t24Res.body.length !== 1 || t24Res.body[0].student_id !== sA.user_id) {
+    fail(`Student A expected exactly own activity_days row; got: ${JSON.stringify(t24Res.body)}`);
+  }
+  pass(`Student A sees own activity_days row only`);
+
+  console.log(`\nALL 24 RLS TESTS PASSED.`);
   console.log(`Test fixtures left in place (idempotent):`);
   console.log(`  Student A: ${sA.email}`);
   console.log(`  Student B: ${sB.email} (in ${batchBName})`);
   console.log(`  Teacher T1: ${t1.email} (assigned to Batch A)`);
+  console.log(`  Session A: ${sessionAId} (Batch A, ${startA.toISOString()})`);
+  console.log(`  Session B: ${sessionBId} (Batch B)`);
 }
 
 main().catch((err) => {

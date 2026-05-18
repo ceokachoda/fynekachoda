@@ -56,7 +56,7 @@ Both Supabase projects in `ap-south-1`. Branching (`supabase branch create`) use
 
 > SQL below is illustrative. Final migrations live under `supabase/migrations/`. Every table uses UUIDs (`gen_random_uuid()`), `created_at` and `updated_at` (`timestamptz`), and soft-delete where indicated.
 
-> **Status note (last sweep 2026-05-15, Phase 3 CP11):** §3.1 Identity, §3.2 Courses & Batches, §3.9 Audit Log, and the new §3.10 MFA Recovery Codes are all **applied** to the dev project (`orqwyazvcthgxoadfxfv`). RLS for those tables is also applied (see callouts inside each section).
+> **Status note (last sweep 2026-05-18, Phase 4 CP13):** §3.1 Identity, §3.2 Courses & Batches, §3.3 Sessions & Attendance, §3.9 Audit Log, and §3.10 MFA Recovery Codes are all **applied** to the dev project (`orqwyazvcthgxoadfxfv`). RLS for every applied table is on (see callouts inside each section). Two QR rate-limit tables (`qr_sign_attempts`, `qr_verify_attempts`) and one materializer (`public.materialize_sessions(p_window_days int)` + nightly `pg_cron`) are also applied — see §3.3 callouts.
 >
 > Applied migrations, in order:
 > - `20260514115416_init` — empty placeholder (Phase 1).
@@ -69,8 +69,15 @@ Both Supabase projects in `ap-south-1`. Branching (`supabase branch create`) use
 > - `20260515064428_batch_rls` (Phase 3 CP3) — RLS on the seven Phase 3 tables; teacher batch-scope read on `students`.
 > - `20260515121845_teacher_app_users_read` (Phase 3 CP10) — adds `app_users_teacher_batch_read` so a teacher can resolve student `full_name` when embedding `students(app_users!user_id(full_name))`. Closes the silent-null bug discovered when the teacher batch-detail roster on mobile rendered "—" for every name.
 > - `20260515132622_mfa_recovery_codes` (Phase 3 CP11) — `mfa_recovery_codes` table + RLS (self-read of own hashed rows, admin all). Powers the `mfa-codes-issue` / `mfa-codes-consume` edge functions.
+> - `20260515152721_sessions_attendance` (Phase 4 CP1) — `sessions`, `attendance`, `attendance_corrections`, `activity_days`. Unique `(session_id, student_id)` on `attendance` enforces no duplicates.
+> - `20260515155135_attendance_rls` (Phase 4 CP2) — RLS on the four Phase 4 tables: student-self / teacher-batch / admin on reads; **no INSERT/UPDATE policy for `authenticated`** — writes go through edge fns under `service_role`.
+> - `20260515160609_qr_secret_accessor` (Phase 4 CP3) — `private.get_qr_secret(version int)` reads the HMAC secret from Supabase Vault. Locked to `service_role`.
+> - `20260515194546_qr_sign_attempts` (Phase 4 CP4) — `qr_sign_attempts` rate-limit table + `private.try_qr_sign(p_student uuid, p_session uuid)` SECURITY DEFINER RPC (1 / 5 s per `(student_id, session_id)` per **D-115**).
+> - `20260515214940_qr_verify_attempts` (Phase 4 CP5) — `qr_verify_attempts` rate-limit table + `private.try_qr_verify(p_teacher uuid)` SECURITY DEFINER RPC (2 / s per teacher per **D-115**).
+> - `20260515220836_materialize_sessions` (Phase 4 CP7) — `public.materialize_sessions(p_window_days int)` DB function + nightly `pg_cron` job `materialize-sessions-nightly` at `0 0 * * *` UTC. Idempotent on re-run.
+> - `20260515221227_realtime_attendance` (Phase 4 CP8) — adds `public.attendance` to the `supabase_realtime` publication so the teacher roster screen and student dashboard receive CDC INSERT events under RLS scope.
 >
-> Other §3 sections (sessions, content, quizzes, exams, mastery, parent reports) are **target schema** — they land in Phases 4 through 9. When this doc disagrees with the applied migrations, **the migrations win**.
+> Other §3 sections (content, quizzes, exams, mastery, parent reports) are **target schema** — they land in Phases 5 through 9. When this doc disagrees with the applied migrations, **the migrations win**.
 
 ### 3.1 Identity
 
@@ -547,7 +554,7 @@ create table public.audit_log (
 );
 ```
 
-Applied action vocabulary (as of Phase 3 CP11): `create_user`, `update_user`, `suspend`, `unsuspend`, `force_reset_password`, `password_changed`, `create_course` / `update_course` / `delete_course`, `create_subject` / `update_subject` / `delete_subject`, `create_chapter` / `update_chapter` / `delete_chapter`, `create_topic` / `update_topic` / `delete_topic`, `create_batch` / `update_batch` / `delete_batch`, `assign_teacher_to_batch` / `unassign_teacher_from_batch`, `create_schedule_row` / `delete_schedule_row`, `transfer_student`, `mfa_codes_issued`, `mfa_codes_consumed`.
+Applied action vocabulary (as of Phase 4 CP13): `create_user`, `update_user`, `suspend`, `unsuspend`, `force_reset_password`, `password_changed`, `create_course` / `update_course` / `delete_course`, `create_subject` / `update_subject` / `delete_subject`, `create_chapter` / `update_chapter` / `delete_chapter`, `create_topic` / `update_topic` / `delete_topic`, `create_batch` / `update_batch` / `delete_batch`, `assign_teacher_to_batch` / `unassign_teacher_from_batch`, `create_schedule_row` / `delete_schedule_row`, `transfer_student`, `mfa_codes_issued`, `mfa_codes_consumed`, `attendance_marked` (via QR verify), `attendance_manual_marked`, `attendance_corrected`, `attendance_bulk_mark`, `attendance_unmarked`, `session_created_ad_hoc`.
 
 ### 3.10 MFA Recovery Codes (Phase 3 CP11)
 
@@ -774,6 +781,43 @@ All edge functions are Deno, deployed via `supabase functions deploy`. Each func
 - **Schedule:** quarterly.
 - **Action:** anonymizes `audit_log` rows older than 2 years — strips IP, user agent; sets `actor_user_id = null` for deleted users.
 
+### 6.13 `attendance-correct` (Phase 4 CP6)
+
+- **Auth:** teacher (in session's batch) or admin.
+- **Input:** `{ attendance_id: uuid, new_status: 'present'|'late'|'absent', reason: string (3..500 chars) }`
+- **Action:** reads existing `attendance` row → verifies actor authority → refuses if `new_status` matches current (`status_already_matches`) → updates `attendance.status` + `method='correction'` + `marked_by=actor` → inserts `attendance_corrections` row with `prev_status` / `new_status` / `reason` / `changed_by=actor` → writes `audit_log` `attendance_corrected` with before/after JSON.
+- **Audit:** `attendance_corrected`.
+
+### 6.14 `attendance-bulk-mark` (Phase 4 CP6)
+
+- **Auth:** teacher (in session's batch) or admin.
+- **Input:** `{ session_id: uuid, status: 'present'|'late'|'absent', target: 'unmarked'|'all' }`
+- **Action:** for every student in the session's batch whose `(session_id, student_id)` row does not yet exist (target=`unmarked`) — or all students (target=`all`, admin-only) — inserts an `attendance` row with `method='manual'`, `marked_by=actor`. `ON CONFLICT DO NOTHING` guarantees no overwrites.
+- **Audit:** `attendance_bulk_mark` with `{count, target}`.
+
+### 6.15 `attendance-manual-mark` (Phase 4 CP10, per **D-156**)
+
+- **Auth:** teacher (in session's batch).
+- **Input:** `{ session_id: uuid, student_id: uuid, status: 'present'|'late'|'absent' }`
+- **Action:** INSERT-only. Verifies teacher-batch scope, refuses if `(session_id, student_id)` row already exists (`409 already_marked`), else inserts `attendance` with `method='manual'`, `marked_by=teacher`.
+- **Audit:** `attendance_manual_marked`.
+- **Why this fn exists** (over the bulk-mark + correct pair): bulk targets >1 student; correct requires an existing row. This is the right primitive for "teacher taps P/L/A on one unmarked roster row".
+
+### 6.16 `attendance-unmark` (Phase 4 §B, per **D-165**)
+
+- **Auth:** teacher (in session's batch).
+- **Input:** `{ attendance_id: uuid }`
+- **Action:** verifies teacher-batch scope → DELETEs the attendance row → writes `audit_log` `attendance_unmarked` with the deleted state in `before_data` so history isn't lost.
+- **Audit:** `attendance_unmarked`.
+- **UI trigger:** mobile teacher roster tap-on-active-pill → confirm Alert → invoke (per **D-164**).
+
+### 6.17 `session-create-ad-hoc` (Phase 4 CP6)
+
+- **Auth:** teacher assigned to the target batch.
+- **Input:** `{ batch_id: uuid, duration_min: 30|45|60|90, subject_id?: uuid }`
+- **Action:** computes `scheduled_start` from the next 15-minute mark, `scheduled_end = start + duration_min`. Verifies teacher-batch via `batch_teachers`. Inserts `sessions` row with `is_ad_hoc=true`, `status='scheduled'`, `created_by=teacher`.
+- **Audit:** `session_created_ad_hoc`.
+
 ## 7. Realtime Channels
 
 Supabase Realtime (Postgres-backed broadcasting + presence).
@@ -786,6 +830,8 @@ Supabase Realtime (Postgres-backed broadcasting + presence).
 | Teacher attendance counter | `room:session:{session_id}:roster` | Teacher only | Live count of attendance marks |
 
 Authorization for channel join is enforced via RLS on the underlying `sessions` table (Realtime checks SELECT permission on the row before allowing subscribe).
+
+**Phase 4 CDC channels (applied 2026-05-15):** instead of a custom broadcast channel, the teacher roster screen and student dashboard subscribe to **Postgres Change Data Capture** on `public.attendance` via the `supabase_realtime` publication (migration `20260515221227_realtime_attendance`). Authorization is the same RLS path used for SELECTs, so a teacher only receives events for rows in their batches and a student only receives events for their own attendance. Verified by `pnpm smoke:realtime` 2/2 (service-role subscriber receives every event; teacher-JWT subscriber receives only RLS-allowed rows).
 
 ## 8. Storage Buckets
 
@@ -813,7 +859,7 @@ Implemented via Supabase Cron (pg_cron extension).
 | Mastery sweep | `30 2 * * *` | `mastery-recompute` (full) | Catch any missed recomputes |
 | Parent reports | `0 18 * * 0` | `parent-report-generate` | Sunday 18:00 IST |
 | Audit cleanup | `0 3 1 */3 *` | `audit-log-cleanup` | Quarterly |
-| Session materialize | `0 0 * * *` | `materialize-sessions` (DB function) | Generates next 14 days of sessions from `batch_schedule` |
+| Session materialize | `0 0 * * *` | `public.materialize_sessions(14)` (DB fn — **applied Phase 4 CP7** as `materialize-sessions-nightly`) | Generates next 14 days of sessions from `batch_schedule`. Idempotent on re-run. |
 | Backup verify | `0 4 * * *` | external (GH Action) | Confirms daily Supabase backup ran |
 
 ## 10. Third-Party Integrations

@@ -23,7 +23,15 @@
     "smoke:curriculum": "tsx scripts/smoke-test-curriculum.ts",
     "smoke:batch-mutate": "tsx scripts/smoke-test-batch-mutate.ts",
     "smoke:mfa-recovery": "tsx scripts/smoke-test-mfa-recovery.ts",
-    "test:rls": "tsx scripts/test-rls.ts"
+    "test:rls": "tsx scripts/test-rls.ts",
+    "test:hmac": "tsx scripts/test-hmac.ts",
+    "smoke:qr-sign": "tsx scripts/smoke-test-attendance-qr-sign.ts",
+    "smoke:qr-verify": "tsx scripts/smoke-test-attendance-qr-verify.ts",
+    "smoke:cp6": "tsx scripts/smoke-test-cp6.ts",
+    "smoke:materialize": "tsx scripts/smoke-test-materialize-sessions.ts",
+    "smoke:realtime": "tsx scripts/smoke-test-realtime-attendance.ts",
+    "smoke:manual-mark": "tsx scripts/smoke-test-attendance-manual-mark.ts",
+    "seed:manual-test": "tsx scripts/seed-manual-test.ts"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.105.4",
@@ -32,5 +40,10 @@
     "tsx": "^4.19.2",
     "typescript": "~5.9.2",
     "zod": "^3.24.0"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "react-native-css-interop@0.2.3": "patches/react-native-css-interop@0.2.3.patch"
+    }
   }
 }

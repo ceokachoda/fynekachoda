@@ -43,9 +43,10 @@ export function useAssignedBatches(): State {
         supabase
           .from("batches")
           .select(
-            "id, name, is_active, courses(code, name), students(count), batch_schedule(weekday, start_time, end_time, is_active)",
+            "id, name, is_active, courses(code, name), students(count), batch_schedule(weekday, start_time, end_time, is_active), batch_teachers!inner(teacher_id)",
           )
           .eq("is_active", true)
+          .eq("batch_teachers.teacher_id", appUser.id)
           .order("name", { ascending: true }),
       );
       if (dbErr) {

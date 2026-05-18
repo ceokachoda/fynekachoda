@@ -1,0 +1,20 @@
+diff --git a/dist/runtime/native/render-component.js b/dist/runtime/native/render-component.js
+--- a/dist/runtime/native/render-component.js
++++ b/dist/runtime/native/render-component.js
+@@ -133,7 +133,14 @@
+         const newValue = Array.isArray(value) ? [] : {};
+-        for (const entry of Object.entries(value)) {
+-            newValue[entry[0]] = replace(entry[0], entry[1]);
+-        }
++        try {
++            for (const entry of Object.entries(value)) {
++                newValue[entry[0]] = replace(entry[0], entry[1]);
++            }
++        }
++        catch (_e) {
++            seen.delete(value);
++            return "[Unserializable]";
++        }
+         seen.delete(value);
+         return newValue;
+     }, 2);

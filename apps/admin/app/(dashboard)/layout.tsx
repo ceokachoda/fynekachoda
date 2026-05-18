@@ -16,6 +16,7 @@ const NAV: readonly NavItem[] = [
   { label: "Admins", href: "/admins", ownerOnly: true, comingPhase: "Phase 11" },
   { label: "Batches", href: "/batches" },
   { label: "Courses", href: "/courses" },
+  { label: "Attendance", href: "/attendance" },
   { label: "Audit log", href: "/audit", comingPhase: "Phase 11" },
 ] as const;
 

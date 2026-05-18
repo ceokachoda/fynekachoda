@@ -93,6 +93,60 @@ export const ConsumeRecoveryCodeInputSchema = z.object({
 });
 export type ConsumeRecoveryCodeInput = z.infer<typeof ConsumeRecoveryCodeInputSchema>;
 
+export const QrSignInputSchema = z.object({
+  session_id: z.string().uuid(),
+});
+export type QrSignInput = z.infer<typeof QrSignInputSchema>;
+
+export const QrVerifyInputSchema = z.object({
+  qr_payload: z.string().min(20).max(4000),
+  session_id: z.string().uuid(),
+});
+export type QrVerifyInput = z.infer<typeof QrVerifyInputSchema>;
+
+export const AttendanceCorrectInputSchema = z.object({
+  attendance_id: z.string().uuid(),
+  new_status: z.enum(["present", "late", "absent"]),
+  reason: z.string().trim().min(3).max(500),
+});
+export type AttendanceCorrectInput = z.infer<typeof AttendanceCorrectInputSchema>;
+
+export const AttendanceBulkMarkInputSchema = z.object({
+  session_id: z.string().uuid(),
+  mark_remaining: z.enum(["present", "absent"]),
+});
+export type AttendanceBulkMarkInput = z.infer<typeof AttendanceBulkMarkInputSchema>;
+
+export const AttendanceManualMarkInputSchema = z.object({
+  session_id: z.string().uuid(),
+  student_id: z.string().uuid(),
+  status: z.enum(["present", "late", "absent"]),
+});
+export type AttendanceManualMarkInput = z.infer<typeof AttendanceManualMarkInputSchema>;
+
+export const AttendanceUnmarkInputSchema = z.object({
+  session_id: z.string().uuid(),
+  student_id: z.string().uuid(),
+});
+export type AttendanceUnmarkInput = z.infer<typeof AttendanceUnmarkInputSchema>;
+
+export const SessionCreateAdHocInputSchema = z
+  .object({
+    batch_id: z.string().uuid(),
+    subject_id: z.string().uuid().optional(),
+    scheduled_start: z.string().datetime(),
+    scheduled_end: z.string().datetime(),
+    is_live_class: z.boolean().default(false),
+  })
+  .refine(
+    (s) => new Date(s.scheduled_end).getTime() > new Date(s.scheduled_start).getTime(),
+    {
+      message: "scheduled_end must be after scheduled_start",
+      path: ["scheduled_end"],
+    },
+  );
+export type SessionCreateAdHocInput = z.infer<typeof SessionCreateAdHocInputSchema>;
+
 export const BatchTransferInputSchema = z.object({
   student_id: z.string().uuid(),
   to_batch_id: z.string().uuid(),

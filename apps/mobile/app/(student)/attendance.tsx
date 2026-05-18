@@ -1,40 +1,106 @@
-import { View, Text, ScrollView, TouchableOpacity, Animated, Easing } from 'react-native';
-import { Bell, MapPin, History, CheckCircle2, CalendarDays, Sigma, FlaskConical } from 'lucide-react-native';
-import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useRef } from 'react';
-import QRCode from 'react-native-qrcode-svg';
-import { FyneStudyLogo } from '../../components/FyneStudyLogo';
+import { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Bell, CalendarDays, History } from "lucide-react-native";
+import { Image } from "expo-image";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { FyneStudyLogo } from "@/components/FyneStudyLogo";
+import { QrDisplay } from "@/components/attendance/QrDisplay";
+import { AttendanceHistory } from "@/components/attendance/AttendanceHistory";
+import { AttendanceRing } from "@/components/attendance/AttendanceRing";
+import {
+  useTodaySessions,
+  type TodaySession,
+} from "@/features/attendance/useTodaySessions";
+import { useAttendanceHistory } from "@/features/attendance/useAttendanceHistory";
+import { useAttendanceRealtime } from "@/features/attendance/useAttendanceRealtime";
 
-export default function CheckInScreen() {
-  const slideAnim = useRef(new Animated.Value(0)).current;
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(slideAnim, {
-          toValue: 1,
-          duration: 2500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 2500,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
-        }),
-      ])
-    ).start();
-  }, [slideAnim]);
+function statusBadge(s: TodaySession): {
+  label: string;
+  classes: string;
+} {
+  if (s.attendance_status === "present") {
+    return { label: "Present", classes: "bg-emerald-50 text-emerald-700" };
+  }
+  if (s.attendance_status === "late") {
+    return { label: "Late", classes: "bg-amber-50 text-amber-700" };
+  }
+  if (s.attendance_status === "absent") {
+    return { label: "Absent", classes: "bg-red-50 text-red-700" };
+  }
+  if (s.window === "open") {
+    return { label: "Scan now", classes: "bg-blue-50 text-blue-700" };
+  }
+  if (s.window === "before") {
+    return { label: "Upcoming", classes: "bg-slate-100 text-slate-600" };
+  }
+  return { label: "Closed", classes: "bg-slate-100 text-slate-500" };
+}
+
+export default function AttendanceScreen(): React.ReactElement {
+  const {
+    sessions,
+    isLoading: sessionsLoading,
+    error: sessionsError,
+    refresh: refreshSessions,
+  } = useTodaySessions();
+  const {
+    data: history,
+    isLoading: historyLoading,
+    error: historyError,
+    refresh: refreshHistory,
+  } = useAttendanceHistory();
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([refreshSessions(), refreshHistory()]);
+  }, [refreshSessions, refreshHistory]);
+
+  useAttendanceRealtime(() => {
+    void refreshAll();
+  });
+
+  const eligibleSessions = useMemo(
+    () =>
+      sessions.filter(
+        (s) => s.window === "open" && s.attendance_status === null,
+      ),
+    [sessions],
+  );
+
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const activeSessionId =
+    selectedSessionId ?? eligibleSessions[0]?.id ?? null;
+  const activeSession = activeSessionId
+    ? sessions.find((s) => s.id === activeSessionId) ?? null
+    : null;
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onPullRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshAll();
+    setRefreshing(false);
+  }, [refreshAll]);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={['top']}>
-      {/* Header (App Header) */}
+    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
       <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
-        <Image 
-          source={{ uri: 'https://i.pravatar.cc/150?img=11' }} 
-          className="w-10 h-10 rounded-full bg-slate-200" 
+        <Image
+          source={{ uri: "https://i.pravatar.cc/150?img=11" }}
+          className="w-10 h-10 rounded-full bg-slate-200"
         />
         <FyneStudyLogo variant="header" />
         <TouchableOpacity className="w-10 h-10 items-end justify-center">
@@ -42,214 +108,149 @@ export default function CheckInScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        className="flex-1" 
+      <ScrollView
+        className="flex-1"
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onPullRefresh} />
+        }
       >
-        {/* Page Title */}
         <View className="mt-4 mb-6 px-6 items-center">
-          <Text className="text-3xl font-extrabold text-blue-600 tracking-tight">Check-in Pass</Text>
-          <Text className="text-base text-slate-500 mt-1">Scan at the classroom entrance</Text>
+          <Text className="text-3xl font-extrabold text-blue-700 tracking-tight">
+            Attendance
+          </Text>
+          <Text className="text-base text-slate-500 mt-1">
+            Show your QR to the teacher
+          </Text>
         </View>
 
-        {/* QR Code Card */}
-        <View className="px-6 mb-8">
-          <View className="bg-white rounded-[28px] p-8 items-center shadow-sm shadow-slate-200/50 border border-slate-100">
-            {/* QR Area with blue brackets */}
-            <View className="relative p-6 mb-6">
-              {/* Brackets */}
-              <View className="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-blue-500 rounded-tl-xl" />
-              <View className="absolute top-0 right-0 w-8 h-8 border-t-[3px] border-r-[3px] border-blue-500 rounded-tr-xl" />
-              <View className="absolute bottom-0 left-0 w-8 h-8 border-b-[3px] border-l-[3px] border-blue-500 rounded-bl-xl" />
-              <View className="absolute bottom-0 right-0 w-8 h-8 border-b-[3px] border-r-[3px] border-blue-500 rounded-br-xl" />
-              
-              <View className="bg-white p-2">
-                <QRCode
-                  value="https://coachingos.com/checkin/user123"
-                  size={160}
-                  color="#1e293b"
-                  backgroundColor="transparent"
-                />
+        {activeSession ? (
+          <View className="px-6 mb-6">
+            <QrDisplay
+              sessionId={activeSession.id}
+              sessionLabel={
+                (activeSession.subject_name ?? "Class") +
+                " · " +
+                formatTime(activeSession.scheduled_start)
+              }
+            />
+            {eligibleSessions.length > 1 ? (
+              <View className="flex-row flex-wrap mt-3">
+                {eligibleSessions.map((s) => (
+                  <TouchableOpacity
+                    key={s.id}
+                    className={`px-3 py-1.5 rounded-full mr-2 mb-2 border ${
+                      s.id === activeSessionId
+                        ? "bg-blue-600 border-blue-600"
+                        : "bg-white border-slate-200"
+                    }`}
+                    onPress={() => setSelectedSessionId(s.id)}
+                  >
+                    <Text
+                      className={`text-xs font-semibold ${
+                        s.id === activeSessionId ? "text-white" : "text-slate-700"
+                      }`}
+                    >
+                      {(s.subject_name ?? "Class") +
+                        " · " +
+                        formatTime(s.scheduled_start)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-
-              {/* Scanning Glow Line */}
-              <Animated.View 
-                className="absolute left-0 right-0 h-[2px] bg-emerald-400 shadow-md shadow-emerald-400"
-                style={{ 
-                  top: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['10%', '90%']
-                  }),
-                  shadowColor: '#34d399',
-                  shadowOffset: { width: 0, height: 0 },
-                  shadowOpacity: 0.8,
-                  shadowRadius: 8,
-                  elevation: 5
-                }} 
-              />
-            </View>
-
-            <Text className="text-blue-600 uppercase text-[10px] font-bold tracking-widest mb-1">Pass Valid For</Text>
-            <Text className="text-3xl font-extrabold text-blue-900 tracking-tight">04:59</Text>
+            ) : null}
           </View>
-        </View>
+        ) : null}
 
-        {/* Attendance Summary */}
-        <View className="px-6 mb-8">
-          <View className="bg-white rounded-[28px] p-6 shadow-sm shadow-slate-200/50 border border-slate-100">
-            <Text className="text-lg font-bold text-slate-900 mb-6">Attendance Summary</Text>
-            
-            <View className="flex-row justify-between mb-8">
-              <View className="flex-1">
-                <Text className="text-sm text-slate-500 mb-1 font-medium">Current Streak</Text>
-                <View className="flex-row items-baseline">
-                  <Text className="text-4xl font-extrabold text-blue-600 tracking-tight">14</Text>
-                  <Text className="text-sm text-slate-500 ml-1.5 font-medium">days</Text>
-                </View>
-              </View>
-              <View className="flex-1 pl-4 border-l border-slate-100">
-                <Text className="text-sm text-slate-500 mb-1 font-medium">Attendance Rate</Text>
-                <View className="flex-row items-baseline">
-                  <Text className="text-4xl font-extrabold text-blue-600 tracking-tight">98</Text>
-                  <Text className="text-xl font-bold text-blue-600 ml-0.5">%</Text>
-                </View>
-              </View>
-            </View>
-
-            <View className="bg-slate-50 p-4 rounded-2xl">
-              <View className="flex-row justify-between items-center mb-2">
-                <Text className="text-sm font-semibold text-slate-700">Classes Attended</Text>
-                <Text className="text-sm font-bold text-slate-900">42 <Text className="text-slate-400 font-medium">/ 43</Text></Text>
-              </View>
-              <View className="h-2.5 bg-slate-200 rounded-full overflow-hidden flex-row">
-                <View className="h-full bg-blue-700 rounded-full" style={{ width: '97.6%' }} />
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Upcoming Classes for Check-in */}
-        <View className="mb-8">
-          <View className="flex-row items-center px-6 mb-4">
-            <CalendarDays size={22} color="#2563eb" style={{ marginRight: 8 }} />
-            <Text className="text-xl font-bold text-slate-900">Upcoming Classes for Check-in</Text>
-          </View>
-
-          {/* Active Card */}
-          <View className="bg-white rounded-[28px] p-5 mx-6 mb-4 shadow-sm shadow-slate-200/50 border-l-[6px] border-l-blue-600">
-            <View className="flex-row mb-4">
-              <View className="w-12 h-12 bg-blue-50 rounded-2xl items-center justify-center mr-4">
-                <Sigma size={24} color="#2563eb" />
-              </View>
-              <View className="flex-1 justify-center">
-                <Text className="font-bold text-lg text-slate-900 mb-1">Advanced Calculus</Text>
-                <View className="flex-row items-center">
-                  <MapPin size={12} color="#64748b" style={{ marginRight: 4 }} />
-                  <Text className="text-sm text-slate-500">Room 304, Science Wing</Text>
-                </View>
-              </View>
-            </View>
-            <View className="flex-row items-center justify-between mt-2 pl-16">
-              <Text className="font-bold text-slate-900">9:00 AM</Text>
-              <View className="bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100">
-                <Text className="text-indigo-600 font-semibold text-xs">Check-in Open</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Inactive Card */}
-          <View className="bg-white rounded-[28px] p-5 mx-6 shadow-sm shadow-slate-200/50 border border-slate-100">
-            <View className="flex-row mb-4">
-              <View className="w-12 h-12 bg-slate-100 rounded-2xl items-center justify-center mr-4">
-                <FlaskConical size={24} color="#64748b" />
-              </View>
-              <View className="flex-1 justify-center">
-                <Text className="font-bold text-lg text-slate-900 mb-1">Physics 101</Text>
-                <View className="flex-row items-center">
-                  <MapPin size={12} color="#64748b" style={{ marginRight: 4 }} />
-                  <Text className="text-sm text-slate-500">Lab 2, Engineering Bldg</Text>
-                </View>
-              </View>
-            </View>
-            <View className="flex-row items-center justify-between mt-2 pl-16">
-              <Text className="font-bold text-slate-900">11:30 AM</Text>
-              <Text className="text-slate-500 text-sm font-medium">Opens in 2h</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Recent Attendance History */}
         <View className="mb-6">
-          <View className="flex-row items-center px-6 mb-4">
-            <History size={22} color="#475569" style={{ marginRight: 8 }} />
-            <Text className="text-xl font-bold text-slate-900">Recent Attendance History</Text>
+          <View className="flex-row items-center px-6 mb-3">
+            <CalendarDays size={20} color="#2563eb" style={{ marginRight: 8 }} />
+            <Text className="text-lg font-bold text-slate-900">
+              Today&apos;s classes
+            </Text>
           </View>
+          <View className="mx-6 bg-white rounded-[24px] border border-slate-100 shadow-sm shadow-slate-200/40">
+            {sessionsLoading ? (
+              <View className="py-10 items-center">
+                <ActivityIndicator color="#2563eb" />
+              </View>
+            ) : sessionsError ? (
+              <Text className="text-red-600 text-sm p-5">{sessionsError}</Text>
+            ) : sessions.length === 0 ? (
+              <Text className="text-slate-500 text-sm p-5 text-center">
+                No classes scheduled today.
+              </Text>
+            ) : (
+              sessions.map((s, idx) => {
+                const badge = statusBadge(s);
+                const isActive = s.id === activeSessionId;
+                return (
+                  <TouchableOpacity
+                    key={s.id}
+                    onPress={() => setSelectedSessionId(s.id)}
+                    className={`flex-row items-center px-5 py-4 ${
+                      idx < sessions.length - 1 ? "border-b border-slate-100" : ""
+                    } ${isActive ? "bg-blue-50/40" : ""}`}
+                  >
+                    <View className="flex-1">
+                      <Text className="font-bold text-slate-900 text-sm">
+                        {s.subject_name ?? "Class"}
+                        {s.is_ad_hoc ? (
+                          <Text className="text-[10px] font-semibold text-amber-600">
+                            {" "}
+                            · ad-hoc
+                          </Text>
+                        ) : null}
+                      </Text>
+                      <Text className="text-xs text-slate-500 mt-0.5">
+                        {formatTime(s.scheduled_start)} –{" "}
+                        {formatTime(s.scheduled_end)}
+                      </Text>
+                    </View>
+                    <View className={`px-2.5 py-1 rounded-md ${badge.classes.split(" ")[0]}`}>
+                      <Text className={`text-[11px] font-bold ${badge.classes.split(" ")[1]}`}>
+                        {badge.label}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </View>
+        </View>
 
-          <View className="bg-white rounded-[28px] p-6 mx-6 shadow-sm shadow-slate-200/50 border border-slate-100">
-            {/* Timeline Item 1 */}
-            <View className="flex-row mb-6 relative">
-              <View className="items-center mr-4">
-                <View className="bg-white rounded-full z-10 relative">
-                  <CheckCircle2 size={24} color="#0891b2" />
-                </View>
-                <View className="absolute top-6 bottom-[-30px] w-px bg-slate-200" />
+        <View className="px-6 mb-6">
+          <View className="flex-row items-center mb-3">
+            <History size={20} color="#475569" style={{ marginRight: 8 }} />
+            <Text className="text-lg font-bold text-slate-900">My history</Text>
+          </View>
+          <View className="bg-white rounded-[24px] p-5 border border-slate-100 shadow-sm shadow-slate-200/40">
+            {historyLoading ? (
+              <View className="py-6 items-center">
+                <ActivityIndicator color="#2563eb" />
               </View>
-              <View className="flex-1 flex-row justify-between pt-0.5">
-                <View>
-                  <Text className="font-bold text-slate-900 mb-1">European History</Text>
-                  <Text className="text-xs text-slate-500 font-medium">Today</Text>
+            ) : historyError ? (
+              <Text className="text-red-600 text-sm">{historyError}</Text>
+            ) : history ? (
+              <>
+                <View className="flex-row mb-4">
+                  <AttendanceRing
+                    label="This week"
+                    present={history.weekPresent}
+                    total={history.weekTotal}
+                  />
+                  <AttendanceRing
+                    label="Last 30 days"
+                    present={history.monthPresent}
+                    total={history.monthTotal}
+                  />
                 </View>
-                <View className="items-end">
-                  <Text className="text-xs font-semibold text-cyan-600 mb-1">Verified</Text>
-                  <Text className="text-xs text-slate-400">08:55 AM</Text>
+                <View className="border-t border-slate-100 pt-2">
+                  <AttendanceHistory rows={history.recent} />
                 </View>
-              </View>
-            </View>
-
-            {/* Timeline Item 2 */}
-            <View className="flex-row mb-6 relative">
-              <View className="items-center mr-4">
-                <View className="bg-white rounded-full z-10 relative">
-                  <CheckCircle2 size={24} color="#0891b2" />
-                </View>
-                <View className="absolute top-6 bottom-[-30px] w-px bg-slate-200" />
-              </View>
-              <View className="flex-1 flex-row justify-between pt-0.5">
-                <View>
-                  <Text className="font-bold text-slate-900 mb-1">Creative Writing Workshop</Text>
-                  <Text className="text-xs text-slate-500 font-medium">Yesterday</Text>
-                </View>
-                <View className="items-end">
-                  <Text className="text-xs font-semibold text-cyan-600 mb-1">Verified</Text>
-                  <Text className="text-xs text-slate-400">02:14 PM</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Timeline Item 3 */}
-            <View className="flex-row mb-2 relative">
-              <View className="items-center mr-4">
-                <View className="bg-white rounded-full z-10 relative">
-                  <CheckCircle2 size={24} color="#0891b2" />
-                </View>
-              </View>
-              <View className="flex-1 flex-row justify-between pt-0.5">
-                <View>
-                  <Text className="font-bold text-slate-900 mb-1">Macroeconomics</Text>
-                  <Text className="text-xs text-slate-500 font-medium">Yesterday</Text>
-                </View>
-                <View className="items-end">
-                  <Text className="text-xs font-semibold text-cyan-600 mb-1">Verified</Text>
-                  <Text className="text-xs text-slate-400">10:02 AM</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Button */}
-            <TouchableOpacity className="bg-slate-50 rounded-2xl py-3.5 mt-6 items-center justify-center border border-slate-100">
-              <Text className="text-blue-700 font-semibold text-sm">View Full History</Text>
-            </TouchableOpacity>
+              </>
+            ) : null}
           </View>
         </View>
       </ScrollView>

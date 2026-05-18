@@ -1,4 +1,4 @@
-# Phase 9 — Live Classes (YouTube wrap)
+w# Phase 9 — Live Classes (YouTube wrap)
 
 > The most external-integration-heavy phase. Teacher schedules a live class → backend creates an Unlisted YouTube broadcast via YT Data API → teacher streams via OBS → students watch through wrapped player with watermark + custom chat + raise-hand. After class ends, the YT video is auto-saved and reused as the recording (same wrapped player + chat replay).
 
