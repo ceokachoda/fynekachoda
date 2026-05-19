@@ -387,6 +387,93 @@ export const QuizAdminMutateInputSchema = z.discriminatedUnion("op", [
 ]);
 export type QuizAdminMutateInput = z.infer<typeof QuizAdminMutateInputSchema>;
 
+// ---------- Phase 7 — graded examinations ----------
+
+export const ExamStartInputSchema = z.object({
+  exam_id: z.string().uuid(),
+});
+export type ExamStartInput = z.infer<typeof ExamStartInputSchema>;
+
+export const ExamTabSwitchInputSchema = z.object({
+  attempt_id: z.string().uuid(),
+});
+export type ExamTabSwitchInput = z.infer<typeof ExamTabSwitchInputSchema>;
+
+export const ExamSubmitInputSchema = z.object({
+  attempt_id: z.string().uuid(),
+});
+export type ExamSubmitInput = z.infer<typeof ExamSubmitInputSchema>;
+
+export const ExamAttemptResultInputSchema = z.object({
+  attempt_id: z.string().uuid(),
+});
+export type ExamAttemptResultInput = z.infer<typeof ExamAttemptResultInputSchema>;
+
+export const ExamReleaseResultsInputSchema = z.object({
+  exam_id: z.string().uuid(),
+});
+export type ExamReleaseResultsInput = z.infer<typeof ExamReleaseResultsInputSchema>;
+
+export const ExamRegradeInputSchema = z
+  .object({
+    exam_id: z.string().uuid(),
+    question_id: z.string().uuid(),
+    action: z.enum(["change_correct", "mark_no_correct", "mark_all_correct"]),
+    new_correct_option_id: z.string().uuid().optional(),
+    reason: z.string().trim().min(3).max(500),
+  })
+  .refine(
+    (v) => v.action !== "change_correct" || !!v.new_correct_option_id,
+    {
+      message: "new_correct_option_id required when action='change_correct'",
+      path: ["new_correct_option_id"],
+    },
+  );
+export type ExamRegradeInput = z.infer<typeof ExamRegradeInputSchema>;
+
+const OfflineScoreEntry = z.object({
+  student_id: z.string().uuid(),
+  score: z.number().nonnegative(),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const OfflineScoreUpsertInputSchema = z.object({
+  batch_id: z.string().uuid(),
+  test_name: z.string().trim().min(1).max(200),
+  test_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  subject_id: z.string().uuid().optional(),
+  max_score: z.number().positive(),
+  entries: z.array(OfflineScoreEntry).min(1).max(500),
+});
+export type OfflineScoreUpsertInput = z.infer<typeof OfflineScoreUpsertInputSchema>;
+
+// Discriminated-union admin moderation surface for exams + offline scores
+// (D-172, D-177). All ops capture before/after audit rows.
+export const ExamAdminMutateInputSchema = z.discriminatedUnion("op", [
+  z.object({
+    op: z.literal("toggle_publish_exam"),
+    exam_id: z.string().uuid(),
+    is_published: z.boolean(),
+  }),
+  z.object({
+    op: z.literal("force_release_results"),
+    exam_id: z.string().uuid(),
+  }),
+  z.object({
+    op: z.literal("force_unrelease_results"),
+    exam_id: z.string().uuid(),
+  }),
+  z.object({
+    op: z.literal("delete_exam"),
+    exam_id: z.string().uuid(),
+  }),
+  z.object({
+    op: z.literal("delete_offline_score"),
+    offline_score_id: z.string().uuid(),
+  }),
+]);
+export type ExamAdminMutateInput = z.infer<typeof ExamAdminMutateInputSchema>;
+
 export const BatchMutateInputSchema = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("create_batch"),

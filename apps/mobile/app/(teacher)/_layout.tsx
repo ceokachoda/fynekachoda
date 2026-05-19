@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import {
   BookOpen,
+  ClipboardCheck,
   Home,
   ListChecks,
   QrCode,
@@ -99,6 +100,13 @@ export default function TeacherTabsLayout() {
           options={{
             title: "Quizzes",
             tabBarIcon: ({ color }) => <ListChecks size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="exams"
+          options={{
+            title: "Exams",
+            tabBarIcon: ({ color }) => <ClipboardCheck size={24} color={color} />,
           }}
         />
         <Tabs.Screen

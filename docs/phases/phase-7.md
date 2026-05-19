@@ -444,3 +444,125 @@ If Phase 7 breaks:
 - `quiz_attempts` + `exam_attempts` populated.
 - Mastery feeder stubs in place (no-op).
 - Phase 8 implements real `mastery-recompute`, `streak-recompute`, and rebuilds the dashboard with live data.
+
+---
+
+## 15. Acceptance ledger — Phase 7 (2026-05-19)
+
+All 14 documented checkpoints (CP1–CP14) plus two implementation extensions (CP9b: re-fetch + admin-mutate; CP15: tests + advisor sweep) green. DB: 2 new migrations applied. Edge fns: 9 deployed. Mobile: 4 new top-level Stack screens (`app/exam/[id].tsx`, `app/exam-builder/[examId].tsx`, `app/exam-results/[examId].tsx`, `app/offline-scores.tsx`) + 1 new teacher tab (`(teacher)/exams.tsx`) + 1 new component + 9 feature hooks + 1 edge-fn invoker (`lib/edge-fn.ts`). Student dashboard surfaces upcoming/live/submitted exams. Admin: 2 new dashboard pages (`/exams`, `/offline-scores`) + server actions routed through the new audited `exam-admin-mutate` edge fn.
+
+### Checkpoints
+
+| CP   | Subject | Outcome | Where |
+|------|---------|---------|-------|
+| CP1  | `exams` + `exam_questions` + `exam_attempts` + `exam_answers` + `offline_test_scores` migration | ✅ applied; 5 tables, 4 partial indexes (`exams_published_idx`, `exams_release_idx`, `exam_attempts_active_idx`, `offline_test_scores_subject_idx`), UNIQUE on `(exam_id, student_id)` + `(batch_id, student_id, test_name, test_date)`; 2 trigger fns pinned to `set search_path = public, pg_temp` per D-166 | `supabase/migrations/20260519110000_exams.sql` |
+| CP2  | RLS across 5 new tables | ✅ applied; 24 policies; students cannot SELECT exam_questions of exams in other batches; exam_answers append-only post-submit (WITH CHECK rejects); offline_test_scores scoped per student / per batch-teacher | `supabase/migrations/20260519110500_exams_rls.sql` |
+| CP3  | `server-time` edge fn | ✅ deployed with `--no-verify-jwt`; returns `{ now, epoch_ms }`; powers mobile clock-offset sync | `apps/functions/server-time/index.ts` |
+| CP4  | `exam-start` edge fn | ✅ deployed; student-only; verifies batch scope; idempotently reuses in-flight attempt; snapshots question + option content + correct_option_id (server-side) into `exam_attempts.question_snapshot`; sanitises payload before serialising (strips `correct_option_id` and `is_correct`); signs prompt/option image URLs (6h TTL); computes late-entry-aware `deadline_at = min(starts_at+duration, now+duration)` per D-052 | `apps/functions/exam-start/index.ts` |
+| CP5  | `exam-tab-switch` edge fn | ✅ deployed; student-only; bumps `tab_switch_count`; no auto-submit per D-055; silently no-ops on already-submitted attempts so fire-and-forget after submit doesn't error the client | `apps/functions/exam-tab-switch/index.ts` |
+| CP6  | `exam-submit` edge fn | ✅ deployed; student-only; grades server-side from snapshot (live bank edits do NOT affect in-flight attempt); 409 on replay; upserts `activity_days` (IST per D-014); audits `exam_submitted`; instant-release returns score+counts immediately, manual returns `{ submitted, results_released: false }` | `apps/functions/exam-submit/index.ts` |
+| CP7  | `exam-release-results` edge fn | ✅ deployed; teacher of batch OR creator-of-exam OR admin; idempotent on already-released; audits `exam_results_released` with before/after | `apps/functions/exam-release-results/index.ts` |
+| CP8  | `exam-regrade` edge fn | ✅ deployed; teacher of batch or admin; 3 actions (`change_correct`, `mark_no_correct`, `mark_all_correct`); FULL per-attempt recompute model — encodes `mark_*` semantics via `snapshot.regrade_override` so stacked regrades don't drift; audit_log captures full before/after with prev options + per-attempt deltas | `apps/functions/exam-regrade/index.ts` |
+| CP9  | `offline-score-upsert` edge fn | ✅ deployed; teacher of batch or admin; validates `0 ≤ score ≤ max_score`; validates student belongs to batch; validates subject belongs to batch's course; UPSERTs on `(batch_id, student_id, test_name, test_date)`; audits with per-student before/after snapshot | `apps/functions/offline-score-upsert/index.ts` |
+| CP9b | `exam-attempt-result` + `exam-admin-mutate` (NEW — D-179) | ✅ deployed; re-openable solution view per D-175 with 423 LOCKED gate for student pre-release; single discriminated-union admin fn per D-177 with 5 ops (`toggle_publish_exam`, `force_release_results`, `force_unrelease_results`, `delete_exam`, `delete_offline_score`) | `apps/functions/{exam-attempt-result,exam-admin-mutate}/index.ts` |
+| CP10 | Mobile teacher exam-builder | ✅ wired at top-level `app/exam-builder/[examId].tsx` (outside `(teacher)` tabs per D-169 — mirrors D-157); new "Exams" tab in `(teacher)/_layout.tsx`; batch picker (RLS-scoped to teacher's assigned batches), 15-min-rounded start picker, duration presets, marking + randomization + release toggles, drag-reorder questions + add-from-bank sheet | `apps/mobile/app/exam-builder/[examId].tsx`, `apps/mobile/app/(teacher)/exams.tsx`, `apps/mobile/features/exam/{useTeacherBatches,useTeacherExamBuilder,useTeacherExams}.ts` |
+| CP11 | Mobile student exam attempt | ✅ wired at top-level `app/exam/[id].tsx`; 5-stage state machine (pre → attempt → submitted → result → solution); `AppState` listener fires `exam-tab-switch` on `active→(background|inactive)`; warning banner at 1+, severe banner at 3+; server-anchored TimerPill auto-submits on expiry; auto-save via debounced upsert to `exam_answers`; no Reanimated / no animations per exam-screen perf budget | `apps/mobile/app/exam/[id].tsx`, `apps/mobile/features/exam/{useExamStart,useExamSubmit,useExamAttemptResult,useExamAutoSave,useExamTabSwitchLogger,useServerTimeOffset}.ts`, `apps/mobile/components/exam/TabSwitchBanner.tsx`, `apps/mobile/lib/edge-fn.ts` |
+| CP12 | Mobile teacher exam results + regrade | ✅ wired at top-level `app/exam-results/[examId].tsx`; roster sorted by score desc, per-student `tab_switch_count` badge (warn at 1+, severe at 3+) + `auto_submitted` flag; per-question analysis bar (green/amber/red thresholds 70/40/<40); release button only when not released; regrade modal with 3 actions + reason field (audit_log) | `apps/mobile/app/exam-results/[examId].tsx`, `apps/mobile/features/exam/useExamResultsBoard.ts` |
+| CP13 | Mobile teacher offline-scores | ✅ wired at top-level `app/offline-scores.tsx` (reachable from teacher Exams tab → "Offline" button); batch + test name + date + subject (optional) + max_score header; per-student numeric input with "previous: N" hint when score already exists; client-side range validation before `offline-score-upsert` | `apps/mobile/app/offline-scores.tsx`, `apps/mobile/features/exam/{useOfflineScores,useBatchSubjects}.ts` |
+| CP14 | Admin `/exams` + `/offline-scores` pages | ✅ wired; `/exams` shows status badge (draft/scheduled/live/closed/released) per-row, filters by course/batch/status/search, exports CSV (IST pinned), publish/unpublish + force-release/un-release + delete buttons all routed through `exam-admin-mutate` (D-172); `/offline-scores` shows all scores across batches with search + CSV export + delete (single-row delete via `exam-admin-mutate` op `delete_offline_score`); 2 new nav items | `apps/admin/app/(dashboard)/{exams,offline-scores}/{page,*-client,actions}.tsx`, `apps/admin/app/(dashboard)/layout.tsx` |
+| CP15 | Tests + smokes + advisor sweep | ✅ green | see below |
+| CP16 | Ledger + manual test plan + seed + memory + commit | ✅ this entry | here |
+
+### Migrations applied (2 new)
+
+| Timestamp | Name | Purpose |
+|-----------|------|---------|
+| 20260519110000 | `exams` | 5 tables — `exams` (16 cols), `exam_questions` (4), `exam_attempts` (14), `exam_answers` (5), `offline_test_scores` (12). 19 indexes (incl. 4 partial). 2 trigger fns `_exams_updated_at` + `_offline_test_scores_updated_at` both pinned `set search_path = public, pg_temp` per D-166. |
+| 20260519110500 | `exams_rls` | RLS enabled on all 5 tables. 24 policies. Key invariants: student SELECT scoped to own batch's published exams; student INSERT/UPDATE on `exam_answers` rejected once `submitted_at IS NOT NULL`; teacher batch-teachers scoping mirrors Phase 6 quiz patterns; admin-all for owner_admin / staff_admin. |
+
+### Edge functions deployed (9 new)
+
+`server-time` (no verify_jwt), `exam-start`, `exam-tab-switch`, `exam-submit`, `exam-release-results`, `exam-regrade`, `offline-score-upsert`, `exam-attempt-result`, `exam-admin-mutate`. All but `server-time` deployed with `verify_jwt = true`. Deployed via Supabase CLI 2.100.0 (`functions deploy --use-api`) from a temp workdir per D-170 against project `orqwyazvcthgxoadfxfv`.
+
+### Vault secrets
+
+No new Vault secrets required. Phase 7 reuses Phase 5's `exam-images` Storage bucket for any prompt/option images (D-058 — bank shared with Phase 6 quizzes).
+
+### Tests + smokes
+
+- `pnpm test:exam` — pure-TS unit smoke covering `gradeAnswer`, `gradeAttempt`, `sanitiseSnapshotForStudent`, `regradedCorrectOptionId`, `applyMark{All,No}CorrectOverride`, `computeRemainingSec`, `isAutoSubmittedAt`, `shuffleStable`. **26/26 green.**
+- `pnpm smoke:exam-rls` — end-to-end RLS smoke (12 scenarios): batch-scope leakage, student-cannot-see-other-batch's exam, exam_questions of other batch hidden, student own-attempt visibility, in-flight upsert allowed, post-submit upsert rejected, cross-student answer leakage blocked, teacher scope, `exam-attempt-result` 423-pre-release / 200-post-release, offline_test_scores per-student visibility. **All assertions green.**
+- `pnpm smoke:exam-fns` — HTTP smoke for all 9 Phase 7 edge fns. **26/26 assertions green.** Covers auth + role gates, scope, idempotency, replay protection (`exam-submit` 409 second call), instant-release scoring, audit-row verification (`exam_submitted`, `exam_results_unreleased`), all 3 regrade actions including the FULL-recompute correctness across stacked regrades (mark_no_correct then mark_all_correct correctly restores +4), offline-score-upsert insert vs update counts + out-of-range rejection.
+- `pnpm test --filter @fynestudy/mobile` — 6 suites / 53 tests. **53/53 green.**
+- `pnpm typecheck` — every workspace package green after fixing 8 strict-mode issues in exam-builder swaps + offline-scores filter + results-board embed cast.
+- `pnpm lint` — every workspace package green after escaping 3 JSX entities in offline-scores-client confirmation modal.
+
+### Advisor sweep
+
+| Lint | Status |
+|------|--------|
+| `auth_leaked_password_protection` | WARN, Phase-1 backlog. Not Phase 7. |
+| `multiple_permissive_policies` × 16 on Phase 7 tables | Intentional. Same role-segmented pattern as Phase 5/6 — student-read vs teacher-read vs admin-all live as separate permissive policies because each represents a distinct authorization path. Documented as accepted. |
+| `unindexed_foreign_keys` on `exam_answers.question_id`, `exam_answers.selected_option_id`, `offline_test_scores.entered_by` | 3 INFOs. The hot read path on `exam_answers` is always `attempt_id` (covered by `exam_answers_attempt_idx`); `offline_test_scores.entered_by` is admin-audit-only. Accepted. |
+| `unused_index` on `exams_published_idx`, `exams_release_idx` | 2 INFOs. Brand-new indexes — will flip to "used" once the student dashboard pulls live exams and the teacher results page filters released. |
+| All other Phase 7-touched objects | Clean. The new trigger fns `_exams_updated_at` and `_offline_test_scores_updated_at` ship with `set search_path = public, pg_temp` per D-166 — advisor 0011 silent. |
+
+### Hard-learned lessons / new decisions
+
+- **D-179 (2026-05-19):** Regrade fns must do a FULL per-attempt recompute, not incremental delta math. The original delta approach (compute `prev` outcome against the snapshot's current key, compute `next`, write delta) drifts across stacked regrades because each regrade mutates the snapshot key but the `prev` re-derivation reads the post-mutation state — so the delta is measured against the wrong baseline. Surfaced when smoke test stacked `mark_no_correct` + `mark_all_correct` on the same question and got score 4 instead of 3. **Fix:** introduced `snapshot.question.regrade_override: "all"|"none"|null` (in addition to `correct_option_id` updates for `change_correct`). Each regrade pass builds the full per-Q grading via `gradeAttempt` against snapshot + answers + overrides, then writes totals + the new snapshot. Idempotent and order-independent. **How to apply:** any future re-grading surface that mutates per-question keys post-submit should mirror this pattern.
+
+- **D-180 (2026-05-19):** Question snapshot must be a self-contained server-side grading dossier, not just an "order pinning" hint. Phase 6 quiz snapshot stored only `(question_order, option_order)` in `quiz_attempts.metadata` because live bank edits during a quiz attempt are acceptable. Phase 7 exams REQUIRE that mid-window bank edits don't change in-flight grades (D-052), so `exam_attempts.question_snapshot` is `not null` jsonb with the full prompt/options/correct_option_id at attempt start. Sanitisation strips `correct_option_id` before client serialise; grading reads it directly. **How to apply:** any future "high-stakes" attempt-style surface (Phase 12 multi-part exams, Phase 13 mock tests) snapshots both content + key, not just order. Quiz-style "practice" surfaces can keep the lighter Phase 6 metadata-only shape.
+
+- **D-181 (2026-05-19):** `server-time` edge fn must deploy with `--no-verify-jwt`. The mobile client's `useServerTimeOffset` is called pre-attempt (during the intro stage warmup) and every 60s during the attempt; it carries no PII, no scope, just `{ now, epoch_ms }`. JWT verification would force the client to attach Authorization, which means the call would fail during the brief window when the access token is refreshing. The downside (anyone can fetch the server clock) is negligible. The CLI flag `--no-verify-jwt` was passed on the FIRST deploy after the smoke test discovered the 401. **How to apply:** any future "public utility" edge fn (e.g., Phase 9 live-class poll for the broadcast `liveBroadcastContent.status` — unrelated to a specific user) should deploy with `--no-verify-jwt` for the same reason.
+
+- **D-182 (2026-05-19):** Per-attempt tab-switch logging must be FIRE-AND-FORGET (no `await`) on the client and SILENT on already-submitted attempts on the server. The `AppState` `change` event can fire ANY time the OS backgrounds the app — including milliseconds after a successful submit — so the client's `useExamTabSwitchLogger` does not block UI on the call, and the server's `exam-tab-switch` returns 200 (with no count bump) instead of 409 when the attempt is already submitted. Surfaced during smoke setup when the smoke harness ran submit + tab-switch in rapid succession. **How to apply:** any future "live telemetry" edge fn that can race a state-changing fn must silently no-op on the terminal state rather than 4xx (so the client UI doesn't surface a spurious error toast).
+
+### Files changed (summary)
+
+**Mobile — added:**
+- `app/exam/[id].tsx` (top-level student locked-down attempt + result + solution)
+- `app/exam-builder/[examId].tsx` (top-level teacher builder)
+- `app/exam-results/[examId].tsx` (top-level teacher results + regrade)
+- `app/offline-scores.tsx` (top-level teacher offline-score entry)
+- `app/(teacher)/exams.tsx` (new teacher tab)
+- `components/exam/TabSwitchBanner.tsx`
+- `features/exam/{types,useExamStart,useExamSubmit,useExamAttemptResult,useExamAutoSave,useExamTabSwitchLogger,useServerTimeOffset,useTeacherExams,useTeacherExamBuilder,useTeacherBatches,useStudentExams,useExamResultsBoard,useOfflineScores,useBatchSubjects}.ts`
+- `lib/edge-fn.ts` (typed POST helper that surfaces HTTP status — needed for 409/423/etc.)
+
+**Mobile — edited:**
+- `app/_layout.tsx` (+4 Stack.Screen entries: `exam/[id]`, `exam-builder/[examId]`, `exam-results/[examId]`, `offline-scores`)
+- `app/(teacher)/_layout.tsx` (+Exams tab)
+- `app/(student)/index.tsx` (+Exams section above Weak Topics; refresh hook wires `useStudentExams.reload`)
+
+**Edge fns — added:** `apps/functions/{server-time,exam-start,exam-tab-switch,exam-submit,exam-release-results,exam-regrade,offline-score-upsert,exam-attempt-result,exam-admin-mutate}/index.ts`
+
+**Shared — added/edited:**
+- `apps/functions/_shared/exam-marking.ts` (new — pure helpers; supports `regrade_override` per D-179)
+- `apps/functions/_shared/schemas.ts` (+7 zod schemas — `ExamStartInputSchema`, `ExamTabSwitchInputSchema`, `ExamSubmitInputSchema`, `ExamAttemptResultInputSchema`, `ExamReleaseResultsInputSchema`, `ExamRegradeInputSchema`, `OfflineScoreUpsertInputSchema`, `ExamAdminMutateInputSchema`)
+
+**Migrations — added:** `20260519110000_exams.sql`, `20260519110500_exams_rls.sql`
+
+**Admin — added:**
+- `apps/admin/app/(dashboard)/exams/{page,exams-client,actions}.tsx`
+- `apps/admin/app/(dashboard)/offline-scores/{page,offline-scores-client,actions}.tsx`
+
+**Admin — edited:** `apps/admin/app/(dashboard)/layout.tsx` (+Exams, +Offline scores nav items)
+
+**Scripts — added:** `scripts/{test-exam-helpers,smoke-test-exam-rls,smoke-test-exam-edge-fns,seed-exam-manual-test,stage-phase7-deploy}.{ts,cjs}`. New npm scripts `test:exam`, `smoke:exam-rls`, `smoke:exam-fns`, `seed:exam-manual-test` in root `package.json`.
+
+### Phase 7 carry-overs into Phase 8+
+
+- `mastery-recompute` invocation hook (still no-op TODO in `exam-submit` because the Phase 8 fn doesn't ship yet — wiring is in place though, ready to swap in).
+- Quiz + Exam tabs together are 8 entries on the teacher tab bar — visually crowded on narrow phones. Phase 8 may consolidate into a single "Tests" tab with internal toggles.
+- Student-facing `(student)/classes.tsx` still shows the Phase 0 placeholder cards. Phase 8 should replace with the same `useStudentExams` + real-sessions feed shape now used on the home dashboard.
+- Two-device same-student de-dupe on `exam-tab-switch` is acceptable over-counting per spec §9 risk table. Phase 12 could add a 5s debounce per device-key if teachers report it being noisy.
+- Component-level jest for the locked-down attempt UI (timer, AppState wiring) — deferred.
+- Redmi 8A cold-start measurement on `app/exam/[id].tsx` (hardware blocker, Phase 5 carry-over still open).
+- Local KaTeX bundle (Phase 9 hardening — Phase 6 carry-over).
+- Vercel deployment fix, Sentry + PostHog wiring, `auth_leaked_password_protection` (long-running Phase 1 carry-overs).
+
+### Phase 7 status: **CODE-COMPLETE — manual QA pending**
+
+Work sits uncommitted on `phase-4` branch; user will direct the consolidated PR. Manual test plan at `docs/phases/phase-7-manual-tests.md`. Fresh fixture script `pnpm seed:exam-manual-test` (with `--reset` flag from day one).
+
+### ACCEPTED — 

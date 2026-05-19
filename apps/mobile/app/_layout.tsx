@@ -98,6 +98,22 @@ export default function RootLayout() {
             options={{ headerShown: false, gestureEnabled: true }}
           />
           <Stack.Screen
+            name="exam/[id]"
+            options={{ headerShown: false, gestureEnabled: false }}
+          />
+          <Stack.Screen
+            name="exam-builder/[examId]"
+            options={{ headerShown: false, gestureEnabled: true }}
+          />
+          <Stack.Screen
+            name="exam-results/[examId]"
+            options={{ headerShown: false, gestureEnabled: true }}
+          />
+          <Stack.Screen
+            name="offline-scores"
+            options={{ headerShown: false, gestureEnabled: true }}
+          />
+          <Stack.Screen
             name="modal"
             options={{ presentation: "modal", title: "Modal" }}
           />

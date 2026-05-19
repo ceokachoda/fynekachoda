@@ -12,6 +12,7 @@ import {
   Bell,
   CalendarDays,
   ChevronRight,
+  ClipboardCheck,
   Flame,
   QrCode,
   Sparkles,
@@ -27,6 +28,7 @@ import {
 } from "@/features/attendance/useTodaySessions";
 import { useAttendanceHistory } from "@/features/attendance/useAttendanceHistory";
 import { useWeakTopics } from "@/features/quiz/useWeakTopics";
+import { useStudentExams } from "@/features/exam/useStudentExams";
 
 function greetingFor(date: Date): string {
   const hourIst = Number(
@@ -96,6 +98,7 @@ export default function StudentHomeScreen() {
     refresh: refreshHistory,
   } = useAttendanceHistory();
   const weakTopics = useWeakTopics();
+  const studentExams = useStudentExams();
 
   const isLoading = sessionsLoading || historyLoading;
   const greeting = greetingFor(new Date());
@@ -131,6 +134,7 @@ export default function StudentHomeScreen() {
               void refreshSessions();
               void refreshHistory();
               void weakTopics.reload();
+              void studentExams.reload();
             }}
             tintColor="#2563EB"
           />
@@ -384,6 +388,66 @@ export default function StudentHomeScreen() {
             </View>
           )}
         </View>
+
+        {studentExams.rows.length > 0 ? (
+          <View className="px-6 mb-6">
+            <View className="flex-row items-center mb-3">
+              <ClipboardCheck size={20} color="#1e3a8a" />
+              <Text className="text-xl font-bold text-blue-900 ml-2 flex-1">
+                Exams
+              </Text>
+            </View>
+            <Text className="text-xs text-slate-500 mb-3 leading-4">
+              Server-timed graded tests. Tap to view or enter.
+            </Text>
+            {studentExams.rows.slice(0, 5).map((e) => {
+              const now = Date.now();
+              const start = new Date(e.starts_at).getTime();
+              const end = start + e.duration_min * 60_000;
+              const live = now >= start && now < end;
+              const ended = now >= end;
+              const released = !!e.results_released_at;
+              const status = e.attempt?.submitted_at
+                ? released || e.result_release === "instant"
+                  ? `Score ${e.attempt.score !== null ? Math.round(e.attempt.score) : "—"}/${e.attempt.max_score !== null ? Math.round(e.attempt.max_score) : "—"}`
+                  : "Submitted · awaiting release"
+                : live
+                ? "Live now"
+                : ended
+                ? "Ended"
+                : "Scheduled";
+              const statusColor = live
+                ? "#dc2626"
+                : released
+                ? "#059669"
+                : "#475569";
+              return (
+                <TouchableOpacity
+                  key={e.id}
+                  onPress={() => router.push(`/exam/${e.id}` as never)}
+                  className="bg-white rounded-2xl p-4 border border-slate-100 mb-2 flex-row items-center"
+                  activeOpacity={0.85}
+                >
+                  <View className="w-12 h-12 rounded-2xl bg-blue-50 items-center justify-center mr-3">
+                    <ClipboardCheck size={20} color="#2563EB" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-sm font-bold text-slate-900" numberOfLines={1}>
+                      {e.title}
+                    </Text>
+                    <Text className="text-[11px] text-slate-500 mt-1" numberOfLines={1}>
+                      {new Date(e.starts_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })} · {e.duration_min} min
+                    </Text>
+                    <Text className="text-[11px] font-semibold mt-0.5" style={{ color: statusColor }}>
+                      {status}
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} color="#94a3b8" />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : null}
 
         {weakTopics.rows.length > 0 ? (
           <View className="px-6 mb-6">
