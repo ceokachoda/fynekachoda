@@ -35,7 +35,11 @@
     "test:content": "tsx scripts/test-content-helpers.ts",
     "smoke:content-rls": "tsx scripts/smoke-test-content-rls.ts",
     "smoke:content-fns": "tsx scripts/smoke-test-content-edge-fns.ts",
-    "seed:content-manual-test": "tsx scripts/seed-content-manual-test.ts"
+    "seed:content-manual-test": "tsx scripts/seed-content-manual-test.ts",
+    "test:quiz": "tsx scripts/test-quiz-helpers.ts",
+    "smoke:quiz-rls": "tsx scripts/smoke-test-quiz-rls.ts",
+    "smoke:quiz-fns": "tsx scripts/smoke-test-quiz-edge-fns.ts",
+    "seed:quiz-manual-test": "tsx scripts/seed-quiz-manual-test.ts"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.105.4",

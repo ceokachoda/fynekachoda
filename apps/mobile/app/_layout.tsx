@@ -90,6 +90,14 @@ export default function RootLayout() {
             options={{ headerShown: false, gestureEnabled: true }}
           />
           <Stack.Screen
+            name="quiz/[id]"
+            options={{ headerShown: false, gestureEnabled: false }}
+          />
+          <Stack.Screen
+            name="quiz-builder/[quizId]"
+            options={{ headerShown: false, gestureEnabled: true }}
+          />
+          <Stack.Screen
             name="modal"
             options={{ presentation: "modal", title: "Modal" }}
           />

@@ -11,9 +11,11 @@ import { useRouter } from "expo-router";
 import {
   Bell,
   CalendarDays,
+  ChevronRight,
   Flame,
   QrCode,
   Sparkles,
+  Target,
   TrendingUp,
 } from "lucide-react-native";
 import { FyneStudyLogo } from "../../components/FyneStudyLogo";
@@ -24,6 +26,7 @@ import {
   type TodaySession,
 } from "@/features/attendance/useTodaySessions";
 import { useAttendanceHistory } from "@/features/attendance/useAttendanceHistory";
+import { useWeakTopics } from "@/features/quiz/useWeakTopics";
 
 function greetingFor(date: Date): string {
   const hourIst = Number(
@@ -92,6 +95,7 @@ export default function StudentHomeScreen() {
     isLoading: historyLoading,
     refresh: refreshHistory,
   } = useAttendanceHistory();
+  const weakTopics = useWeakTopics();
 
   const isLoading = sessionsLoading || historyLoading;
   const greeting = greetingFor(new Date());
@@ -126,6 +130,7 @@ export default function StudentHomeScreen() {
             onRefresh={() => {
               void refreshSessions();
               void refreshHistory();
+              void weakTopics.reload();
             }}
             tintColor="#2563EB"
           />
@@ -380,6 +385,43 @@ export default function StudentHomeScreen() {
           )}
         </View>
 
+        {weakTopics.rows.length > 0 ? (
+          <View className="px-6 mb-6">
+            <View className="flex-row items-center mb-3">
+              <Target size={20} color="#1e3a8a" />
+              <Text className="text-xl font-bold text-blue-900 ml-2 flex-1">
+                Weak topics
+              </Text>
+            </View>
+            <Text className="text-xs text-slate-500 mb-3 leading-4">
+              Topics you've scored under 70% on. Take a practice quiz to bring it up.
+            </Text>
+            {weakTopics.rows.map((w) => (
+              <TouchableOpacity
+                key={w.topic_id}
+                onPress={() => router.push(`/quiz/${w.suggested_quiz_id}` as never)}
+                className="bg-white rounded-2xl p-4 border border-slate-100 mb-2 flex-row items-center"
+                activeOpacity={0.85}
+              >
+                <View className="w-12 h-12 rounded-2xl bg-amber-50 items-center justify-center mr-3">
+                  <Text className="text-amber-700 font-extrabold text-sm">
+                    {w.avg_pct}%
+                  </Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-bold text-slate-900" numberOfLines={1}>
+                    {w.topic_name}
+                  </Text>
+                  <Text className="text-[11px] text-slate-500 mt-1" numberOfLines={1}>
+                    Suggested: {w.suggested_quiz_title} · {w.attempts} attempt{w.attempts === 1 ? "" : "s"}
+                  </Text>
+                </View>
+                <ChevronRight size={18} color="#94a3b8" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : null}
+
         <View className="px-6 mb-8">
           <View className="bg-white rounded-2xl p-5 border border-slate-100">
             <Text className="text-base font-bold text-blue-900">
@@ -387,8 +429,8 @@ export default function StudentHomeScreen() {
             </Text>
             <Text className="text-xs text-slate-500 mt-1 leading-4">
               Mastery, course progress, leaderboard, and announcements arrive in
-              Phase 5–8. You can already manage attendance, view your batch, and
-              update your profile.
+              Phase 7–8. You can already attempt practice quizzes, manage attendance,
+              and update your profile.
             </Text>
           </View>
         </View>

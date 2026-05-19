@@ -20,6 +20,8 @@ import {
   StickyNote,
 } from "lucide-react-native";
 import { useLibraryTree } from "@/features/library/useLibraryTree";
+import { useStudentQuizDiscovery } from "@/features/quiz/useQuizDiscovery";
+import { ListChecks } from "lucide-react-native";
 
 type LibraryView = "subjects" | "chapters" | "topics" | "items";
 
@@ -27,6 +29,7 @@ export default function LibraryScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const { data: tree, isLoading, error, refresh } = useLibraryTree(searchQuery);
+  const quizzes = useStudentQuizDiscovery();
   const [view, setView] = useState<LibraryView>("subjects");
   const [subjectId, setSubjectId] = useState<string | null>(null);
   const [chapterId, setChapterId] = useState<string | null>(null);
@@ -64,8 +67,13 @@ export default function LibraryScreen() {
   useFocusEffect(
     useCallback(() => {
       void refresh();
-    }, [refresh]),
+      void quizzes.reload();
+    }, [refresh, quizzes]),
   );
+
+  const topicQuizzes = currentTopic
+    ? quizzes.byTopic.get(currentTopic.id) ?? []
+    : [];
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
@@ -235,10 +243,49 @@ export default function LibraryScreen() {
           keyExtractor={(it) => it.id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          ListFooterComponent={
+            topicQuizzes.length > 0 ? (
+              <View style={{ marginTop: 18 }}>
+                <Text className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-2">
+                  Practice Quizzes
+                </Text>
+                {topicQuizzes.map((q) => {
+                  const pct = q.best_score !== null && q.best_max_score
+                    ? Math.round((q.best_score / q.best_max_score) * 100)
+                    : null;
+                  return (
+                    <Pressable
+                      key={q.id}
+                      onPress={() => router.push(`/quiz/${q.id}` as never)}
+                      className="flex-row items-center bg-white rounded-2xl p-4 border border-slate-200 mb-2"
+                    >
+                      <View className="w-10 h-10 rounded-xl items-center justify-center mr-3 bg-blue-100">
+                        <ListChecks size={20} color="#2563EB" />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-sm font-bold text-slate-900" numberOfLines={2}>
+                          {q.title}
+                        </Text>
+                        <Text className="text-[11px] text-slate-500 mt-1">
+                          QUIZ · {q.duration_min} min ·{" "}
+                          {q.attempt_count > 0
+                            ? `attempted ${q.attempt_count}x${pct !== null ? `, best ${pct}%` : ""}`
+                            : "not attempted"}
+                        </Text>
+                      </View>
+                      <ChevronRight size={18} color="#94a3b8" />
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
-            <Text className="text-center text-slate-500 mt-8">
-              No content in this topic.
-            </Text>
+            topicQuizzes.length === 0 ? (
+              <Text className="text-center text-slate-500 mt-8">
+                No content in this topic.
+              </Text>
+            ) : null
           }
           renderItem={({ item }) => (
             <Pressable

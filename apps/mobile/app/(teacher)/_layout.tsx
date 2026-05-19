@@ -4,6 +4,7 @@ import { Tabs, useRouter } from "expo-router";
 import {
   BookOpen,
   Home,
+  ListChecks,
   QrCode,
   User,
   Users,
@@ -91,6 +92,13 @@ export default function TeacherTabsLayout() {
           options={{
             title: "Library",
             tabBarIcon: ({ color }) => <BookOpen size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="quizzes"
+          options={{
+            title: "Quizzes",
+            tabBarIcon: ({ color }) => <ListChecks size={24} color={color} />,
           }}
         />
         <Tabs.Screen

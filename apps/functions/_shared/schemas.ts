@@ -325,6 +325,68 @@ export const ContentDeleteInputSchema = z.object({
 });
 export type ContentDeleteInput = z.infer<typeof ContentDeleteInputSchema>;
 
+// ---------- Phase 6 — practice quizzes ----------
+
+export const QuizStartInputSchema = z.object({
+  quiz_id: z.string().uuid(),
+});
+export type QuizStartInput = z.infer<typeof QuizStartInputSchema>;
+
+export const QuizSubmitInputSchema = z.object({
+  attempt_id: z.string().uuid(),
+});
+export type QuizSubmitInput = z.infer<typeof QuizSubmitInputSchema>;
+
+export const QuizAttemptResultInputSchema = z.object({
+  attempt_id: z.string().uuid(),
+});
+export type QuizAttemptResultInput = z.infer<typeof QuizAttemptResultInputSchema>;
+
+export const EXAM_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+export const EXAM_IMAGE_ALLOWED_MIME = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+export const QuizImageKindSchema = z.enum(["question_prompt", "option_image"]);
+export type QuizImageKind = z.infer<typeof QuizImageKindSchema>;
+
+export const QuizImagePresignInputSchema = z.object({
+  kind: QuizImageKindSchema,
+  mime_type: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  content_size_bytes: z
+    .number()
+    .int()
+    .positive()
+    .max(EXAM_IMAGE_MAX_BYTES),
+});
+export type QuizImagePresignInput = z.infer<typeof QuizImagePresignInputSchema>;
+
+// Admin-only discriminated-union mutation surface for the /quizzes and
+// /questions moderation pages (D-172). Teacher-side writes still flow through
+// PostgREST with RLS — only admin actions get an audited edge fn.
+export const QuizAdminMutateInputSchema = z.discriminatedUnion("op", [
+  z.object({
+    op: z.literal("toggle_publish_quiz"),
+    quiz_id: z.string().uuid(),
+    is_published: z.boolean(),
+  }),
+  z.object({
+    op: z.literal("delete_quiz"),
+    quiz_id: z.string().uuid(),
+  }),
+  z.object({
+    op: z.literal("archive_question"),
+    question_id: z.string().uuid(),
+    is_archived: z.boolean(),
+  }),
+  z.object({
+    op: z.literal("delete_question"),
+    question_id: z.string().uuid(),
+  }),
+]);
+export type QuizAdminMutateInput = z.infer<typeof QuizAdminMutateInputSchema>;
+
 export const BatchMutateInputSchema = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("create_batch"),
