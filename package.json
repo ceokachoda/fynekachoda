@@ -31,7 +31,11 @@
     "smoke:materialize": "tsx scripts/smoke-test-materialize-sessions.ts",
     "smoke:realtime": "tsx scripts/smoke-test-realtime-attendance.ts",
     "smoke:manual-mark": "tsx scripts/smoke-test-attendance-manual-mark.ts",
-    "seed:manual-test": "tsx scripts/seed-manual-test.ts"
+    "seed:manual-test": "tsx scripts/seed-manual-test.ts",
+    "test:content": "tsx scripts/test-content-helpers.ts",
+    "smoke:content-rls": "tsx scripts/smoke-test-content-rls.ts",
+    "smoke:content-fns": "tsx scripts/smoke-test-content-edge-fns.ts",
+    "seed:content-manual-test": "tsx scripts/seed-content-manual-test.ts"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.105.4",

@@ -245,6 +245,86 @@ const Capacity = z.number().int().min(1).max(10_000);
 const Weekday = z.number().int().min(0).max(6);
 const TimeHHMM = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
 
+export const ContentKindSchema = z.enum(["video", "pdf", "note"]);
+export type ContentKind = z.infer<typeof ContentKindSchema>;
+
+export const PDF_MAX_BYTES = 50 * 1024 * 1024;
+export const PDF_ALLOWED_MIME = ["application/pdf"] as const;
+
+export const ContentPresignUploadInputSchema = z.object({
+  kind: z.enum(["pdf", "note"]),
+  topic_id: z.string().uuid(),
+  title: z.string().trim().min(1).max(200),
+  batch_id: z.string().uuid().optional(),
+  content_size_bytes: z.number().int().positive().max(PDF_MAX_BYTES),
+  mime_type: z.enum(["application/pdf"]),
+});
+export type ContentPresignUploadInput = z.infer<
+  typeof ContentPresignUploadInputSchema
+>;
+
+export const ContentFinalizeInputSchema = z.object({
+  kind: z.enum(["pdf", "note"]),
+  topic_id: z.string().uuid(),
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(2000).optional(),
+  batch_id: z.string().uuid().optional(),
+  file_path: z.string().min(8).max(500),
+  file_size_bytes: z.number().int().positive().max(PDF_MAX_BYTES).optional(),
+  mime_type: z.enum(["application/pdf"]).optional(),
+});
+export type ContentFinalizeInput = z.infer<typeof ContentFinalizeInputSchema>;
+
+export const ContentCreateVideoInputSchema = z.object({
+  yt_url_or_id: z.string().trim().min(8).max(500),
+  topic_id: z.string().uuid(),
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(2000).optional(),
+  batch_id: z.string().uuid().optional(),
+});
+export type ContentCreateVideoInput = z.infer<
+  typeof ContentCreateVideoInputSchema
+>;
+
+export const ContentTogglePublishInputSchema = z.object({
+  content_id: z.string().uuid(),
+  is_published: z.boolean(),
+});
+export type ContentTogglePublishInput = z.infer<
+  typeof ContentTogglePublishInputSchema
+>;
+
+export const ContentPromoteCoursewideInputSchema = z.object({
+  content_id: z.string().uuid(),
+  promote: z.boolean(),
+  batch_id: z.string().uuid().optional(),
+});
+export type ContentPromoteCoursewideInput = z.infer<
+  typeof ContentPromoteCoursewideInputSchema
+>;
+
+export const YtPlaybackSignInputSchema = z.object({
+  content_id: z.string().uuid(),
+});
+export type YtPlaybackSignInput = z.infer<typeof YtPlaybackSignInputSchema>;
+
+export const YtThumbSignInputSchema = z.object({
+  content_id: z.string().uuid(),
+});
+export type YtThumbSignInput = z.infer<typeof YtThumbSignInputSchema>;
+
+export const ContentPdfSignInputSchema = z.object({
+  content_id: z.string().uuid(),
+  // Optional: admin previews use admin=true to bypass the published check.
+  // (Caller is still required to be admin server-side.)
+});
+export type ContentPdfSignInput = z.infer<typeof ContentPdfSignInputSchema>;
+
+export const ContentDeleteInputSchema = z.object({
+  content_id: z.string().uuid(),
+});
+export type ContentDeleteInput = z.infer<typeof ContentDeleteInputSchema>;
+
 export const BatchMutateInputSchema = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("create_batch"),

@@ -39,8 +39,40 @@ const SINGLETON_PACKAGES = new Set([
 ]);
 const mobileOrigin = path.resolve(projectRoot, "package.json");
 
+// react-native-webview ships TWO entry trees:
+//   "react-native": "src/index.ts"  → raw codegenNativeComponent('RNCWebView')
+//   "main":         "index.js"      → re-exports lib/ (codegen-transformed,
+//                                     static __INTERNAL_VIEW_CONFIG inlined)
+// Metro picks the `react-native` field by default. The codegen babel transform
+// does NOT fire on src/RNCWebViewNativeComponent.ts in our preset chain
+// (Expo Go new arch + babel-preset-expo, file under node_modules), so at
+// runtime NativeComponentRegistry never receives a view config getter for
+// `RNCWebView` and React throws:
+//   "View config getter callback for component `RNCWebView` must be a
+//    function (received `undefined`)"
+// — which also takes react-native-youtube-iframe down with it. Force this one
+// package to the pre-built lib/ entry.
+const webviewLibEntry = path.resolve(
+  workspaceRoot,
+  "node_modules/react-native-webview/index.js",
+);
+
+// Match the bare name AND any subpath (e.g. "react-native/Libraries/..." must
+// dedupe to the SAME copy as "react-native", otherwise stateful submodules
+// like NativeComponentRegistry / ReactNativeViewConfigRegistry end up with
+// register() writing to one Map and get() reading from another.
+function isSingletonRequest(moduleName) {
+  for (const pkg of SINGLETON_PACKAGES) {
+    if (moduleName === pkg || moduleName.startsWith(pkg + "/")) return true;
+  }
+  return false;
+}
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (SINGLETON_PACKAGES.has(moduleName)) {
+  if (moduleName === "react-native-webview") {
+    return { type: "sourceFile", filePath: webviewLibEntry };
+  }
+  if (isSingletonRequest(moduleName)) {
     return context.resolveRequest(
       { ...context, originModulePath: mobileOrigin },
       moduleName,

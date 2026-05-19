@@ -24,9 +24,17 @@ export class VaultError extends Error {
 export async function getVaultSecret(name: string): Promise<string | null> {
   if (cache.has(name)) return cache.get(name)!;
   const admin = getServiceRoleClient();
-  const { data, error } = await admin.rpc("get_qr_secret", { name });
+  // Try the generic accessor first (Phase 5+); fall back to the legacy
+  // qr-specific one which has identical body but was deployed earlier.
+  let { data, error } = await admin.rpc("get_vault_secret", { name });
   if (error) {
-    throw new VaultError(`vault lookup '${name}' failed: ${error.message}`);
+    const fallback = await admin.rpc("get_qr_secret", { name });
+    if (fallback.error) {
+      throw new VaultError(
+        `vault lookup '${name}' failed: ${fallback.error.message}`,
+      );
+    }
+    data = fallback.data;
   }
   const value = (data as string | null) ?? null;
   cache.set(name, value);
@@ -45,6 +53,19 @@ export async function getQrSecrets(): Promise<string[]> {
     );
   }
   const v2 = await getVaultSecret("QR_TOKEN_SECRET_V2");
+  return v2 ? [v1, v2] : [v1];
+}
+
+// Phase 5 — same V1/V2 rotation pattern as QR secrets, but for
+// `yt-playback-sign` HMAC. V1 is required; V2 optional during rotation.
+export async function getPlaybackSecrets(): Promise<string[]> {
+  const v1 = await getVaultSecret("PLAYBACK_SIGN_SECRET_V1");
+  if (!v1) {
+    throw new VaultError(
+      "PLAYBACK_SIGN_SECRET_V1 is not present in vault — playback sign will fail",
+    );
+  }
+  const v2 = await getVaultSecret("PLAYBACK_SIGN_SECRET_V2");
   return v2 ? [v1, v2] : [v1];
 }
 

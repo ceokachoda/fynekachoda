@@ -82,6 +82,14 @@ export default function RootLayout() {
           <Stack.Screen name="(student)" options={{ headerShown: false }} />
           <Stack.Screen name="(teacher)" options={{ headerShown: false }} />
           <Stack.Screen
+            name="video/[contentId]"
+            options={{ headerShown: false, gestureEnabled: true }}
+          />
+          <Stack.Screen
+            name="pdf/[contentId]"
+            options={{ headerShown: false, gestureEnabled: true }}
+          />
+          <Stack.Screen
             name="modal"
             options={{ presentation: "modal", title: "Modal" }}
           />
