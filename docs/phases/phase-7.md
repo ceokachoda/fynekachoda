@@ -561,8 +561,10 @@ No new Vault secrets required. Phase 7 reuses Phase 5's `exam-images` Storage bu
 - Local KaTeX bundle (Phase 9 hardening — Phase 6 carry-over).
 - Vercel deployment fix, Sentry + PostHog wiring, `auth_leaked_password_protection` (long-running Phase 1 carry-overs).
 
-### Phase 7 status: **CODE-COMPLETE — manual QA pending**
+### Phase 7 status: **🟡 CODE-COMPLETE — MANUAL QA NOT YET DONE**
 
-Work sits uncommitted on `phase-4` branch; user will direct the consolidated PR. Manual test plan at `docs/phases/phase-7-manual-tests.md`. Fresh fixture script `pnpm seed:exam-manual-test` (with `--reset` flag from day one).
+Automated tests are green (118 assertions across unit + RLS + edge-fn HTTP). **Zero human-in-the-loop verification has happened.** The locked-down attempt screen, server-anchored timer, AppState/tab-switch banner, regrade modal flows (all 3 actions), offline-scores roster, and admin force-release / delete buttons are ALL un-touched by manual QA. Phase 7 is a high-stakes feature: server-time enforcement bugs let students cheat; regrade bugs cause grade disputes. Bugs are EXPECTED and patches will land before sign-off.
 
-### ACCEPTED — 
+Walk `docs/phases/phase-7-manual-tests.md` (1,227 lines, click-by-click with explicit per-step "Report:" lines) before flipping this line to "done". Fresh fixture: `pnpm seed:exam-manual-test --reset`. Work sits uncommitted on `phase-4` branch.
+
+### ACCEPTED — (LEFT BLANK — pending manual QA sign-off by the user)

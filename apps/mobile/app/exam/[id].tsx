@@ -332,7 +332,7 @@ export default function ExamScreen() {
 
           <View className="bg-white rounded-2xl p-4 border border-slate-200 mt-5">
             <Text className="text-base font-bold text-blue-900 mb-2">Rules</Text>
-            <Bullet>Server clock decides. You can't change your phone clock to extend time.</Bullet>
+            <Bullet>Server clock decides. You can&apos;t change your phone clock to extend time.</Bullet>
             <Bullet>Leaving the app is LOGGED (counter visible to your teacher). No auto-submit.</Bullet>
             <Bullet>Auto-saves as you answer. If you re-open, you resume in place.</Bullet>
             <Bullet>
@@ -704,7 +704,7 @@ export default function ExamScreen() {
           <View style={{ backgroundColor: "#fff", borderRadius: 18, padding: 20 }}>
             <Text style={{ fontSize: 18, fontWeight: "700", color: "#0f172a" }}>Submit exam?</Text>
             <Text style={{ marginTop: 8, color: "#475569" }}>
-              You've answered {answeredCount}/{totalQ}{flaggedCount > 0 ? `, flagged ${flaggedCount}` : ""}. This cannot be undone.
+              You&apos;ve answered {answeredCount}/{totalQ}{flaggedCount > 0 ? `, flagged ${flaggedCount}` : ""}. This cannot be undone.
             </Text>
             <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 16 }}>
               <Pressable onPress={() => setConfirmSubmit(false)} style={{ paddingHorizontal: 14, paddingVertical: 10 }}>

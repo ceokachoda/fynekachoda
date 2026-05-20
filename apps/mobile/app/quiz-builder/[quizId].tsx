@@ -24,6 +24,7 @@ import {
   Check,
   ChevronDown,
   ChevronLeft,
+  ChevronUp,
   Plus,
   Search,
   Trash2,
@@ -82,6 +83,7 @@ export default function QuizBuilderScreen() {
   const [randomizeO, setRandomizeO] = useState(true);
   const [isPublished, setIsPublished] = useState(false);
   const [questionIds, setQuestionIds] = useState<string[]>([]);
+  const [promptById, setPromptById] = useState<Record<string, string>>({});
   const [picker, setPicker] = useState<Picker>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [showBank, setShowBank] = useState(false);
@@ -107,6 +109,11 @@ export default function QuizBuilderScreen() {
       setTopicId(builder.quiz.scope.topic_id);
     }
     setQuestionIds(builder.questions.map((q) => q.question_id));
+    setPromptById((m) => {
+      const n = { ...m };
+      for (const q of builder.questions) n[q.question_id] = q.question.prompt_md;
+      return n;
+    });
   }, [builder.quiz, builder.questions]);
 
   useEffect(() => {
@@ -126,6 +133,17 @@ export default function QuizBuilderScreen() {
       }
     }
   }, [topicId, subjectId, curriculum.courses]);
+
+  // When the teacher teaches exactly one course there is nothing to pick, so
+  // the Course PickerRow is hidden (only rendered when courses.length > 1).
+  // Auto-select that single course or the Subject→Topic→Batch pickers below
+  // stay permanently disabled (selectedCourse would be null).
+  useEffect(() => {
+    if (courseId) return;
+    if (curriculum.courses.length === 1) {
+      setCourseId(curriculum.courses[0]!.course_id);
+    }
+  }, [courseId, curriculum.courses]);
 
   const selectedCourse = useMemo(
     () => curriculum.courses.find((c) => c.course_id === courseId) ?? null,
@@ -281,6 +299,7 @@ export default function QuizBuilderScreen() {
         );
       }
       setQuestionIds((prev) => [...prev, questionId]);
+      setPromptById((m) => ({ ...m, [questionId]: draft.prompt_md.trim() }));
       setDraft(EMPTY_DRAFT);
       setShowEditor(false);
     } catch (e) {
@@ -288,6 +307,18 @@ export default function QuizBuilderScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const moveQuestion = (i: number, dir: -1 | 1) => {
+    setQuestionIds((prev) => {
+      const j = i + dir;
+      if (j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      const tmp = next[i]!;
+      next[i] = next[j]!;
+      next[j] = tmp;
+      return next;
+    });
   };
 
   if (builder.isLoading && !builder.quiz) {
@@ -396,13 +427,35 @@ export default function QuizBuilderScreen() {
               >
                 <Text className="font-semibold text-slate-700 w-8">{i + 1}.</Text>
                 <Text className="flex-1 text-slate-900" numberOfLines={1}>
-                  Question {qid.slice(0, 6)}…
+                  {promptById[qid] ?? `Question ${qid.slice(0, 6)}…`}
                 </Text>
+                <Pressable
+                  accessibilityLabel="Move question up"
+                  disabled={i === 0}
+                  onPress={() => moveQuestion(i, -1)}
+                  hitSlop={6}
+                  className="px-1"
+                  style={{ opacity: i === 0 ? 0.3 : 1 }}
+                >
+                  <ChevronUp size={18} color="#475569" />
+                </Pressable>
+                <Pressable
+                  accessibilityLabel="Move question down"
+                  disabled={i === questionIds.length - 1}
+                  onPress={() => moveQuestion(i, 1)}
+                  hitSlop={6}
+                  className="px-1"
+                  style={{ opacity: i === questionIds.length - 1 ? 0.3 : 1 }}
+                >
+                  <ChevronDown size={18} color="#475569" />
+                </Pressable>
                 <Pressable
                   accessibilityLabel="Remove question"
                   onPress={() =>
                     setQuestionIds((prev) => prev.filter((x) => x !== qid))
                   }
+                  hitSlop={6}
+                  className="px-1 ml-1"
                 >
                   <Trash2 size={16} color="#dc2626" />
                 </Pressable>
@@ -571,9 +624,12 @@ export default function QuizBuilderScreen() {
               <View key={i} className="flex-row items-center mb-3">
                 <Pressable
                   onPress={() =>
+                    // Single-answer MCQ: selecting one option clears the rest.
+                    // Grading (`quiz-submit`) credits exactly one correct option,
+                    // so the editor must not allow ticking multiple.
                     setDraft((p) => ({
                       ...p,
-                      options: p.options.map((x, j) => ({ ...x, is_correct: j === i ? !x.is_correct : x.is_correct })),
+                      options: p.options.map((x, j) => ({ ...x, is_correct: j === i })),
                     }))
                   }
                   className={
@@ -624,11 +680,16 @@ export default function QuizBuilderScreen() {
         visible={showBank}
         topicId={topicId}
         onClose={() => setShowBank(false)}
-        onPicked={(ids) => {
+        onPicked={(items) => {
           setQuestionIds((prev) => {
             const next = [...prev];
-            for (const id of ids) if (!next.includes(id)) next.push(id);
+            for (const it of items) if (!next.includes(it.id)) next.push(it.id);
             return next;
+          });
+          setPromptById((m) => {
+            const n = { ...m };
+            for (const it of items) n[it.id] = it.prompt_md;
+            return n;
           });
           setShowBank(false);
         }}
@@ -815,17 +876,27 @@ function QuestionBankModal({
   visible: boolean;
   topicId: string | null;
   onClose: () => void;
-  onPicked: (ids: string[]) => void;
+  onPicked: (items: { id: string; prompt_md: string }[]) => void;
 }) {
   const bank = useQuestionBank({ topic_id: topicId ?? undefined });
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [query, setQuery] = useState("");
   useEffect(() => {
     if (visible) {
       setSelected(new Set());
+      setQuery("");
       if (topicId) void bank.reload({ topic_id: topicId });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, topicId]);
+
+  // Topic-scoped list is small (≤200), so filter the loaded rows locally for
+  // instant results instead of round-tripping the `search` server filter.
+  const q = query.trim().toLowerCase();
+  const filtered =
+    q.length === 0
+      ? bank.rows
+      : bank.rows.filter((r) => r.prompt_md.toLowerCase().includes(q));
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -837,7 +908,14 @@ function QuestionBankModal({
           <Text className="text-lg font-bold text-blue-900 ml-3 flex-1">Pick from Question Bank</Text>
           <Pressable
             disabled={selected.size === 0}
-            onPress={() => onPicked(Array.from(selected))}
+            onPress={() =>
+              onPicked(
+                Array.from(selected).map((sid) => ({
+                  id: sid,
+                  prompt_md: bank.rows.find((r) => r.id === sid)?.prompt_md ?? "",
+                })),
+              )
+            }
             className={"rounded-xl px-4 py-2 " + (selected.size === 0 ? "bg-slate-200" : "bg-blue-600")}
           >
             <Text className={selected.size === 0 ? "text-slate-500" : "text-white font-semibold"}>
@@ -845,16 +923,37 @@ function QuestionBankModal({
             </Text>
           </Pressable>
         </View>
+        <View className="px-5 pb-3">
+          <View className="flex-row items-center bg-white border border-slate-200 rounded-xl px-3">
+            <Search size={16} color="#94a3b8" />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search questions…"
+              placeholderTextColor="#94a3b8"
+              autoCapitalize="none"
+              autoCorrect={false}
+              className="flex-1 px-2 py-3 text-base text-slate-900"
+            />
+            {query.length > 0 ? (
+              <Pressable onPress={() => setQuery("")} hitSlop={8} accessibilityLabel="Clear search">
+                <X size={16} color="#94a3b8" />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
         {bank.isLoading ? (
           <View className="flex-1 items-center justify-center"><ActivityIndicator color="#2563EB" /></View>
         ) : (
           <FlatList
-            data={bank.rows}
+            data={filtered}
             keyExtractor={(r) => r.id}
             contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}
             ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
             ListEmptyComponent={
-              <Text className="text-center text-slate-500 mt-8">No questions in this topic.</Text>
+              <Text className="text-center text-slate-500 mt-8">
+                {q.length > 0 ? "No questions match your search." : "No questions in this topic."}
+              </Text>
             }
             renderItem={({ item }) => {
               const isPicked = selected.has(item.id);

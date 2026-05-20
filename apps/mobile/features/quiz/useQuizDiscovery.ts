@@ -84,7 +84,7 @@ export function useStudentQuizDiscovery(): State {
         slot.count += 1;
         const score = a.score === null ? null : Number(a.score);
         const max = a.max_score === null ? null : Number(a.max_score);
-        if (score !== null && max !== null) {
+        if (score !== null && max !== null && max > 0) {
           if (slot.bestScore === null || score / max > (slot.bestScore / (slot.bestMax || 1))) {
             slot.bestScore = score;
             slot.bestMax = max;

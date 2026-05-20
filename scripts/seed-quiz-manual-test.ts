@@ -109,13 +109,10 @@ async function resetPriorFixtures(admin: SupabaseClient) {
     await admin.from("teachers").delete().in("user_id", ids);
     await admin.from("user_roles").delete().in("user_id", ids);
     await admin.from("audit_log").delete().in("actor_user_id", ids);
-    await admin.from("app_users").delete().in("id", ids);
-    for (const a of authIds) {
-      try {
-        await admin.auth.admin.deleteUser(a);
-      } catch {}
-    }
-    info(`deleted ${ids.length} prior p6-* users`);
+    // NOTE: app_users + auth users are deleted at the END of this function,
+    // after the course block removes the teacher's quizzes/questions. Those
+    // tables NO ACTION-reference app_users.id, so deleting identities here
+    // would abort (and silently orphan the teachers/batch_teachers rows above).
   }
   // Drop prior P6_TEST_* courses + their batches/quizzes/questions cascade.
   const oldCourses = await admin
@@ -145,6 +142,25 @@ async function resetPriorFixtures(admin: SupabaseClient) {
     await admin.from("batches").delete().in("id", bIds);
     await admin.from("courses").delete().in("id", oldCourseIds);
     info(`deleted ${oldCourseIds.length} prior P6_TEST_* courses (+ cascaded children)`);
+  }
+
+  // Now that course-owned quizzes/questions/content are gone, the identities
+  // are unreferenced. Delete per-id so one still-referenced row can't abort the
+  // whole batch (which is what previously left orphaned p6-* teachers behind).
+  if (ids.length > 0) {
+    let deleted = 0;
+    for (let i = 0; i < ids.length; i++) {
+      const { error } = await admin.from("app_users").delete().eq("id", ids[i]!);
+      if (error) {
+        info(`skipped app_user ${ids[i]} (still referenced): ${error.message}`);
+        continue;
+      }
+      try {
+        await admin.auth.admin.deleteUser(authIds[i]!);
+      } catch {}
+      deleted++;
+    }
+    info(`deleted ${deleted}/${ids.length} prior p6-* users`);
   }
 }
 

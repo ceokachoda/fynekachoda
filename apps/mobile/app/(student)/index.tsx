@@ -458,7 +458,7 @@ export default function StudentHomeScreen() {
               </Text>
             </View>
             <Text className="text-xs text-slate-500 mb-3 leading-4">
-              Topics you've scored under 70% on. Take a practice quiz to bring it up.
+              Topics you&apos;ve scored under 70% on. Take a practice quiz to bring it up.
             </Text>
             {weakTopics.rows.map((w) => (
               <TouchableOpacity
@@ -469,7 +469,7 @@ export default function StudentHomeScreen() {
               >
                 <View className="w-12 h-12 rounded-2xl bg-amber-50 items-center justify-center mr-3">
                   <Text className="text-amber-700 font-extrabold text-sm">
-                    {w.avg_pct}%
+                    {w.score_pct}%
                   </Text>
                 </View>
                 <View className="flex-1">

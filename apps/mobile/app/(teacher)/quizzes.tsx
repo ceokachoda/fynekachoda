@@ -59,7 +59,7 @@ export default function TeacherQuizzesScreen() {
             <View className="p-8 items-center">
               <ListChecks color="#94a3b8" size={32} />
               <Text className="text-slate-500 mt-2 text-center">
-                No quizzes yet. Tap "New" to create your first one.
+                No quizzes yet. Tap &quot;New&quot; to create your first one.
               </Text>
             </View>
           }

@@ -30,6 +30,7 @@ export default function LibraryScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const { data: tree, isLoading, error, refresh } = useLibraryTree(searchQuery);
   const quizzes = useStudentQuizDiscovery();
+  const { reload: reloadQuizzes } = quizzes;
   const [view, setView] = useState<LibraryView>("subjects");
   const [subjectId, setSubjectId] = useState<string | null>(null);
   const [chapterId, setChapterId] = useState<string | null>(null);
@@ -67,8 +68,8 @@ export default function LibraryScreen() {
   useFocusEffect(
     useCallback(() => {
       void refresh();
-      void quizzes.reload();
-    }, [refresh, quizzes]),
+      void reloadQuizzes();
+    }, [refresh, reloadQuizzes]),
   );
 
   const topicQuizzes = currentTopic

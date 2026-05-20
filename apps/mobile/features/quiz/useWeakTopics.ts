@@ -7,7 +7,7 @@ export interface WeakTopic {
   topic_id: string;
   topic_name: string;
   attempts: number;
-  avg_pct: number;
+  score_pct: number;
   suggested_quiz_id: string;
   suggested_quiz_title: string;
 }
@@ -20,10 +20,13 @@ interface State {
 }
 
 // Phase 6 proxy for mastery (D-070 lands in Phase 8). Groups submitted quiz
-// attempts by `quizzes.topic_id`, computes the student's average score %, and
-// returns topics where avg < 70%. The "suggested quiz" is the most-recent
-// PUBLISHED quiz on that topic the student can currently see (RLS scopes the
-// quizzes query for us).
+// attempts by `quizzes.topic_id` and returns topics where the student's BEST
+// score % is below threshold. Best (not average) so that once a student
+// demonstrates ≥threshold on a topic the nudge clears — matches the student-
+// facing "you've shown you can do this" mental model (Phase 8's mastery table
+// will use the weighted average per spec §6.3). The "suggested quiz" is the
+// most-recent PUBLISHED quiz on that topic the student can currently see (RLS
+// scopes the quizzes query for us).
 export function useWeakTopics(threshold = 70): State {
   const { appUser } = useSession();
   const [rows, setRows] = useState<WeakTopic[]>([]);
@@ -65,12 +68,12 @@ export function useWeakTopics(threshold = 70): State {
       };
       const ar = (attempts.data ?? []) as unknown as Row[];
 
-      // Aggregate per topic.
+      // Aggregate per topic — track the BEST score % seen so far.
       const byTopic = new Map<
         string,
         {
           topic_name: string;
-          total_pct: number;
+          best_pct: number;
           n: number;
           latest_quiz_id: string;
           latest_quiz_title: string;
@@ -90,15 +93,15 @@ export function useWeakTopics(threshold = 70): State {
         if (!cur) {
           byTopic.set(topicId, {
             topic_name: topicName,
-            total_pct: pct,
+            best_pct: pct,
             n: 1,
             latest_quiz_id: q.id,
             latest_quiz_title: q.title,
             latest_submitted_at: a.submitted_at!,
           });
         } else {
-          cur.total_pct += pct;
           cur.n += 1;
+          if (pct > cur.best_pct) cur.best_pct = pct;
           if (a.submitted_at! > cur.latest_submitted_at) {
             cur.latest_quiz_id = q.id;
             cur.latest_quiz_title = q.title;
@@ -109,19 +112,21 @@ export function useWeakTopics(threshold = 70): State {
 
       const weak: WeakTopic[] = [];
       for (const [topicId, v] of byTopic) {
-        const avg = v.total_pct / v.n;
-        if (avg < threshold) {
+        if (v.best_pct < threshold) {
           weak.push({
             topic_id: topicId,
             topic_name: v.topic_name,
             attempts: v.n,
-            avg_pct: Math.round(avg),
+            // Negative marking can drive a raw score below 0; the nudge badge
+            // shows 0% rather than a confusing "-25%". Threshold check above
+            // still uses the true best_pct.
+            score_pct: Math.max(0, Math.round(v.best_pct)),
             suggested_quiz_id: v.latest_quiz_id,
             suggested_quiz_title: v.latest_quiz_title,
           });
         }
       }
-      weak.sort((a, b) => a.avg_pct - b.avg_pct);
+      weak.sort((a, b) => a.score_pct - b.score_pct);
       setRows(weak.slice(0, 5));
     } catch (err) {
       setError(err instanceof Error ? err.message : "load failed");

@@ -55,10 +55,11 @@ export default function ExamResultsScreen() {
   const [reason, setReason] = useState("");
   const [regrading, setRegrading] = useState(false);
 
+  const { reload: reloadBoard } = board;
   useFocusEffect(
     useCallback(() => {
-      void board.reload();
-    }, [board]),
+      void reloadBoard();
+    }, [reloadBoard]),
   );
 
   const released = board.exam?.results_released_at !== null;
@@ -394,7 +395,7 @@ export default function ExamResultsScreen() {
                 <View className="flex-row items-start bg-yellow-50 border border-yellow-300 rounded-xl p-3 mt-3">
                   <AlertTriangle size={14} color="#92400e" />
                   <Text className="ml-2 text-yellow-900 text-xs flex-1">
-                    This recomputes every submitted attempt's score. The original key + per-attempt scores are saved to audit_log.
+                    This recomputes every submitted attempt&apos;s score. The original key + per-attempt scores are saved to audit_log.
                   </Text>
                 </View>
                 <Pressable

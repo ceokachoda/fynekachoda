@@ -59,6 +59,7 @@ export default function QuizScreen() {
   const [submitResult, setSubmitResult] = useState<QuizSubmitResponse | null>(null);
   const [solutionAttemptId, setSolutionAttemptId] = useState<string | null>(null);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const [expired, setExpired] = useState(false);
   const autoSubmittedRef = useRef(false);
 
   const attemptId = startState.data?.attempt_id ?? null;
@@ -143,6 +144,9 @@ export default function QuizScreen() {
   };
 
   const onTimerExpired = () => {
+    // Surface a Submit button on every question once time is up, so a failed
+    // auto-submit (network error) doesn't strand the student mid-quiz.
+    setExpired(true);
     if (autoSubmittedRef.current) return;
     autoSubmittedRef.current = true;
     void submitNow(true);
@@ -260,6 +264,7 @@ export default function QuizScreen() {
               setAnswers(new Map());
               setCurrentQ(0);
               autoSubmittedRef.current = false;
+              setExpired(false);
               void startState.load();
               setStage("intro");
             }}
@@ -413,7 +418,7 @@ export default function QuizScreen() {
           <Text className="ml-1 font-semibold text-slate-800">Prev</Text>
         </Pressable>
         <View className="flex-1" />
-        {currentQ < totalQ - 1 ? (
+        {currentQ < totalQ - 1 && !expired ? (
           <Pressable
             accessibilityLabel="Next question"
             onPress={() => setCurrentQ((i) => Math.min(totalQ - 1, i + 1))}
@@ -438,7 +443,7 @@ export default function QuizScreen() {
           <View style={{ backgroundColor: "#fff", borderRadius: 18, padding: 20 }}>
             <Text style={{ fontSize: 18, fontWeight: "700", color: "#0f172a" }}>Submit quiz?</Text>
             <Text style={{ marginTop: 8, color: "#475569" }}>
-              You've answered {answeredCount}/{totalQ}{flaggedCount > 0 ? `, flagged ${flaggedCount}` : ""}.
+              You&apos;ve answered {answeredCount}/{totalQ}{flaggedCount > 0 ? `, flagged ${flaggedCount}` : ""}.
             </Text>
             <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 16 }}>
               <Pressable onPress={() => setConfirmSubmit(false)} style={{ paddingHorizontal: 14, paddingVertical: 10 }}>

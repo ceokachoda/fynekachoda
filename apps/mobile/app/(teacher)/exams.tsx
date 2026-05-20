@@ -92,7 +92,7 @@ export default function TeacherExamsScreen() {
             <View className="p-8 items-center">
               <ClipboardEdit color="#94a3b8" size={32} />
               <Text className="text-slate-500 mt-2 text-center">
-                No exams yet. Tap "New" to create your first graded test.
+                No exams yet. Tap &quot;New&quot; to create your first graded test.
               </Text>
             </View>
           }

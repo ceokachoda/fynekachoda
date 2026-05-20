@@ -540,8 +540,10 @@ No new Vault secrets required. Phase 6 reuses the existing service-role bypass f
 - `auth_leaked_password_protection` toggle (long-running Phase 1 carry-over).
 - `auth_rls_initplan` on `app_users` (Phase 2/3 carry-over).
 
-### Phase 6 status: **CODE-COMPLETE — manual QA pending**
+### Phase 6 status: **🟡 CODE-COMPLETE — MANUAL QA NOT YET DONE**
 
-Work sits uncommitted on `phase-4` branch; user will direct the consolidated PR. Manual test plan at `docs/phases/phase-6-manual-tests.md`. Fresh fixture script `pnpm seed:quiz-manual-test` (with `--reset` flag).
+Automated tests are green. **Zero human-in-the-loop verification has happened.** Real-device rendering, KaTeX glyphs, navigation grid behaviour, modal interactions, admin UI flows, weak-topics card surfacing, and the retake/timer/auto-submit edges are ALL un-touched by manual QA. Bugs are EXPECTED and patches will land before sign-off.
 
-### ACCEPTED — 
+Walk `docs/phases/phase-6-manual-tests.md` (1,081 lines, click-by-click) before flipping this line to "done". Fresh fixture: `pnpm seed:quiz-manual-test --reset`. Work sits uncommitted on `phase-4` branch.
+
+### ACCEPTED — (LEFT BLANK — pending manual QA sign-off by the user)
