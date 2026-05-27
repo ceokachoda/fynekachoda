@@ -1,10 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Animated, Easing } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Animated, Easing, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  User, Bell, Shield, HelpCircle, FileText, 
+import { useRouter } from 'expo-router';
+import {
+  User, Bell, Shield, HelpCircle, FileText,
   Moon, Globe, Smartphone, LogOut, ChevronRight
 } from 'lucide-react-native';
+import { signOut } from '@/features/auth/auth';
 
 const menuGroups = [
   {
@@ -33,10 +35,24 @@ const menuGroups = [
 ];
 
 export default function MenuScreen() {
+  const router = useRouter();
   // Create an animated value for each group + 1 for the logout button
   const animatedValues = useRef(
     Array.from({ length: menuGroups.length + 1 }).map(() => new Animated.Value(0))
   ).current;
+
+  async function handleLogout() {
+    await signOut();
+    router.replace('/login');
+  }
+
+  function handleItem(label: string) {
+    if (label === 'Account Information') {
+      Alert.alert('Account Information', 'View your profile details on the Profile tab.');
+      return;
+    }
+    Alert.alert(label, 'This setting will be available in a future update.');
+  }
 
   useEffect(() => {
     const animations = animatedValues.map((val) => 
@@ -92,8 +108,9 @@ export default function MenuScreen() {
                   const Icon = item.icon;
                   const isLast = itemIdx === group.items.length - 1;
                   return (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       key={itemIdx}
+                      onPress={() => handleItem(item.label)}
                       className={`flex-row items-center p-4 ${!isLast ? 'border-b border-slate-50' : ''}`}
                     >
                       <View className={`w-12 h-12 rounded-2xl items-center justify-center mr-4 ${item.bg}`}>
@@ -126,7 +143,7 @@ export default function MenuScreen() {
             }]
           }}
         >
-          <TouchableOpacity className="bg-white rounded-[28px] p-5 flex-row items-center justify-center border border-red-100 shadow-sm shadow-red-100/50 mb-8">
+          <TouchableOpacity onPress={handleLogout} className="bg-white rounded-[28px] p-5 flex-row items-center justify-center border border-red-100 shadow-sm shadow-red-100/50 mb-8">
             <LogOut size={22} color="#ef4444" style={{ marginRight: 8 }} />
             <Text className="text-red-600 font-bold text-base">Log Out</Text>
           </TouchableOpacity>

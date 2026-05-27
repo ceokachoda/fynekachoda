@@ -13,7 +13,7 @@ const NAV: readonly NavItem[] = [
   { label: "Overview", href: "/" },
   { label: "Students", href: "/students" },
   { label: "Teachers", href: "/teachers" },
-  { label: "Admins", href: "/admins", ownerOnly: true, comingPhase: "Phase 11" },
+  { label: "Admins", href: "/admins", ownerOnly: true },
   { label: "Batches", href: "/batches" },
   { label: "Courses", href: "/courses" },
   { label: "Attendance", href: "/attendance" },
@@ -22,7 +22,7 @@ const NAV: readonly NavItem[] = [
   { label: "Exams", href: "/exams" },
   { label: "Offline scores", href: "/offline-scores" },
   { label: "Question bank", href: "/questions" },
-  { label: "Audit log", href: "/audit", comingPhase: "Phase 11" },
+  { label: "Audit log", href: "/audit" },
 ] as const;
 
 export default async function DashboardLayout({

@@ -15,8 +15,7 @@
     "android": {
       "package": "com.fynestudy.app",
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.CAMERA"
       ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -49,7 +48,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "FyneStudy needs camera access to scan attendance QR codes."
+          "cameraPermission": "FyneStudy needs camera access to scan attendance QR codes.",
+          "recordAudioAndroid": false
         }
       ]
     ],

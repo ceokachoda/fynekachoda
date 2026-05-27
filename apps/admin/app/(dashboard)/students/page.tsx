@@ -93,9 +93,14 @@ export default async function StudentsPage({
             {rows.length} {rows.length === 1 ? "result" : "results"}
           </p>
         </div>
-        <Button asChild>
-          <Link href="/students/new">+ New student</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/students/import">Import CSV</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/students/new">+ New student</Link>
+          </Button>
+        </div>
       </header>
 
       <StudentsFilters initialQ={q ?? ""} initialStatus={status} />
