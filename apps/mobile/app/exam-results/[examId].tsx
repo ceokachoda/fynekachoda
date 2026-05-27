@@ -223,7 +223,7 @@ export default function ExamResultsScreen() {
             <Pressable
               disabled={releasing}
               onPress={() => void onRelease()}
-              className="bg-emerald-600 rounded-2xl py-3 mt-3 items-center flex-row justify-center"
+              className="bg-blue-600 rounded-2xl py-3 mt-3 items-center flex-row justify-center"
               style={{ opacity: releasing ? 0.6 : 1 }}
             >
               <Megaphone size={16} color="#ffffff" />

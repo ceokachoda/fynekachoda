@@ -43,7 +43,20 @@
     "test:exam": "tsx scripts/test-exam-helpers.ts",
     "smoke:exam-rls": "tsx scripts/smoke-test-exam-rls.ts",
     "smoke:exam-fns": "tsx scripts/smoke-test-exam-edge-fns.ts",
-    "seed:exam-manual-test": "tsx scripts/seed-exam-manual-test.ts"
+    "seed:exam-manual-test": "tsx scripts/seed-exam-manual-test.ts",
+    "test:dashboard": "tsx scripts/test-dashboard-helpers.ts",
+    "smoke:dashboard-rls": "tsx scripts/smoke-test-dashboard-rls.ts",
+    "smoke:dashboard-fns": "tsx scripts/smoke-test-dashboard-edge-fns.ts",
+    "seed:dashboard-manual-test": "tsx scripts/seed-dashboard-manual-test.ts",
+    "test:live": "tsx scripts/test-live-helpers.ts",
+    "smoke:live-rls": "tsx scripts/smoke-test-live-rls.ts",
+    "smoke:live-fns": "tsx scripts/smoke-test-live-edge-fns.ts",
+    "seed:live-manual-test": "tsx scripts/seed-live-manual-test.ts",
+    "test:leaderboard": "tsx scripts/test-leaderboard-helpers.ts",
+    "smoke:leaderboard-rls": "tsx scripts/smoke-test-leaderboard-rls.ts",
+    "smoke:leaderboard-fns": "tsx scripts/smoke-test-leaderboard-edge-fns.ts",
+    "seed:leaderboard-manual-test": "tsx scripts/seed-leaderboard-manual-test.ts",
+    "upload:badge-assets": "tsx scripts/upload-badge-assets.ts"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.105.4",

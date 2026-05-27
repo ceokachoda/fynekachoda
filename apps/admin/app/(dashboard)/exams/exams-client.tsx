@@ -312,8 +312,14 @@ export function ExamsClient({ rows, courses, batches, filters }: Props) {
       </div>
 
       {confirmDelete ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-lg">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4"
+          onClick={() => setConfirmDelete(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white p-5 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-semibold text-slate-900">Delete exam?</h3>
             <p className="mt-2 text-sm text-slate-600">
               This permanently removes <strong>{confirmDelete.title}</strong> and

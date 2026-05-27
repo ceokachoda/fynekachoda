@@ -5,6 +5,7 @@ import {
 } from "@react-navigation/native";
 import { Stack, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import * as ScreenOrientation from "expo-screen-orientation";
 import { useEffect, useState } from "react";
 import "react-native-reanimated";
 import "../global.css";
@@ -48,6 +49,9 @@ export default function RootLayout() {
   useEffect(() => {
     initCrash();
     track("app_open");
+    // Portrait everywhere by default; only the video watch screens opt into
+    // rotation (they unlock on focus and re-lock portrait on leave).
+    void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
     const t = setTimeout(() => setMinDelayElapsed(true), MIN_SPLASH_MS);
     return () => clearTimeout(t);
   }, []);
@@ -111,6 +115,18 @@ export default function RootLayout() {
           />
           <Stack.Screen
             name="offline-scores"
+            options={{ headerShown: false, gestureEnabled: true }}
+          />
+          <Stack.Screen
+            name="live/[sessionId]"
+            options={{ headerShown: false, gestureEnabled: true }}
+          />
+          <Stack.Screen
+            name="recording/[sessionId]"
+            options={{ headerShown: false, gestureEnabled: true }}
+          />
+          <Stack.Screen
+            name="live-control/[sessionId]"
             options={{ headerShown: false, gestureEnabled: true }}
           />
           <Stack.Screen

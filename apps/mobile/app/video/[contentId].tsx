@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { ChevronLeft } from "lucide-react-native";
 import {
   WrappedYtPlayer,
@@ -16,6 +17,7 @@ import {
 } from "@/components/live/WrappedYtPlayer";
 import { useContentItem } from "@/features/library/useContentItem";
 import { useVideoProgress } from "@/features/library/useVideoProgress";
+import { useVideoOrientation } from "@/features/live/useVideoOrientation";
 import { fetchPlaybackSign } from "@/lib/yt-player";
 
 function fmt(s: number): string {
@@ -46,6 +48,7 @@ export default function VideoScreen() {
   const [signing, setSigning] = useState(true);
   const [showResume, setShowResume] = useState(false);
   const [resumeApplied, setResumeApplied] = useState(false);
+  const { isLandscape } = useVideoOrientation();
   const playerRef = useRef<WrappedYtPlayerHandle | null>(null);
 
   useEffect(() => {
@@ -116,44 +119,66 @@ export default function VideoScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
-      <View className="flex-row items-center px-4 py-3">
-        <Pressable
-          onPress={() => router.back()}
-          className="w-9 h-9 items-center justify-center rounded-full bg-white border border-slate-200 mr-3"
-        >
-          <ChevronLeft size={20} color="#1e293b" />
-        </Pressable>
-        <Text className="text-base font-bold text-blue-900 flex-1" numberOfLines={1}>
-          {item.title}
-        </Text>
-      </View>
+    <SafeAreaView className="flex-1 bg-slate-50" edges={isLandscape ? [] : ["top"]}>
+      <StatusBar hidden={isLandscape} />
+      {!isLandscape ? (
+        <View className="flex-row items-center px-4 py-3">
+          <Pressable
+            onPress={() => router.back()}
+            className="w-9 h-9 items-center justify-center rounded-full bg-white border border-slate-200 mr-3"
+          >
+            <ChevronLeft size={20} color="#1e293b" />
+          </Pressable>
+          <Text className="text-base font-bold text-blue-900 flex-1" numberOfLines={1}>
+            {item.title}
+          </Text>
+        </View>
+      ) : null}
 
-      <View className="bg-black">
+      {/* Media at a STABLE tree position — rotating only toggles its wrapper
+          style, never remounts the player. */}
+      <View
+        style={
+          isLandscape
+            ? {
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "#000",
+                zIndex: 50,
+              }
+            : { backgroundColor: "#000" }
+        }
+      >
         <WrappedYtPlayer
           ref={playerRef}
           videoId={signed.video_id}
           watermark={signed.watermark}
           startSec={resumeApplied ? progress?.position_sec : 0}
+          fill={isLandscape}
           onProgress={(pos, dur) => {
             void updateProgress(pos, dur);
           }}
         />
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
-        {item.description ? (
-          <Text className="text-sm text-slate-700 leading-5">
-            {item.description}
-          </Text>
-        ) : null}
-        {progress ? (
-          <Text className="text-xs text-slate-500 mt-3">
-            Last position: {fmt(progress.position_sec)} (
-            {Math.round(progress.watched_pct)}% watched)
-          </Text>
-        ) : null}
-      </ScrollView>
+      {!isLandscape ? (
+        <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
+          {item.description ? (
+            <Text className="text-sm text-slate-700 leading-5">
+              {item.description}
+            </Text>
+          ) : null}
+          {progress ? (
+            <Text className="text-xs text-slate-500 mt-3">
+              Last position: {fmt(progress.position_sec)} (
+              {Math.round(progress.watched_pct)}% watched)
+            </Text>
+          ) : null}
+        </ScrollView>
+      ) : null}
 
       <Modal
         visible={showResume}

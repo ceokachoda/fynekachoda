@@ -55,12 +55,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setRoles([]);
       return;
     }
-    setAppUser(au as AppUser);
     const { data: roleRows } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", au.id);
+    // Commit profile + roles together (no await between the setStates, so React
+    // batches them into one render). Consumers must never observe appUser set
+    // while roles is still [] — a valid student/teacher would mis-route to the
+    // no-role trapdoor for a frame during sign-in.
     setRoles((roleRows ?? []).map((r) => r.role as Role));
+    setAppUser(au as AppUser);
   }, []);
 
   const init = useCallback(async () => {

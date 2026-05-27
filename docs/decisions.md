@@ -266,6 +266,71 @@ Format:
   - Why: in-app capture is unreliable, low-quality, and battery-killing; teachers already use OBS.
   - Status: Locked.
 
+- **D-190 (2026-05-22):** Pinned announcements and the end-of-class signal are carried as `chat_messages` rows (`kind` = `announcement` / `system`) over the RLS-scoped chat channel — not a separate Realtime broadcast.
+  - Why: batch isolation comes free from the `cm_read` policy; the end signal is server-authoritative (`yt-broadcast-stop` inserts the `system` row via service role); everything is persisted + testable. Avoids private-channel auth setup.
+  - Impacts: migration `live_chat`, `yt-broadcast-stop`, `useChatChannel`, live/recording screens.
+  - Status: Locked. Refines D-044.
+
+- **D-191 (2026-05-22):** `chat_messages.author_name`/`author_role` are denormalized by a `SECURITY DEFINER` BEFORE-INSERT trigger that also enforces a 5-messages/30s rate limit for `kind='chat'`.
+  - Why: students can't read batch-mates' `app_users` rows (joining would force broadening PII RLS — see D-152); the trigger also makes displayed identity unspoofable and keeps chat a low-latency direct PostgREST insert (no edge-fn round-trip). EXECUTE revoked from client roles (D-189 pattern).
+  - Impacts: migration `chat_message_trigger`, `useChatChannel`.
+  - Status: Locked.
+
+- **D-192 (2026-05-22):** Live-class lifecycle is create → **golive** → stop, with a dedicated `yt-broadcast-golive` edge fn that flips `sessions.status='live'`.
+  - Why: the student live screen + `yt-playback-sign` live branch gate on `status='live'`, but teachers have no direct `sessions` UPDATE (RLS is admin-only), so a server fn must set it. golive + stop tolerate YouTube-unconfigured (still mutate session state) so the flow is testable without YT.
+  - Impacts: `yt-broadcast-golive`, teacher `live-control`, `sessions` status flow.
+  - Status: Locked.
+
+- **D-193 (2026-05-22):** The RTMP stream key is never persisted in the DB; `yt-broadcast-create` is idempotent and re-fetches the key from YouTube via `liveBroadcasts.contentDetails.boundStreamId → liveStreams.cdn.ingestionInfo`.
+  - Why: honors the "stream key reaches only the creating teacher, never persisted" hard rule; needs no new `sessions` columns (reuses the Phase-4 `yt_broadcast_id`/`yt_video_id`).
+  - Impacts: `yt-broadcast-create`, `_shared/yt-api.ts`.
+  - Status: Locked.
+
+- **D-194 (2026-05-22):** The full-screen WebView screens `live/[sessionId]`, `recording/[sessionId]`, `live-control/[sessionId]` are top-level Stack routes outside the `(student)`/`(teacher)` tab groups (deleted the old `live-session.tsx`).
+  - Why: mirrors D-169/D-157 (video, exam screens); a WebView player inside a tab group fights the tab bar + blur lifecycle. Reconciles the phase-9.md draft, which placed them under the tab groups.
+  - Impacts: `app/_layout.tsx`, `app/live/[sessionId].tsx`, `app/recording/[sessionId].tsx`, `app/live-control/[sessionId].tsx`.
+  - Status: Locked.
+
+- **D-195 (2026-05-22):** `_shared/yt-api.ts` returns a clean 503 "YouTube not configured" (via `YtNotConfiguredError`) whenever the `YT_*` Vault secrets are absent.
+  - Why: Phase 9 ships before the multi-day YouTube channel + OAuth setup; deployed fns must degrade gracefully instead of 500-ing. `get_vault_secret` reads any name, so the same code picks up the secrets once provisioned (after a redeploy / instance recycle).
+  - Impacts: `_shared/yt-api.ts`, `yt-broadcast-create/golive/stop`.
+  - Status: Locked.
+
+- **D-196 (2026-05-22):** `chat_bans` is in the Realtime publication, chat delete/ban go only through audited edge fns (no client UPDATE policy on `chat_messages`, no client write policy on `chat_bans`), and all live RLS uses `private.*` helpers.
+  - Why: a banned student's composer disables instantly (they can read their own ban row via `cb_read`); routing mutations through edge fns guarantees `audit_log` capture (D-172). The phase-9.md §5.2 draft used `public.*` helpers — wrong for this project (helpers live in `private`).
+  - Impacts: migration `live_chat_rls`, `chat-delete`, `chat-ban`, `useSessionState`.
+  - Status: Locked.
+
+- **D-197 (2026-05-22):** The composite leaderboard is computed by two `security_invoker = true` views (`leaderboard_weekly`, `leaderboard_alltime`) with SELECT revoked from anon/authenticated; the ONLY client path is the `my_batch_leaderboard` SECURITY DEFINER fn with an internal own-batch / teacher-of-batch / admin guard.
+  - Why: `security_invoker` keeps the views off the `0010_security_definer_view` lint AND makes any direct read RLS-limited (no cross-batch leak); the guarded RPC is the mitigated surface (D-186 pattern) — it must stay in the PostgREST schema to be RPC-callable. Tie-breaker: composite → q_norm → quiz_count → full_name.
+  - Impacts: `leaderboard_views`, `my_batch_leaderboard_fn`, `useLeaderboard`.
+  - Status: Locked.
+
+- **D-198 (2026-05-22):** All gamification logic lives in SQL DB fns (`evaluate_student_badges`, `leaderboard_weekly_rollover`) as the runtime source of truth; the `badge-evaluate` / `leaderboard-weekly-rollover` edge fns are thin admin wrappers; the feeders (quiz-submit, exam-submit, attendance-qr-verify, streak_recompute) call the DB fn inline best-effort (D-188). EXECUTE on both fns is revoked from `authenticated` (service_role/postgres only).
+  - Why: one place to maintain the predicates; revoking EXECUTE closes the self-award hole (an authenticated user must not award themselves). `packages/shared/src/constants/leaderboard.ts` mirrors the weights/thresholds for the unit tests + mobile copy (SQL can't import TS — kept in sync).
+  - Impacts: `evaluate_student_badges_fn`, `leaderboard_weekly_rollover_fn`, `streak_recompute_badge_sweep`, the 3 feeders, `packages/shared/src/constants/leaderboard.ts`.
+  - Status: Locked.
+
+- **D-199 (2026-05-22):** `comeback` is awarded only when the student holds a CURRENT 7+ day streak AND has an earlier (now-broken) ≥7-day activity-day run (detected by gaps-and-islands over `activity_days`). Never on a first-ever streak.
+  - Why: the spec's "restored a streak after a reset" must not false-fire for someone reaching 7 for the first time (risks table).
+  - Impacts: `evaluate_student_badges`, `badgeEvaluators.comeback` (shared constants).
+  - Status: Locked.
+
+- **D-200 (2026-05-22):** The 11 badge icons are PLACEHOLDER flat-SVG art (colour disc + short glyph, one per code) in the private `badge-assets` bucket, fetched via the `badge-icon-sign` edge fn signed URL (D-171 pattern) and rendered with `react-native-svg`'s `SvgUri`. Final designed art is deferred to Phase 12.
+  - Why: no designer asset pack for the MVP; private bucket + signed URL honors the "all buckets private" rule; `SvgUri` is already available (lucide depends on react-native-svg). Re-run `pnpm upload:badge-assets` to swap art.
+  - Impacts: `storage_badge_assets`, `badge-icon-sign`, `scripts/upload-badge-assets.ts`, `BadgeIcon`.
+  - Status: Locked (placeholder).
+
+- **D-201 (2026-05-22):** The leaderboard tap-row public card (name + batch + streak + badges only) is served by a `student_public_card` SECURITY DEFINER fn with a same-batch / teacher / admin guard — NOT by direct table reads.
+  - Why: a student cannot read a peer's `streaks` / `badge_earnings` directly (RLS), so a guarded fn is the privacy-safe way to expose the limited public fields; no other PII (email/phone/DOB) is ever returned.
+  - Impacts: `student_public_card_fn`, `fetchStudentCard`, leaderboard public card modal.
+  - Status: Locked.
+
+- **D-202 (2026-05-22):** The leaderboard Attendance factor (A) is normalized over days-since-join (weekly = min(7, days enrolled); all-time = days enrolled) for fairness to recent joiners (spec §3.6); the weekly rollover is idempotent via `UNIQUE(batch_id, period_start)` on `leaderboard_snapshots` (D-106).
+  - Why: a student who joined 2 days ago shouldn't be penalized to 2/7 attendance; running the Sunday cron twice must not double-award or duplicate the snapshot.
+  - Impacts: `leaderboard_views`, `leaderboard_snapshots`, `leaderboard_weekly_rollover`.
+  - Status: Locked.
+
 ## Quizzes vs Exams
 
 - **D-050 (2026-05-14):** **Practice Quizzes and Exams are distinct features** with separate tables, screens, and edge fns.
@@ -374,6 +439,11 @@ Format:
   - Status: Locked. Easy to add more.
 
 ## Parents' Report
+
+- **D-203 (2026-05-26):** **Phase 11 (Parents' WhatsApp Report) is SKIPPED for MVP.** The roadmap goes Phase 10 → Phase 12. The entire Gupshup/WhatsApp delivery path (D-080…D-085 below) is **deferred, not deleted**.
+  - Why: removes the only hard external dependency with multi-day approval lead time (Gupshup Business + template approval) from the critical path to shipping the app to the Play Store; the report is a nice-to-have, not core to the coaching-OS loop.
+  - Impacts: `students.parent_phone` stays **collected-but-unused**; `docs/spec/parents-report.md` is a deferred/unbuilt spec; the `parent-report-generate` / `whatsapp-send` / `gupshup-callback` / `whatsapp-retry` edge fns are not built. In Phase 12: treat the "Phase 11 accepted" prereq as "Phase 10 accepted", drop parents-report from the demo dry-run, and remove the WhatsApp-failure Sentry alert + Gupshup rollback step from `phase-12.md`.
+  - Status: Locked (deferral). Revisit post-MVP. D-080…D-085 → Status: Deferred (Phase 11 skipped, D-203).
 
 - **D-080 (2026-05-14):** **Weekly auto-send** Sunday 18:00 IST + on-demand by teacher/admin.
   - Why: weekly cadence is what parents actually read.

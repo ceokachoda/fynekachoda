@@ -11,7 +11,7 @@
 //      `is_auto_submit = (now - started_at) > duration` flag.
 //   5. UPSERT `activity_days` (IST) so streak math can count this day.
 //   6. Audit `quiz_submitted` (best-effort).
-//   7. Phase 8 hook: invoke `mastery-recompute` here once it exists.
+//   7. Recompute mastery for the quiz's touched topics (D-070), best-effort.
 //   8. Return scores + per-question solution payload (only post-submit reveals
 //      `is_correct` + explanation per spec §6.7).
 //
@@ -244,6 +244,42 @@ Deno.serve(async (req: Request) => {
       );
     if (actErr) {
       console.error("activity_days upsert failed:", actErr.message);
+    }
+
+    // Phase 8: recompute mastery for the topics this quiz touched (D-070
+    // rolling-N). Best-effort — a failure here must never break the submit.
+    try {
+      const topicIds = Array.from(
+        new Set(
+          questions
+            .map((q: { topic_id: string | null }) => q.topic_id)
+            .filter((t: string | null): t is string => !!t),
+        ),
+      );
+      if (topicIds.length > 0) {
+        const { error: masteryErr } = await admin.rpc("mastery_recompute", {
+          p_student: caller.app_user_id,
+          p_topic_ids: topicIds,
+        });
+        if (masteryErr) {
+          console.error("mastery_recompute failed:", masteryErr.message);
+        }
+      }
+    } catch (e) {
+      console.error("mastery_recompute threw:", e);
+    }
+
+    // Phase 10 (D-188): award practice-quiz badges (first_quiz, quiz_100, and any
+    // freshly-cleared mastery_80_subject). Best-effort + idempotent — a failure here
+    // must never block or fail the submit.
+    try {
+      const { error: badgeErr } = await admin.rpc("evaluate_student_badges", {
+        p_student: caller.app_user_id,
+        p_triggers: ["quiz_submit"],
+      });
+      if (badgeErr) console.error("badge eval failed:", badgeErr.message);
+    } catch (e) {
+      console.error("badge eval threw:", e);
     }
 
     // Audit.

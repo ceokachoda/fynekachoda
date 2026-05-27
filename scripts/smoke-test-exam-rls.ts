@@ -300,6 +300,38 @@ async function main() {
   if (t4.status >= 400) fail(`upsert: ${t4.status} ${JSON.stringify(t4.body)}`);
   pass("in-flight upsert allowed");
 
+  // T4b — server-authoritative deadline cut (2026-05-21). Once now() passes
+  // the attempt's deadline_at, the SAME student can no longer write answers,
+  // even though the attempt is still unsubmitted. Proves the deadline clause in
+  // exam_answers_student_insert/update WITH CHECK (closes the clock-back cheat).
+  header("T4b — student A CANNOT upsert exam_answers after deadline_at passes");
+  const origDeadline = await admin
+    .from("exam_attempts").select("deadline_at").eq("id", attemptId).maybeSingle();
+  await admin.from("exam_attempts")
+    .update({ deadline_at: "2020-01-01T00:00:00Z" }).eq("id", attemptId);
+  const t4b = await rest<unknown[]>(
+    "POST",
+    "exam_answers?on_conflict=attempt_id,question_id",
+    stuAJwt,
+    [
+      {
+        attempt_id: attemptId,
+        question_id: q1Id,
+        selected_option_id: someOpt,
+        is_flagged: true,
+        answered_at: new Date().toISOString(),
+      },
+    ],
+  );
+  if (t4b.status < 400) {
+    fail(`post-deadline upsert should be rejected, got ${t4b.status} ${JSON.stringify(t4b.body)}`);
+  }
+  pass(`post-deadline upsert correctly rejected (status ${t4b.status})`);
+  // Restore the real deadline so the submit step below behaves normally.
+  await admin.from("exam_attempts")
+    .update({ deadline_at: origDeadline.data?.deadline_at ?? new Date(Date.now() + 3_600_000).toISOString() })
+    .eq("id", attemptId);
+
   // Cross-check: student B cannot read student A's answers (T7).
   header("T7 — student B cannot SELECT student A's exam_answers");
   const t7 = await rest<unknown[]>(

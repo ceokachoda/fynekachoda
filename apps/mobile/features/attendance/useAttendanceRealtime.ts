@@ -13,8 +13,16 @@ export function useAttendanceRealtime(onChange: () => void): void {
 
   useEffect(() => {
     if (!appUser?.id) return;
+    // Unique suffix per subscription. This hook runs on BOTH the student Home
+    // and the Attendance tab, which are mounted at the same time under the tab
+    // navigator. `supabase.channel(name)` returns the EXISTING channel when the
+    // name matches, so a shared name made the second screen call `.on()` on an
+    // already-subscribed channel → "cannot add postgres_changes callbacks ...
+    // after subscribe()". A fresh suffix per effect run gives each screen its
+    // own independent channel and also dodges the async-removeChannel re-mount
+    // race (the old channel may still be tearing down when the next subscribes).
     const channel = supabase
-      .channel(`student-attendance-${appUser.id}`)
+      .channel(`student-attendance-${appUser.id}-${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         {

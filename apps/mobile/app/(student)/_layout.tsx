@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Tabs, useRouter } from "expo-router";
-import { Home, Video, BookOpen, QrCode, User, Menu as MenuIcon } from "lucide-react-native";
+import { Home, Video, BookOpen, QrCode, Trophy, User, Menu as MenuIcon } from "lucide-react-native";
 import { useSession } from "@/features/auth/useSession";
 import { useRole } from "@/features/auth/useRole";
 
@@ -84,6 +84,13 @@ export default function StudentTabsLayout() {
           options={{
             title: "Attendance",
             tabBarIcon: ({ color }) => <QrCode size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="leaderboard"
+          options={{
+            title: "Ranks",
+            tabBarIcon: ({ color }) => <Trophy size={24} color={color} />,
           }}
         />
         <Tabs.Screen

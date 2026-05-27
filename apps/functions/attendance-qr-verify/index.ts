@@ -195,6 +195,19 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     const student_name = (studentRow?.full_name as string | undefined) ?? "";
 
+    // Phase 10 (D-188): award attendance badges (early_bird, perfect_week_attendance)
+    // for the SCANNED student (decoded.payload.uid — NOT the teacher caller).
+    // Best-effort + idempotent — a failure here must never block the scan.
+    try {
+      const { error: badgeErr } = await admin.rpc("evaluate_student_badges", {
+        p_student: decoded.payload.uid,
+        p_triggers: ["attendance"],
+      });
+      if (badgeErr) console.error("badge eval failed:", badgeErr.message);
+    } catch (e) {
+      console.error("badge eval threw:", e);
+    }
+
     await writeAudit(admin, {
       actor_user_id: caller.app_user_id,
       actor_role: "teacher",

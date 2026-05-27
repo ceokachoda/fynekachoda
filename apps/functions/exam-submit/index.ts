@@ -15,7 +15,7 @@
 //   5. UPDATE `exam_attempts` (atomic; 409 on race).
 //   6. UPSERT `activity_days` (IST per D-014).
 //   7. Audit `exam_submitted` (best-effort).
-//   8. Phase 8 hook: mastery-recompute (no-op stub until Phase 8).
+//   8. Recompute mastery for the exam's touched topics (D-070), best-effort.
 //   9. If `exams.result_release = 'instant'` and (admin or auto-released),
 //      return the full post-submit result payload. Else return just
 //      `{ submitted: true }` — student reads result via
@@ -198,8 +198,40 @@ Deno.serve(async (req: Request) => {
       user_agent: req.headers.get("user-agent"),
     });
 
-    // Phase 8 hook: mastery-recompute. Stubbed until Phase 8 ships the fn.
-    // The call would be `admin.functions.invoke('mastery-recompute', { body: { student_id, source: 'exam', exam_id } })`.
+    // Phase 8: recompute mastery for the topics this exam touched (D-070
+    // rolling-N). Best-effort — a failure here must never break the submit.
+    try {
+      const topicIds = Array.from(
+        new Set(
+          snapshot.questions
+            .map((q) => q.topic_id)
+            .filter((t): t is string => !!t),
+        ),
+      );
+      if (topicIds.length > 0) {
+        const { error: masteryErr } = await admin.rpc("mastery_recompute", {
+          p_student: caller.app_user_id,
+          p_topic_ids: topicIds,
+        });
+        if (masteryErr) {
+          console.error("mastery_recompute failed:", masteryErr.message);
+        }
+      }
+    } catch (e) {
+      console.error("mastery_recompute threw:", e);
+    }
+
+    // Phase 10 (D-188): re-evaluate mastery-driven badges after this exam.
+    // Best-effort + idempotent — a failure here must never block or fail the submit.
+    try {
+      const { error: badgeErr } = await admin.rpc("evaluate_student_badges", {
+        p_student: caller.app_user_id,
+        p_triggers: ["exam_submit"],
+      });
+      if (badgeErr) console.error("badge eval failed:", badgeErr.message);
+    } catch (e) {
+      console.error("badge eval threw:", e);
+    }
 
     // Decide what to reveal to the student now.
     const releaseGate =

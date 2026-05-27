@@ -1,4 +1,6 @@
-w# Phase 9 — Live Classes (YouTube wrap)
+# Phase 9 — Live Classes (YouTube wrap)
+
+> **Status: ✅ ACCEPTED — 2026-05-27.** All code built, deployed and automated-tested; manual QA signed off on iOS + Android (§A–§F + §H) **and the §G real-OBS → unlisted-YouTube live-broadcast dry-run** (on the dev's TEMP channel "NOvA FX" `UCSa8awrJseI_8r_oZQjuvYQ`, live-enabled; 5 Vault secrets + published OAuth app provisioned 2026-05-26). A post-QA bug-hunt (2026-05-27) shipped fixes — see §15.11. At go-live, hand streaming to the client's channel: `docs/phases/phase-9-youtube-client-handover.md`. Full ledger in **§15**; click-by-click plan in `docs/phases/phase-9-manual-tests.md`.
 
 > The most external-integration-heavy phase. Teacher schedules a live class → backend creates an Unlisted YouTube broadcast via YT Data API → teacher streams via OBS → students watch through wrapped player with watermark + custom chat + raise-hand. After class ends, the YT video is auto-saved and reused as the recording (same wrapped player + chat replay).
 
@@ -389,3 +391,99 @@ If Phase 9 breaks:
 - Live + recording infra live.
 - Activity_days populated on attendance + quiz + exam + video watch; ready for streaks.
 - Phase 10 adds the leaderboard composite + badges + celebration UI.
+
+---
+
+## 15. Acceptance ledger (CP1–CP11) — ✅ ACCEPTED 2026-05-27
+
+> **Status: ✅ ACCEPTED — 2026-05-27.** Manual QA signed off on real devices: §A–§F + §H (visual / on-device) **and §G** (the real OBS → unlisted-YouTube live-broadcast dry-run, on the NOvA FX dev channel) all passed. A post-QA bug-hunt (2026-05-27, see §15.8) shipped 5 mobile fixes + 1 RLS migration; 3 LOW-severity edge-fn guards are staged in source and ride the Phase 12 prod edge-fn deploy.
+>
+> **ACCEPTED:** 2026-05-27 — §A–§H all green on iOS + Android; §G real-OBS YouTube dry-run passed. Phase 9 is done.
+>
+> **2026-05-22 agent re-verification.** The whole data + logic layer was re-run on the
+> dev project and is green: `test:live` 9/9, `smoke:live-rls` 14/14, `smoke:live-fns`
+> 34/34; 6 edge fns ACTIVE; 3 tables RLS-on + in realtime publication; 3 `private` scope
+> helpers; seeded composition cross-checked (live 2 chat msgs; recording 9 rows at
+> offsets 5/12/30-announcement/45/70/95/130/160/180-system, system row excluded from
+> replay; 2 resolved raised hands; segmented 1/1/1); chat trigger denormalises
+> author_name/role + stamps kind; policies 2/3/1; rate-limit blocks the 6th message; the
+> 4 `YT_*` Vault secrets are absent → intentional 503 (D-195); advisor sweep 0 ERRORs;
+> mobile gate (`typecheck`/`lint`/`jest` 53/53 + shared 17/17) green on the current
+> working tree. **`phase-9-manual-tests.md` was trimmed to VISUAL / ON-DEVICE ONLY** —
+> the SQL-only / automated sub-tests (old §0.5, §F3, §I) are done; results live in that
+> doc's §J. Remaining for the user: §0.3 Metro restart + §A–§F + §H render/realtime/
+> device, **plus §G** (the real-OBS YouTube dry-run, which needs §0.0 — a Google channel
+> / OAuth / OBS, which the agent cannot do).
+
+### 15.1 Checkpoint status
+| CP | Scope | State |
+|----|-------|-------|
+| CP1 | `chat_messages` / `raise_hand_events` / `chat_bans` tables + RLS enabled | ✅ |
+| CP2 | `private.*` scope helpers + policies + Realtime publication + rate-limit/denormalize trigger | ✅ |
+| CP3 | `_shared/yt-api.ts` (OAuth refresh + broadcast/stream/bind/transition + graceful 503) | ✅ |
+| CP4 | `yt-broadcast-create` (idempotent; stream key to teacher only, never persisted) | ✅ |
+| CP5 | `yt-broadcast-stop` (transition→complete + status=ended + system end message) | ✅ |
+| CP6 | `yt-playback-sign` extended (kind=live\|recording, session-scoped, audited) | ✅ |
+| CP7 | `chat-delete` + `chat-ban` (audited soft-delete + ban/unban) | ✅ |
+| CP8 | teacher Schedule-Live + `live-control/[sessionId]` + `yt-broadcast-golive` (NEW) | ✅ |
+| CP9 | student `live/[sessionId]` + `recording/[sessionId]`; deleted `live-session.tsx` | ✅ |
+| CP10 | `useChatChannel` + `useRaiseHand` + `useSessionState` + `usePlaybackSign` + `useLiveSession` + `chat-replay` | ✅ |
+| CP11 | `(student)/classes.tsx` Live/Upcoming/Recorded segments | ✅ |
+
+### 15.2 Migrations (3, all filed in `supabase/migrations/`)
+| Version | Name | Contents |
+|---|---|---|
+| 20260522055933 | `live_chat` | 3 tables + indexes (one-active-hand partial unique) + RLS enabled (deny-all) |
+| 20260522060118 | `live_chat_rls` | `private.can_access_session` / `is_session_teacher` / `is_session_live` (SECURITY DEFINER, search_path pinned) + `cm_read`/`cm_insert`/`rh_*`/`cb_read` policies + adds the 3 tables to `supabase_realtime` |
+| 20260522060125 | `chat_message_trigger` | `private.chat_message_before_insert` (SECURITY DEFINER, EXECUTE revoked) — denormalizes author_name/role + 5-msgs/30s rate limit |
+
+> Deviations from the §5 draft (intentional): helpers are `private.*` not `public.*`; no client `cm_delete`/`cb_write` policies (deletes/bans go through audited edge fns, D-172); no non-existent `enableLiveChat` field.
+
+### 15.3 Edge functions (6, deployed)
+`yt-broadcast-create`, `yt-broadcast-golive` (**new** — the draft had no way to flip `status='live'`), `yt-broadcast-stop`, `yt-playback-sign` (extended), `chat-delete`, `chat-ban` + shared `_shared/yt-api.ts`. Deployed via `node scripts/stage-phase9-deploy.cjs` + `npx supabase functions deploy <fn> --workdir <staged> --project-ref orqwyazvcthgxoadfxfv` (D-187). All `verify_jwt=true`.
+
+### 15.4 Vault
+No new Vault writes performed by code. The live path reads `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN`, `INSTITUTE_CHANNEL_ID` (+ `YT_DATA_API_KEY` for Phase-5 video metadata) at runtime via `get_vault_secret`. **✅ Provisioned 2026-05-26:** all 5 loaded + OAuth app published (permanent token), verified working on temp channel "NOvA FX"; `yt-api.ts` now returns real keys (no longer 503). Move to the client's channel via `docs/phases/phase-9-youtube-client-handover.md`.
+
+### 15.5 Tests
+| Suite | Command | Result |
+|---|---|---|
+| Unit (real HMAC sign/verify + YT duration + chat-replay) | `pnpm test:live` | 9 groups ✅ |
+| RLS (cross-batch chat/raise-hand/playback isolation, banned-read-not-post, rate-limit) | `pnpm smoke:live-rls` | 14 ✅ |
+| Edge-fn gates (auth/validation/role/assignment/status/kind for all 6 fns, full lifecycle) | `pnpm smoke:live-fns` | 34 ✅ |
+| Repo typecheck | `pnpm typecheck` | ✅ (6 projects) |
+| Repo lint | `pnpm lint` | ✅ |
+| Mobile jest | `pnpm test` | 53/53 ✅ |
+
+### 15.6 Advisor sweep
+`get_advisors` security + performance after the DDL: **no new lints**. Only the pre-existing accepted ones — 3 dashboard `SECURITY DEFINER` WARNs (D-186) + `auth_leaked_password_protection` (Phase 1 backlog); and INFO-level fresh-unused-index / unindexed-cold-FK notes on the new tables (matches the project's accepted pattern; `private.*` helpers + the trigger are unexposed so are NOT flagged).
+
+### 15.7 Live-YouTube verification — ✅ DONE (2026-05-27)
+YT secrets were provisioned 2026-05-26 (5 Vault entries + published OAuth app on the dev "NOvA FX" channel). On 2026-05-27 the §G real-OBS dry-run was run and passed: a real *unlisted* YouTube broadcast was created from the app, OBS streamed into it, the student saw the live feed through the wrapped player with a moving watermark, chat/raise-hand/pin/delete/ban all worked over the live stream, and after End-class the saved video replayed as the recording. AC **2, 3, 4, 5, 6, 7, 14, 15** verified. **#22** (Redmi 8A 350 MB memory profile) remains a hardware carry-over to the Phase 12 perf pass. NON-live AC (1, 8–13, 16–21) were automated-tested (§15.5) and visually confirmed.
+
+### 15.8 Decisions
+**D-190..D-196** (see `docs/decisions.md`): chat-rows for pin/end (D-190); denormalize + rate-limit trigger (D-191); `yt-broadcast-golive` lifecycle fn (D-192); stream key never persisted / idempotent re-fetch (D-193); top-level WebView routes (D-194); `yt-api.ts` 503-when-unconfigured (D-195); `chat_bans` in Realtime + audited deletes/bans, `private.*` helpers (D-196).
+
+### 15.9 Files changed (summary)
+- **DB:** `supabase/migrations/2026052205…_live_chat.sql`, `…060118_live_chat_rls.sql`, `…060125_chat_message_trigger.sql`.
+- **Edge fns:** `apps/functions/{yt-broadcast-create,yt-broadcast-golive,yt-broadcast-stop,chat-delete,chat-ban}/index.ts`, rewritten `yt-playback-sign/index.ts`, new `_shared/yt-api.ts`, schemas added to `_shared/schemas.ts`.
+- **Mobile added:** `app/live/[sessionId].tsx`, `app/recording/[sessionId].tsx`, `app/live-control/[sessionId].tsx`; `features/chat/useChatChannel.ts`; `features/live/{useRaiseHand,useSessionState,usePlaybackSign,useLiveSession,chat-replay}.ts`; `components/live/{ChatPane,ChatComposer,RaiseHandButton,PinnedBanner,LobbyCountdown,ChatReplay}.tsx`; `components/teacher/ScheduleLiveSheet.tsx`.
+- **Mobile edited:** `app/_layout.tsx` (3 routes), `app/(teacher)/classes.tsx`, `app/(student)/classes.tsx`, `components/live/WrappedYtPlayer.tsx` (+playbackRate), `features/dashboard/useStudentSchedule.ts` (+yt_video_id).
+- **Mobile deleted:** `app/live-session.tsx`.
+- **Scripts:** `scripts/{test-live-helpers,smoke-test-live-rls,smoke-test-live-edge-fns,seed-live-manual-test,stage-phase9-deploy}` + 4 `package.json` scripts.
+
+### 15.10 Carry-overs (into Phase 12)
+- ✅ YT secrets provisioned + verified (2026-05-26); ✅ §G OBS dry-run passed (2026-05-27). At go-live: hand streaming to the client's channel — `docs/phases/phase-9-youtube-client-handover.md` (Phase 12 prod setup).
+- **Deploy the 3 staged edge-fn guards** (see §15.11) with the Phase 12 prod edge-fn deploy (CP14) + redeploy to dev in the same sweep.
+- Redmi 8A cold-start + 30-min live-session memory profile (#22) — Phase 12 perf pass (CP11).
+- Teacher tab bar still 8 entries (Phase 7/8 note) — Tests-tab consolidation still open.
+- Optional: bundle a local KaTeX/pdf.js (Phase 5/6 carry-over), admin-side live-class monitor (out of Phase 9 scope).
+
+### 15.11 Post-QA hardening (2026-05-27)
+A deep bug-hunt (4 parallel reviews + manual verification) after sign-off. **Shipped + verified:**
+- Mobile (typecheck/lint/jest 53/53 green): `useChatChannel` reloads history on Realtime re-subscribe (recovers messages missed while offline — §H2); `ScheduleLiveSheet` effective-batch default survives the async `useAssignedBatches` load.
+- RLS migration `20260527101000_phase9_raise_hand_moderation` (applied + `smoke:live-rls` 14/14): `rh_insert` now excludes banned students; `rh_update` blocks students spoofing `resolved_by`.
+
+**Staged in source, NOT yet redeployed** (LOW severity; `smoke:live-fns` can't be run now without creating real broadcasts on the live YT channel — deploy in the Phase 12 edge-fn sweep): `yt-broadcast-golive` rejects `cancelled` sessions; `yt-broadcast-stop` skips a duplicate "Class has ended." on re-stop; `_shared/yt-api.ts` splits the 401-refresh vs 5xx-backoff retry budgets.
+
+**Assessed, intentionally not changed (not bugs):** ghost-audio-on-leave (WebView unmount stops audio; §H3 passed); lobby→live retry (polls correctly); `ended` latch (golive guards prevent a stale system marker while live).

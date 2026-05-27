@@ -208,9 +208,13 @@ export default function LoginScreen() {
       <HeaderIllustration opacity={illustrationOpacity} />
 
       <SafeAreaView className="flex-1 bg-transparent" edges={["top", "bottom"]}>
+        {/* Inline style, NOT className: KeyboardAvoidingView is a class
+            component, and css-interop's remapProps wrapper injects a fresh
+            placeholder style object on every render, which loops its
+            setState lifecycle ("Maximum update depth exceeded"). */}
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
-          className="flex-1"
+          style={{ flex: 1 }}
         >
           <View className="flex-1">
             {!keyboardOpen && (

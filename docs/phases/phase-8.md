@@ -2,6 +2,8 @@
 
 > Real mastery computation (rolling-N), real streak ticks (nightly cron), and the fully-wired student + teacher dashboards. Stats strip, weak topics, today's schedule, continue watching, recent badges (badges themselves come in Phase 10 — Phase 8 leaves room).
 
+**Status: 🟡 CODE-COMPLETE, MANUAL QA PENDING — 2026-05-21.** All 13 checkpoints are code-complete and every automated test is green (ledger in §15). NOT yet verified on a real device or in a real browser — rendering / realtime / heatmap-lag / streak-calendar / next-card-priority bugs are EXPECTED and have not been ruled out. Manual QA plan: `docs/phases/phase-8-manual-tests.md`. Do NOT mark Phase 8 "done" until the manual QA signs off the ACCEPTED line in §15.
+
 ---
 
 ## 1. Goal
@@ -451,3 +453,100 @@ If Phase 8 breaks:
 - Mastery + streaks live; dashboard fully composes real data.
 - Pending the "rank" placeholder in stats strip (Phase 10).
 - Phase 9 takes the wrapped YT player (built in Phase 5) and adds live broadcast creation, chat, raise-hand, recording.
+
+---
+
+## 15. Acceptance ledger
+
+**Status: 🟡 CODE-COMPLETE, DATA-LAYER RE-VERIFIED, VISUAL QA PENDING — 2026-05-21 (re-verified 2026-05-22).**
+**ACCEPTED:** _(pending **visual / on-device** QA sign-off — see `phase-8-manual-tests.md`)_
+
+> **2026-05-22 agent re-verification.** The entire data + logic layer was re-run on
+> the dev project and is green: `test:dashboard` 16/16, `smoke:dashboard-rls` 9/9,
+> `smoke:dashboard-fns` 11/11; backend deploy (2 edge fns ACTIVE + 2 crons + 6 DB
+> fns); seeded composition cross-checked against the dashboard RPC definitions (A1
+> 89%/64%/streak 7/Kinematics 27.78/Laws 100/video 45%/offline 68/exam awaiting
+> release; A2 8%/33% at-risk; A3 clean zeros; teacher topic bars 18/100, at-risk = A2
+> only, attendance heatmap 9 days; next-card cascade P1→P7 correct by construction);
+> §I sanity (RLS on, 3 policies each, streak_rows=student_rows 162, recompute
+> idempotent 6→6, `attendance` in realtime publication); quiz-submit feeder wired;
+> advisor sweep 0 ERRORs (only accepted D-186 + Phase-1 WARNs). **`phase-8-manual-tests.md`
+> was trimmed to VISUAL / ON-DEVICE ONLY** — the SQL-only sub-tests (old §0.1, §0.4,
+> §C3, §D3, §H3, §I) are done; full results live in that doc's §J. Only real-device
+> rendering / routing / realtime-refresh / heatmap-scroll / cold-start remain for the
+> user to sign off.
+
+### Checkpoints
+| CP | Scope | State |
+|----|-------|-------|
+| CP1 | `mastery` + `streaks` tables (+ RLS-on) | 🟢 code-complete |
+| CP2 | mastery + streaks RLS (self / teacher-batch / admin) | 🟢 |
+| CP3 | `mastery_recompute()` DB fn + `mastery-recompute` edge wrapper | 🟢 |
+| CP4 | `streak_recompute()` DB fn + `streak-recompute` edge wrapper | 🟢 |
+| CP5 | `student_dashboard(p_student)` single-JSON fn (7 next-card priorities) | 🟢 |
+| CP6 | inline mastery feeders in quiz-submit + exam-submit; video≥50% activity trigger | 🟢 |
+| CP7 | pg_cron streak (02:00 IST) + mastery sweep (02:30 IST) | 🟢 |
+| CP8 | student `(student)/index.tsx` rebuild + `(student)/classes.tsx` real feed | 🟢 |
+| CP9 | streak detail modal (`modal.tsx?type=streak`, 30-day heatmap) | 🟢 |
+| CP10 | profile mastery tab (`profile.tsx?tab=mastery`) | 🟢 |
+| CP11 | teacher `(teacher)/index.tsx` rebuild + `teacher_dashboard()` fn | 🟢 |
+| CP12 | teacher `(teacher)/batch/[id].tsx` analytics + `teacher_batch_overview()` fn | 🟢 |
+| CP13 | tests + ledger + seed + manual plan + memory | 🟢 |
+
+### Migrations (10, applied + filed in `supabase/migrations/`)
+`20260521130000_mastery_streaks`, `…130500_mastery_streaks_rls`, `…131000_mastery_recompute_fn`,
+`…131500_streak_recompute_fn`, `…132000_student_dashboard_fn`, `…132500_teacher_dashboard_fn`,
+`…133000_video_activity_trigger`, `…133500_dashboard_cron`, `…134000_teacher_batch_overview_fn`,
+`…134500_revoke_trigger_fn_execute`.
+
+### DB functions
+- `public.mastery_recompute(p_student, p_topic_ids, p_full)` — SECURITY DEFINER, service_role only.
+- `public.streak_recompute(p_today)` — SECURITY DEFINER, service_role only.
+- `public.student_dashboard(p_student)` / `public.teacher_dashboard(p_teacher)` / `public.teacher_batch_overview(p_batch)` — SECURITY DEFINER + own-or-admin guard, granted to `authenticated` (the mobile RPC surface).
+- `public.video_progress_activity()` — SECURITY DEFINER trigger fn; EXECUTE revoked (not RPC-exposed).
+
+### Edge functions
+- **New:** `mastery-recompute`, `streak-recompute` (admin-gated wrappers over the DB fns).
+- **Redeployed:** `quiz-submit` (v2), `exam-submit` (v3) — inline best-effort mastery recompute on submit.
+- Deploy method: `node scripts/stage-phase8-deploy.cjs` → `npx supabase functions deploy <fn> --workdir <staged> --project-ref orqwyazvcthgxoadfxfv` (global CLI absent; no Docker needed for `functions deploy`).
+
+### Cron (`cron.job`)
+- `streak-recompute` `30 20 * * *` → `select public.streak_recompute();`
+- `mastery-sweep` `0 21 * * *` → `select public.mastery_recompute(p_full := true);`
+- Both call the DB fns directly (no pg_net); idempotent by construction (D-185 / D-106).
+
+### Tests (automated — all green)
+- `pnpm test:dashboard` — **16/16** (rolling-N math, per-attempt clamp, IST streak gaps/boundaries).
+- `pnpm smoke:dashboard-rls` — **9/9** (mastery/streaks self vs teacher-batch scoping; dashboard guard).
+- `pnpm smoke:dashboard-fns` — **11/11** (dashboard RPCs over HTTP; recompute admin-gates 403/400; recompute→mastery).
+- Mobile: `typecheck` clean · `lint` 0 errors (no new warnings) · `jest` **53/53**.
+- Perf: `EXPLAIN ANALYZE student_dashboard(rich student)` = **13.5 ms** server-side (target <100 ms; AC #5/§13). `teacher_batch_overview` on a 28-student batch returns promptly.
+- DB-fn correctness verified by SQL: mastery dedup + clamp + idempotent; streak across 5 reset/gap/restart scenarios; student/teacher dashboards on seeded data (A1 mastery 64 / weak Kinematics 27.78 / streak 7 / continue / next-card P3; A2 at-risk 8%/33%; topic bars asc; attendance heatmap).
+
+### Advisor sweep
+- Security: only `auth_leaked_password_protection` (pre-existing Phase 1 backlog) + 3× `authenticated_security_definer_function_executable` for the dashboard RPCs (**intentional, accepted — D-186**). The `video_progress_activity` 0028/0029 findings were resolved by revoking EXECUTE.
+- Performance: `multiple_permissive_policies` (project-wide accepted), one `unused_index` on the fresh `mastery_weak_idx`, one `unindexed_foreign_keys` INFO on `mastery.topic_id` (joins the accepted-INFO set; only matters for topic-deletion cascade).
+
+### Decisions (D-184 … D-189)
+- **D-184** — Mastery = rolling avg of the **last 5 distinct submitted attempts per (student, topic)**, quiz+exam pooled (D-070); whole-attempt % per spec §6 (a multi-topic exam's % is attributed to each of its topics). Fixed the spec draft's row-multiplication bug with `EXISTS` (each attempt counted once) and clamped each attempt's % to [0,100] before averaging (negative marking can push a raw score below 0; the table CHECK is 0–100).
+- **D-185** — `streak_recompute` is a **from-scratch gaps-and-islands** computation over `activity_days` (current = length of the most-recent consecutive run iff it reaches yesterday/today, else 0; best is sticky). Idempotent and self-healing across missed cron runs (D-106), unlike the spec's incremental tick draft. Crons call the DB fns directly (no pg_net round-trip).
+- **D-186** — The three dashboard composers (`student_dashboard`, `teacher_dashboard`, `teacher_batch_overview`) are **SECURITY DEFINER with an internal own-or-admin guard** and granted to `authenticated`. The resulting `authenticated_security_definer_function_executable` WARN is accepted: SECURITY INVOKER would risk silent under-fetch from RLS-limited joins (the D-152 scar), and they must stay in the PostgREST-exposed `public` schema to be callable as RPCs. The guard (caller must equal the arg or be admin) is the mitigation; read-only, no injection surface.
+- **D-187** — Phase 8 edge-fn deploys use `npx supabase functions deploy --workdir <D-170 staged dir>` because the global `supabase` CLI is not installed in this environment (only `SUPABASE_ACCESS_TOKEN`); `functions deploy` bundles natively (no Docker).
+- **D-188** — The mastery feeder is an **inline `await admin.rpc('mastery_recompute', …)`** at the end of quiz-submit/exam-submit, wrapped in try/catch so it never fails the submit (deterministic + fresh-on-return, chosen over `EdgeRuntime.waitUntil` for testability; cost ~tens of ms).
+- **D-189** — The video≥50% half of the active-day rule (D-074) is a **SECURITY DEFINER trigger** (`video_progress_activity`) on `video_progress` (students have no direct `activity_days` INSERT); EXECUTE is revoked so the trigger fn is not reachable as an RPC. attendance/quiz/exam feeders remain inline in their edge fns (already present).
+
+### Files changed (summary)
+- **Migrations:** 10 new (above).
+- **Edge fns:** `apps/functions/mastery-recompute/`, `streak-recompute/` (new); `quiz-submit/index.ts`, `exam-submit/index.ts` (inline feeder); `scripts/stage-phase8-deploy.cjs`.
+- **Mobile — features/dashboard/:** `types.ts`, `useStudentDashboard.ts`, `useStudentSchedule.ts`, `useStreak.ts`, `useMastery.ts`, `useTeacherDashboard.ts`, `useTeacherBatchOverview.ts`.
+- **Mobile — components/dashboard/:** `NextCard`, `StatsStrip`, `StreakFlame`, `TodayScheduleStrip`, `WeakTopicsList`, `ContinueStrip`, `RecentBadgesStrip`, `MasteryCard`. **components/teacher/:** `PendingList`, `BatchHeatmap`, `TopicMasteryBars`, `AtRiskList`.
+- **Mobile — screens:** `app/(student)/index.tsx`, `app/(student)/classes.tsx`, `app/(student)/profile.tsx`, `app/modal.tsx`, `app/(teacher)/index.tsx`, `app/(teacher)/batch/[id].tsx`.
+- **Scripts:** `test-dashboard-helpers.ts`, `smoke-test-dashboard-rls.ts`, `smoke-test-dashboard-edge-fns.ts`, `seed-dashboard-manual-test.ts` (+ 4 root `package.json` script entries).
+
+### Carry-overs into Phase 9+
+- **Tests-tab consolidation deferred** (teacher bar still 8 tabs): merging the Phase-6 Quizzes + Phase-7 Exams screens is a UI refactor over prior-phase surfaces — skipped in an autonomous run without device QA to avoid regression; the 8-tab bar is functional.
+- `next_card` types `live_class` / `upcoming_session` route to `/classes` until Phase 9 ships the live screen; "Join Lobby" / "Go Live" CTAs are placeholders.
+- Mastery tab shows the rolling-N **summary** ("avg of last N attempts · practiced X"); per-attempt drill-down is a future nicety.
+- `sessions` is not in the Realtime publication, so the dashboard uses **attendance-realtime + focus-refetch** (attendance is the live-changing signal); add `sessions` to the publication later if live-class start needs push invalidation.
+- Redmi 8A cold-start (AC #5 hardware leg) — measure on device or record hardware-deferred; not a code blocker.
+- Seed: `pnpm seed:dashboard-manual-test --reset` (plants p8-* fixtures: A1 Streak Star / A2 At Risk / A3 Fresh Start).

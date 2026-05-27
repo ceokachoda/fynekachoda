@@ -37,9 +37,13 @@ export default function ForgotPasswordScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
+      {/* Inline style, NOT className: KeyboardAvoidingView is a class
+          component, and css-interop's remapProps wrapper injects a fresh
+          placeholder style object on every render, which loops its
+          setState lifecycle ("Maximum update depth exceeded"). */}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
         <View className="flex-1 px-6 pt-10">
           <Text className="text-2xl font-extrabold text-slate-900">

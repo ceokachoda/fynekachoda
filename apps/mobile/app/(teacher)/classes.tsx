@@ -14,6 +14,7 @@ import {
   Camera,
   ListChecks,
   Plus,
+  Radio,
   Sparkles,
   Video,
 } from "lucide-react-native";
@@ -24,6 +25,7 @@ import {
 } from "@/features/attendance/useTeacherSessions";
 import { useAssignedBatches } from "@/features/org/useAssignedBatches";
 import { AdhocSheet } from "@/components/teacher/AdhocSheet";
+import { ScheduleLiveSheet } from "@/components/teacher/ScheduleLiveSheet";
 
 const BUCKET_LABELS: Record<SessionBucket, string> = {
   today: "Today",
@@ -59,6 +61,7 @@ export default function TeacherClassesScreen(): React.ReactElement {
   const router = useRouter();
   const [bucket, setBucket] = useState<SessionBucket>("today");
   const [showAdhoc, setShowAdhoc] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
   const { buckets, isLoading, error, refresh } = useTeacherSessionsByBucket();
   const { data: assignedBatches } = useAssignedBatches();
 
@@ -182,11 +185,21 @@ export default function TeacherClassesScreen(): React.ReactElement {
                     params: { sessionId: s.id },
                   })
                 }
+                onLiveControl={() => router.push(`/live-control/${s.id}` as never)}
               />
             ))}
           </View>
         )}
       </ScrollView>
+
+      <TouchableOpacity
+        onPress={() => setShowSchedule(true)}
+        className="absolute right-5 bottom-24 bg-red-600 rounded-full w-14 h-14 items-center justify-center shadow-lg shadow-red-600/40"
+        activeOpacity={0.85}
+        accessibilityLabel="Schedule live class"
+      >
+        <Radio size={24} color="#fff" />
+      </TouchableOpacity>
 
       <TouchableOpacity
         onPress={() => setShowAdhoc(true)}
@@ -209,6 +222,16 @@ export default function TeacherClassesScreen(): React.ReactElement {
           });
         }}
       />
+
+      <ScheduleLiveSheet
+        visible={showSchedule}
+        onClose={() => setShowSchedule(false)}
+        batches={assignedBatches ?? []}
+        onCreated={(sessionId) => {
+          void refresh();
+          router.push(`/live-control/${sessionId}` as never);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -217,10 +240,12 @@ function ClassRow({
   session,
   onScan,
   onRoster,
+  onLiveControl,
 }: {
   session: TeacherSession;
   onScan: () => void;
   onRoster: () => void;
+  onLiveControl: () => void;
 }): React.ReactElement {
   const pill = statusPill(session);
   const [bg, text] = pill.classes.split(" ");
@@ -262,14 +287,27 @@ function ClassRow({
         <Text className="text-xs text-slate-500 flex-1">
           {session.attendance_count} / {session.batch_student_count} marked
         </Text>
-        <TouchableOpacity
-          onPress={onScan}
-          className="mr-2 flex-row items-center bg-blue-50 rounded-xl px-3 py-1.5"
-          activeOpacity={0.85}
-        >
-          <Camera size={14} color="#2563eb" />
-          <Text className="ml-1 text-blue-700 font-bold text-xs">Scan</Text>
-        </TouchableOpacity>
+        {session.is_live_class ? (
+          <TouchableOpacity
+            onPress={onLiveControl}
+            className="mr-2 flex-row items-center bg-red-50 rounded-xl px-3 py-1.5"
+            activeOpacity={0.85}
+          >
+            <Radio size={14} color="#dc2626" />
+            <Text className="ml-1 text-red-700 font-bold text-xs">
+              {session.status === "live" ? "Live control" : "Go live"}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            onPress={onScan}
+            className="mr-2 flex-row items-center bg-blue-50 rounded-xl px-3 py-1.5"
+            activeOpacity={0.85}
+          >
+            <Camera size={14} color="#2563eb" />
+            <Text className="ml-1 text-blue-700 font-bold text-xs">Scan</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           onPress={onRoster}
           className="flex-row items-center bg-slate-100 rounded-xl px-3 py-1.5"

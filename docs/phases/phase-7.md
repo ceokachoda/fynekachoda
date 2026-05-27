@@ -517,6 +517,8 @@ No new Vault secrets required. Phase 7 reuses Phase 5's `exam-images` Storage bu
 
 - **D-182 (2026-05-19):** Per-attempt tab-switch logging must be FIRE-AND-FORGET (no `await`) on the client and SILENT on already-submitted attempts on the server. The `AppState` `change` event can fire ANY time the OS backgrounds the app — including milliseconds after a successful submit — so the client's `useExamTabSwitchLogger` does not block UI on the call, and the server's `exam-tab-switch` returns 200 (with no count bump) instead of 409 when the attempt is already submitted. Surfaced during smoke setup when the smoke harness ran submit + tab-switch in rapid succession. **How to apply:** any future "live telemetry" edge fn that can race a state-changing fn must silently no-op on the terminal state rather than 4xx (so the client UI doesn't surface a spurious error toast).
 
+- **D-183 (2026-05-21):** Exam-timer integrity is DEFENSE-IN-DEPTH — a client server-offset resync PLUS a server-side answer-write deadline cut. Manual-QA code review found `useServerTimeOffset` was DEAD CODE: `TimerPill` counted down from a single mount-time anchor on the **device wall-clock**, so a mid-attempt clock change (especially *backward*) could inflate the on-screen countdown and let a student keep auto-saving answers past the real deadline — those answers were still graded, only `auto_submitted` got flagged. **Fix, two layers:** (1) CLIENT — `TimerPill` takes an optional `offsetMs` prop (defaults to `0` → Phase 6 quiz behaviour byte-identical); the exam screen wires `useServerTimeOffset(server_now)`, which re-syncs from the public `server-time` fn every 60s, so the countdown self-corrects within one window and auto-submits at the REAL deadline even after tampering. (2) SERVER — migration `20260521120000_exam_answers_deadline_cut` tightens `exam_answers_student_insert` + `_update` WITH CHECK to also require `now() < coalesce(deadline_at, 'infinity') + interval '30 seconds'` (PK-indexed on `exam_attempts.deadline_at`, null-safe, 30s jitter grace for honest slow-network saves). Proven by new smoke assertion **T4b** (post-deadline upsert → 403). **How to apply:** any future server-timed attempt surface must (a) drive the client countdown off a periodically-resynced server offset, never a frozen device snapshot, and (b) enforce the cut server-side at the write path — never trust the client to stop.
+
 ### Files changed (summary)
 
 **Mobile — added:**
@@ -561,10 +563,19 @@ No new Vault secrets required. Phase 7 reuses Phase 5's `exam-images` Storage bu
 - Local KaTeX bundle (Phase 9 hardening — Phase 6 carry-over).
 - Vercel deployment fix, Sentry + PostHog wiring, `auth_leaked_password_protection` (long-running Phase 1 carry-overs).
 
-### Phase 7 status: **🟡 CODE-COMPLETE — MANUAL QA NOT YET DONE**
+### Phase 7 status: **✅ ACCEPTED — 2026-05-21**
 
-Automated tests are green (118 assertions across unit + RLS + edge-fn HTTP). **Zero human-in-the-loop verification has happened.** The locked-down attempt screen, server-anchored timer, AppState/tab-switch banner, regrade modal flows (all 3 actions), offline-scores roster, and admin force-release / delete buttons are ALL un-touched by manual QA. Phase 7 is a high-stakes feature: server-time enforcement bugs let students cheat; regrade bugs cause grade disputes. Bugs are EXPECTED and patches will land before sign-off.
+CP1–CP16 + 118 automated assertions + advisor sweep green, AND manual QA walked end-to-end on iOS Expo Go + the admin browser: §A admin oversight, §B teacher exam-builder + offline scores, §C student attempt happy-path, §D edge cases (backend-verified live + via smokes), §E teacher release + regrade. The walkthrough plus a fresh code-review pass shook out the patches below; all green at sign-off.
 
-Walk `docs/phases/phase-7-manual-tests.md` (1,227 lines, click-by-click with explicit per-step "Report:" lines) before flipping this line to "done". Fresh fixture: `pnpm seed:exam-manual-test --reset`. Work sits uncommitted on `phase-4` branch.
+### Post-QA fixes (2026-05-21)
 
-### ACCEPTED — (LEFT BLANK — pending manual QA sign-off by the user)
+1. **Server-time timer integrity (D-183)** — `useServerTimeOffset` was dead code; `TimerPill` counted down on the device wall-clock from a single mount anchor (a backward clock change could inflate the timer + let answers be saved past the deadline). Fixed two-layer: client `TimerPill` now takes an optional `offsetMs` (re-synced every 60s via the now-wired `useServerTimeOffset`; quiz path byte-identical), and a new migration `20260521120000_exam_answers_deadline_cut` rejects `exam_answers` writes once `now() ≥ deadline_at` (+30s grace). New smoke assertion **T4b** proves a post-deadline write → 403.
+2. **Instant-exam re-open stuck on "Check release status"** — `loadPre` routed every submitted attempt to the `submitted` stage; instant exams have no `results_released_at`, so it could never flip to the score. Now instant-submitted → `result` directly; `lazyResult` loads in the `result` stage on re-open; the submitted-stage release check is instant-aware. `app/exam/[id].tsx`.
+3. **Builder question-replace non-atomic** — `delete`-then-`insert` left a published exam with zero questions on a partial failure. Now upsert-the-set-then-delete-missing (never empty). `app/exam-builder/[examId].tsx`.
+4. **Default exam start rounded to 15 min, not 30** — `nextHalfHourStartsAt` now rounds to a true 30-min slot per §B3/§B5. `app/exam-builder/[examId].tsx`.
+5. **Admin offline-score delete modal** — added backdrop-click-to-close to match the exams modal. `offline-scores-client.tsx`.
+6. Pre-existing working-tree QA fixes confirmed in place: admin exams-delete-modal backdrop close, exam-results "Release" button recoloured blue, offline-scores hydration no longer clobbers typed values, results-board analysis bar honours `regrade_override` (D-179).
+
+Migrations now **3** (`exams`, `exams_rls`, `exam_answers_deadline_cut`). Edge fns unchanged at 9. Post-fix regression: `pnpm test:exam` 26/26, `pnpm smoke:exam-rls` green incl. **T4b**, `pnpm smoke:exam-fns` 26/26, mobile jest 53/53, typecheck + lint green, security advisor clean (only the long-standing Phase-1 `auth_leaked_password_protection` WARN). Work sits uncommitted on `phase-4` branch.
+
+### ACCEPTED — 2026-05-21 by Kaustab

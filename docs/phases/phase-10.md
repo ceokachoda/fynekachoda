@@ -1,5 +1,7 @@
 # Phase 10 — Leaderboard & Gamification
 
+> **Status: ✅ ACCEPTED — 2026-05-27.** On-device visual QA signed off + post-QA fixes applied (see §15). Full ledger in **§15**; plan in `docs/phases/phase-10-manual-tests.md`.
+
 > Batch-scoped composite leaderboard (60% Q + 25% A + 15% S). 11 starter badges with sticky earning. Streak flame + celebration modals. Wire the `rank` placeholder in the dashboard.
 
 ---
@@ -348,3 +350,109 @@ If Phase 10 breaks:
 - Activity_days + streaks + badges all live.
 - Composite leaderboard live (used in parents' report too).
 - Phase 11 adds the WhatsApp PDF report pipeline.
+
+---
+
+## 15. Acceptance ledger (CP1–CP12) — ✅ ACCEPTED 2026-05-27
+
+> **Status: ✅ ACCEPTED — 2026-05-27.** Built, deployed, automated-tested, and now visually
+> signed off on real devices: leaderboard render, badge celebration, streak-flame colours,
+> SVG-icon rendering, dashboard rank pill and the teacher at-risk view all confirmed. A post-QA
+> bug-hunt (2026-05-27, see §15.10) shipped 4 mobile fixes + 1 SQL migration (badge-fact
+> corrections + rollover guard).
+>
+> **ACCEPTED:** 2026-05-27 — on-device visual QA (`phase-10-manual-tests.md`) signed off; post-QA fixes applied + verified. Phase 10 is done.
+>
+> Agent-verified: `pnpm test:leaderboard` **60/60**, `pnpm smoke:leaderboard-rls` **14/14**,
+> `pnpm smoke:leaderboard-fns` **18/18**; mobile gate (`pnpm typecheck && pnpm lint && pnpm test`)
+> green with jest **53/53** (+ shared 17/17). Composite math, the rank tie-breaker, all 11 badge
+> evaluators, cross-batch RLS (AC #15), rollover top-1/2-3 + snapshot + idempotency, and the
+> badge-icon signing all pass. `my_batch_leaderboard` EXPLAIN ANALYZE on the seeded batch =
+> **9.9 ms** (≪ 100 ms). Advisor sweep clean (only accepted WARNs).
+
+### 15.1 Checkpoint status
+| CP | Scope | State |
+|----|-------|-------|
+| CP1 | `badges` + `badge_earnings` (+ 3-policy RLS, is_seen column-grant, seeded 11) | ✅ |
+| CP2 | `leaderboard_weekly` + `leaderboard_alltime` views (security_invoker, client-revoked) | ✅ |
+| CP3 | `my_batch_leaderboard` SECURITY DEFINER fn + own-batch/teacher/admin guard + tie-breaker | ✅ |
+| CP4 | `evaluate_student_badges` DB fn (9 non-rank badges) + `badge-evaluate` admin edge fn | ✅ |
+| CP5 | `leaderboard_snapshots` + `leaderboard_weekly_rollover` fn + Sun 18:29 UTC cron | ✅ |
+| CP6 | inline badge eval in quiz-submit / exam-submit / attendance-qr-verify / streak_recompute | ✅ |
+| CP7 | `badge-assets` private bucket + 11 placeholder SVGs + `badge-icon-sign` edge fn | ✅ |
+| CP8 | `(student)/leaderboard.tsx` Weekly/All-Time + RankRow/RankBadge/ScopeTabs/CalcModal + tap-row card | ✅ |
+| CP9 | Profile → Badges grid (`BadgeShowcase`) + `BadgeEarnedModal` confetti + unseen poll | ✅ |
+| CP10 | dashboard rank pill (was "—") + recent-badges strip + streak-flame colours | ✅ |
+| CP11 | streak modal lists badges earned during the streak; flame colours per §4.4 | ✅ |
+| CP12 | teacher at-risk uses real composite < 0.4 (replaces Phase-8 mastery<40‖attendance<60) | ✅ |
+
+### 15.2 Migrations (12)
+| Version | Name | Contents |
+|---|---|---|
+| 20260522171342 | `badges` | `badges` catalogue + `badge_earnings` (PK student+badge, is_seen) + 3-policy RLS + is_seen column-grant + seed 11 |
+| 20260522171550 | `badge_earnings_badge_id_idx` | index on the badge_id FK (clears 0001) |
+| 20260522171808 | `leaderboard_views` | `leaderboard_weekly` + `leaderboard_alltime` (`security_invoker=true`, SELECT revoked from anon/authenticated) |
+| 20260522172030 | `my_batch_leaderboard_fn` | SECURITY DEFINER RPC + guard + rank tie-breaker; EXECUTE → authenticated/service_role |
+| 20260522172327 | `evaluate_student_badges_fn` | 9 non-rank badge predicates, ON CONFLICT DO NOTHING; EXECUTE → service_role only |
+| 20260522172635 | `leaderboard_snapshots` | snapshot table + UNIQUE(batch_id, period_start) idempotency guard + admin/teacher RLS |
+| 20260522172647 | `leaderboard_weekly_rollover_fn` | set-based rollover (topper #1 + runner-up #2/3, composite>0) + pg_cron `29 18 * * 0` |
+| 20260522173119 | `streak_recompute_badge_sweep` | Phase-8 streak fn + best-effort per-row badge sweep for current_days≥7 (D-188) |
+| 20260522173336 | `storage_badge_assets` | private `badge-assets` bucket (svg+png, 100 KB) |
+| 20260522175320 | `student_dashboard_rank_badges` | dashboard `rank` + `recent_badges` slices wired live (Phase-8-surface change) |
+| 20260522175346 | `teacher_batch_overview_composite_risk` | at-risk = composite < 0.4 (Phase-8-surface change) |
+| 20260522175640 | `student_public_card_fn` | tap-row public card (name+batch+streak+badges only) + same-batch guard |
+
+### 15.3 Edge functions
+- **New:** `badge-evaluate` (admin wrapper over evaluate fn), `leaderboard-weekly-rollover` (admin force-run + cron-equiv), `badge-icon-sign` (24h signed icon URLs).
+- **Redeployed (inline badge eval, D-188):** `quiz-submit`, `exam-submit`, `attendance-qr-verify`.
+- All deployed via D-187 temp-workdir (`scripts/stage-phase10-deploy.cjs`). `_shared` unchanged.
+
+### 15.4 Cron
+- `leaderboard-weekly-rollover` — `29 18 * * 0` (Sun 23:59 IST) → `select public.leaderboard_weekly_rollover();` directly (no pg_net). Idempotent (D-106).
+
+### 15.5 Storage
+- `badge-assets` private bucket; 11 PLACEHOLDER SVGs uploaded by `pnpm upload:badge-assets` to the `badges.icon_path` paths. Inherits the Phase-5 global `deny_all_content_objects` policy; client access only via `badge-icon-sign` signed URLs. **Placeholder art** (flat colour disc + glyph) — swap for final designs in Phase 12.
+
+### 15.6 Tests (automated — all green)
+| Suite | Command | Result |
+|---|---|---|
+| Unit: composite 60/25/15 + clamps, rank tie-breaker, 11 badge evaluators | `pnpm test:leaderboard` | **60/60** |
+| RLS: cross-batch isolation (AC #15), p_batch guard, view lockdown, badge_earnings/snapshot RLS | `pnpm smoke:leaderboard-rls` | **14/14** |
+| Edge fns: badge-evaluate per-scenario + gating/idempotency, rollover top-1/2-3 + snapshot + idempotency, RPC, icon-sign | `pnpm smoke:leaderboard-fns` | **18/18** |
+| Mobile gate | `pnpm typecheck && pnpm lint && pnpm test` | green; jest **53/53** |
+| Perf | EXPLAIN ANALYZE `my_batch_leaderboard` on seeded batch | **9.9 ms** (<100 ms) |
+
+### 15.7 Advisor sweep
+- **Security:** only the accepted `authenticated_security_definer_function_executable` WARNs on the 5 guarded RPCs (`my_batch_leaderboard`, `student_public_card` [new], `student_dashboard`, `teacher_batch_overview`, `teacher_dashboard`) — D-186 pattern — plus `auth_leaked_password_protection` (Phase-1 backlog). `evaluate_student_badges` + `leaderboard_weekly_rollover` correctly NOT listed (EXECUTE revoked from authenticated). No `0010` (security_invoker views), no `0011` (search_path set on every new fn).
+- **Performance:** my objects show only `multiple_permissive_policies` (accepted 3-/2-policy union on `badge_earnings`/`leaderboard_snapshots`) + `unused_index` INFOs (fresh indexes). No unindexed-FK, no `auth_rls_initplan`.
+
+### 15.8 Decisions (D-197 … D-202)
+- **D-197** composite leaderboard architecture: views `security_invoker=true` + client-revoked; `my_batch_leaderboard` is the sole RPC (guard mitigates the accepted WARN).
+- **D-198** all gamification logic lives in SQL DB fns (runtime SoT); edge fns are thin wrappers; feeders call the DB fn inline fire-and-forget (D-188); EXECUTE revoked from authenticated closes the self-award hole; `packages/shared/src/constants/leaderboard.ts` mirrors the numbers for tests + mobile copy.
+- **D-199** comeback = current 7+ streak AND a prior (now-broken) ≥7 activity-run (gaps-and-islands), never a first-ever streak.
+- **D-200** placeholder flat-SVG badge art in a private bucket, signed via `badge-icon-sign` (D-171), rendered with react-native-svg `SvgUri`; final art deferred to Phase 12.
+- **D-201** `student_public_card` SECURITY DEFINER same-batch fn powers the tap-row card (peers' streak/badges are RLS-blocked from direct reads).
+- **D-202** leaderboard A normalized over days-since-join for fairness (spec §3.6); weekly rollover idempotency via UNIQUE(batch_id, period_start) (D-106).
+
+### 15.9 Files changed
+- **DB:** 12 migrations (above).
+- **Edge fns:** `apps/functions/{badge-evaluate,leaderboard-weekly-rollover,badge-icon-sign}/index.ts` (new); `quiz-submit`, `exam-submit`, `attendance-qr-verify` (inline eval).
+- **Shared:** `packages/shared/src/constants/leaderboard.ts` (+ index export).
+- **Mobile added:** `app/(student)/leaderboard.tsx`; `components/leaderboard/{RankRow,RankBadge,ScopeTabs,LeaderboardCalcModal}.tsx`; `components/gamification/{BadgeShowcase,BadgeEarnedModal,BadgeIcon}.tsx`; `features/leaderboard/useLeaderboard.ts`; `features/gamification/{useBadgesCollection,useUnseenBadges}.ts`.
+- **Mobile edited:** `app/(student)/_layout.tsx` (Ranks tab), `index.tsx` (rank pill + recent badges + celebration host), `profile.tsx` (Badges tab), `modal.tsx` (streak-badges section); `components/dashboard/{StatsStrip,RecentBadgesStrip}.tsx`; `components/teacher/AtRiskList.tsx`; `features/dashboard/{types.ts,useTeacherBatchOverview.ts}`.
+- **Scripts:** `scripts/{test-leaderboard-helpers,smoke-test-leaderboard-rls,smoke-test-leaderboard-edge-fns,seed-leaderboard-manual-test,upload-badge-assets}.ts`, `scripts/stage-phase10-deploy.cjs`; root `package.json` scripts.
+
+### 15.10 Carry-overs (into Phase 12)
+- Final designed badge art (replace placeholders; re-run `pnpm upload:badge-assets`).
+- Student tab bar now 7 tabs (added Ranks) — consolidate in Phase 12 polish.
+- Regenerate `packages/supabase-types` if the admin app ever needs typed leaderboard RPCs (mobile client is untyped — not required for build).
+- PostHog telemetry events (leaderboard_viewed, badge_earned, …) deferred project-wide (Phase 1) → Phase 12 observability sweep.
+- Redmi 8A cold-start measurement (hardware) → Phase 12 perf pass.
+- Real designed confetti / share-card (the "Share" button is intentionally disabled in MVP).
+
+### 15.11 Post-QA hardening (2026-05-27)
+A deep bug-hunt (4 parallel reviews + manual verification) after sign-off. **Shipped + verified** (mobile gate green; migration `20260527100000_phase10_badge_fact_fixes` applied + `smoke:leaderboard-fns` 18/18 + `smoke:leaderboard-rls` 14/14 + `test:leaderboard` 60/60):
+- Mobile: multi-badge celebration confetti now re-fires per badge (`key={badge_id}` + `Animated.stop()` cleanup); `useUnseenBadges` filters locally-dismissed badges so the same celebration can't re-pop, and latches the icon-sign only on success; `fetchStudentCard` coerces the `student_public_card` RPC (guards a `full_name.split` crash on a null name).
+- SQL: `evaluate_student_badges` — `early_bird` now excludes `cancelled` sessions; `mastery_80_subject` requires `attempt_count >= 1` (both prevent sticky-badge over-/under-award). `leaderboard_weekly_rollover` drops a stale temp table before re-creating it (pooled-connection collision guard).
+
+**Assessed, intentionally not changed (not bugs):** the `rank()` tie-breaker ends at full_name per spec §3.5 (shared ranks on a true tie are spec-compliant); comeback prior-run derivation is safe given the streak-sweep call ordering.

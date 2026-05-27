@@ -174,8 +174,13 @@ export function useExamResultsBoard(examId: string | null): State {
         m.set(a.attempt_id, a.selected_option_id);
         selByQ.set(a.question_id, m);
       }
-      // For each attempt, look up the snapshot's correct_option_id.
+      // For each attempt, look up the snapshot's correct_option_id AND any
+      // regrade_override ("all" → everyone correct, "none" → everyone
+      // skipped) so the analysis bar matches the regraded scores the edge fn
+      // computed via gradeAttempt (D-179). Reading only correct_option_id
+      // would leave the bar stale after mark_all_correct.
       const correctByAttemptQ = new Map<string, string | null>();
+      const overrideByAttemptQ = new Map<string, "all" | "none" | null>();
       const snapRes = await withTimeout(
         supabase
           .from("exam_attempts")
@@ -185,10 +190,17 @@ export function useExamResultsBoard(examId: string | null): State {
       );
       for (const a of (snapRes.data ?? []) as Array<{
         id: string;
-        question_snapshot: { questions?: Array<{ id: string; correct_option_id: string | null }> };
+        question_snapshot: {
+          questions?: Array<{
+            id: string;
+            correct_option_id: string | null;
+            regrade_override?: "all" | "none" | null;
+          }>;
+        };
       }>) {
         for (const q of a.question_snapshot?.questions ?? []) {
           correctByAttemptQ.set(`${a.id}:${q.id}`, q.correct_option_id);
+          overrideByAttemptQ.set(`${a.id}:${q.id}`, q.regrade_override ?? null);
         }
       }
 
@@ -198,8 +210,16 @@ export function useExamResultsBoard(examId: string | null): State {
         let total = 0;
         for (const [attemptId, selectedOptId] of sel.entries()) {
           total++;
-          const correctOpt = correctByAttemptQ.get(`${attemptId}:${q.question_id}`);
-          if (correctOpt && selectedOptId === correctOpt) correct++;
+          const key = `${attemptId}:${q.question_id}`;
+          const override = overrideByAttemptQ.get(key) ?? null;
+          if (override === "all") {
+            correct++;
+          } else if (override === "none") {
+            // no correct credit after mark_no_correct
+          } else {
+            const correctOpt = correctByAttemptQ.get(key);
+            if (correctOpt && selectedOptId === correctOpt) correct++;
+          }
         }
         return {
           question_id: q.question_id,

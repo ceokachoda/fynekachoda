@@ -43,6 +43,7 @@ import { useExamSubmit } from "@/features/exam/useExamSubmit";
 import { useExamAttemptResult } from "@/features/exam/useExamAttemptResult";
 import { useExamAutoSave } from "@/features/exam/useExamAutoSave";
 import { useExamTabSwitchLogger } from "@/features/exam/useExamTabSwitchLogger";
+import { useServerTimeOffset } from "@/features/exam/useServerTimeOffset";
 import type {
   ExamSavedAnswer,
   ExamSubmitResponse,
@@ -157,10 +158,18 @@ export default function ExamScreen() {
         0,
       existing_attempt: mine,
     });
-    // If the student has a SUBMITTED attempt, jump straight to submitted/
-    // result screen.
+    // If the student has a SUBMITTED attempt, jump straight to the right
+    // stage. Instant exams reveal the score immediately (→ result); manual
+    // exams wait for the teacher to release (→ submitted, which polls and
+    // auto-flips to result once released). Routing instant to "submitted"
+    // was the bug: an instant exam never gets a results_released_at, so the
+    // submitted-stage "Check release status" could never flip it to result.
     if (mine?.submitted_at) {
-      setStage("submitted");
+      setStage(
+        (r.result_release as "manual" | "instant") === "instant"
+          ? "result"
+          : "submitted",
+      );
     }
   }, [examId]);
 
@@ -181,6 +190,10 @@ export default function ExamScreen() {
   const attemptId = startState.data?.attempt_id ?? null;
   const autoSave = useExamAutoSave({ attemptId });
   const tabSwitch = useExamTabSwitchLogger(stage === "attempt" ? attemptId : null);
+  // Server clock offset (seeded from exam-start's server_now, re-synced every
+  // 60s) so the countdown is authoritative even if the device clock is changed
+  // mid-attempt. The server-side hard cut on exam_answers is the backstop.
+  const serverOffsetMs = useServerTimeOffset(startState.data?.server_now ?? null);
 
   // Sync initial tab-switch count from server payload.
   useEffect(() => {
@@ -211,7 +224,7 @@ export default function ExamScreen() {
   }, [startState.data]);
 
   const lazyResult = useExamAttemptResult(
-    (stage === "solution" || (stage === "submitted" && preInfo?.existing_attempt && !submitResult))
+    stage === "solution" || stage === "submitted" || stage === "result"
       ? preInfo?.existing_attempt?.id ?? attemptId
       : null,
   );
@@ -396,9 +409,13 @@ export default function ExamScreen() {
   if (stage === "submitted") {
     const releasedNow =
       submitResult?.results_released ||
-      (lazyResult.data?.exam.results_released_at !== null && !!lazyResult.data);
-    if (releasedNow && lazyResult.data && !submitResult) {
-      // Auto-flip to result view.
+      (!!lazyResult.data &&
+        (lazyResult.data.exam.results_released_at !== null ||
+          lazyResult.data.exam.result_release === "instant"));
+    if (releasedNow && lazyResult.data) {
+      // Auto-flip to result view. Also covers the same-session manual-submit
+      // case: submitResult exists but carries no score, so we rely on
+      // lazyResult once the teacher releases.
       setStage("result");
     }
     return (
@@ -592,6 +609,7 @@ export default function ExamScreen() {
         <TimerPill
           deadlineAt={data.deadline_at}
           serverNow={data.server_now}
+          offsetMs={serverOffsetMs}
           onExpire={() => {
             if (autoSubmittedRef.current) return;
             autoSubmittedRef.current = true;

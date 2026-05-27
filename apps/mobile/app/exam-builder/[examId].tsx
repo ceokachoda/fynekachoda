@@ -64,9 +64,21 @@ function round15(d: Date): Date {
   return out;
 }
 
+// Round a Date forward to the next 30-minute boundary (:00 / :30).
+function round30(d: Date): Date {
+  const out = new Date(d);
+  out.setSeconds(0, 0);
+  const m = out.getMinutes();
+  const inc = (30 - (m % 30)) % 30;
+  if (inc > 0) out.setMinutes(m + inc);
+  return out;
+}
+
 function nextHalfHourStartsAt(): string {
-  const d = round15(new Date(Date.now() + 30 * 60_000));
-  return d.toISOString();
+  // Default the start to the next half-hour slot (§B3/§B5: "next 30-min-rounded
+  // slot"), nudged past the immediate boundary so a fresh exam isn't live the
+  // instant it's published.
+  return round30(new Date(Date.now() + 60_000)).toISOString();
 }
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120, 180];
@@ -181,21 +193,43 @@ export default function ExamBuilderScreen() {
         }
       }
 
-      // Replace exam_questions: delete then re-insert with sort_order.
-      await withTimeout(
-        supabase.from("exam_questions").delete().eq("exam_id", savedId),
-      );
+      // Replace exam_questions WITHOUT ever leaving the exam empty: upsert the
+      // desired set first (updates sort_order on existing rows), THEN delete
+      // rows no longer in the set. A delete-then-insert leaves a published exam
+      // with zero questions if the insert fails midway; this ordering means a
+      // failure leaves at worst a superset — never empty (#2).
       if (questionIds.length > 0) {
         const rows = questionIds.map((qid, i) => ({
           exam_id: savedId,
           question_id: qid,
           sort_order: i,
         }));
-        const eqIns = await withTimeout(
-          supabase.from("exam_questions").insert(rows),
+        const eqUp = await withTimeout(
+          supabase
+            .from("exam_questions")
+            .upsert(rows, { onConflict: "exam_id,question_id" }),
         );
-        if (eqIns.error) {
-          Alert.alert("Save failed", eqIns.error.message);
+        if (eqUp.error) {
+          Alert.alert("Save failed", eqUp.error.message);
+          return;
+        }
+        const eqDel = await withTimeout(
+          supabase
+            .from("exam_questions")
+            .delete()
+            .eq("exam_id", savedId)
+            .not("question_id", "in", `(${questionIds.join(",")})`),
+        );
+        if (eqDel.error) {
+          Alert.alert("Save failed", eqDel.error.message);
+          return;
+        }
+      } else {
+        const eqDelAll = await withTimeout(
+          supabase.from("exam_questions").delete().eq("exam_id", savedId),
+        );
+        if (eqDelAll.error) {
+          Alert.alert("Save failed", eqDelAll.error.message);
           return;
         }
       }

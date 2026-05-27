@@ -534,3 +534,40 @@ export const BatchMutateInputSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("delete_schedule_row"), id: z.string().uuid() }),
 ]);
 export type BatchMutateInput = z.infer<typeof BatchMutateInputSchema>;
+
+// ---------- Phase 9 — live classes ----------
+
+export const YtBroadcastCreateInputSchema = z.object({
+  session_id: z.string().uuid(),
+});
+export type YtBroadcastCreateInput = z.infer<typeof YtBroadcastCreateInputSchema>;
+
+export const YtBroadcastStopInputSchema = z.object({
+  session_id: z.string().uuid(),
+});
+export type YtBroadcastStopInput = z.infer<typeof YtBroadcastStopInputSchema>;
+
+export const YtBroadcastGoliveInputSchema = z.object({
+  session_id: z.string().uuid(),
+});
+export type YtBroadcastGoliveInput = z.infer<typeof YtBroadcastGoliveInputSchema>;
+
+export const ChatDeleteInputSchema = z.object({
+  message_id: z.string().uuid(),
+});
+export type ChatDeleteInput = z.infer<typeof ChatDeleteInputSchema>;
+
+export const ChatBanInputSchema = z.object({
+  session_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  action: z.enum(["ban", "unban"]).default("ban"),
+});
+export type ChatBanInput = z.infer<typeof ChatBanInputSchema>;
+
+// yt-playback-sign extended for Phase 9: still accepts a lesson by content_id
+// (Phase 5), and now a live/recording session by session_id + kind.
+export const YtPlaybackSignSessionInputSchema = z.object({
+  session_id: z.string().uuid(),
+  kind: z.enum(["live", "recording"]),
+});
+export type YtPlaybackSignSessionInput = z.infer<typeof YtPlaybackSignSessionInputSchema>;

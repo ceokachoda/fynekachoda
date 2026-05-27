@@ -55,16 +55,24 @@ export default function OfflineScoresScreen() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  // Hydrate existing scores when fixture loads.
+  // Hydrate existing scores when a saved test is found. Merge into any
+  // in-progress typing (existing wins for those students) and never clobber
+  // typed values when no existing rows match — typing a new test name
+  // triggers refetches that would otherwise wipe scores already entered.
   useEffect(() => {
-    const s: Record<string, string> = {};
-    const n: Record<string, string> = {};
-    for (const e of ofs.existing) {
-      s[e.student_id] = String(e.score);
-      if (e.notes) n[e.student_id] = e.notes;
-    }
-    setScores(s);
-    setNotes(n);
+    if (ofs.existing.length === 0) return;
+    setScores((prev) => {
+      const next = { ...prev };
+      for (const e of ofs.existing) next[e.student_id] = String(e.score);
+      return next;
+    });
+    setNotes((prev) => {
+      const next = { ...prev };
+      for (const e of ofs.existing) {
+        if (e.notes) next[e.student_id] = e.notes;
+      }
+      return next;
+    });
   }, [ofs.existing]);
 
   const selectedBatch = useMemo(
