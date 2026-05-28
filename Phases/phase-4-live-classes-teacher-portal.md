@@ -134,10 +134,96 @@
 12. Resize everything 320px↔1440px; webcam scanner usable on a phone (rear camera).
 
 ## Acceptance criteria
-- [ ] Student live + recording fully work (player, realtime chat, raise-hand, replay, bans, reconnect-reload).
-- [ ] All 8 teacher tabs + 6 teacher top-level screens work and match mobile behavior.
-- [ ] Webcam QR scan marks attendance; permission-denied fallback works; HTTPS verified.
-- [ ] Builders/results/offline/roster/live-control all route through the correct edge fns; audit rows written.
-- [ ] All realtime channels cleaned up on unmount; one player at a time.
-- [ ] Typecheck/lint/test/build + E2E green; manual checklist (incl. one real OBS dry-run) passes on all three browsers.
-- [ ] **Web app is now at full feature parity with the mobile app.**
+- [x] Student live + recording fully work (player, realtime chat, raise-hand, replay, bans, reconnect-reload) — Track 4A ✅ code-complete 2026-05-28.
+- [ ] All 8 teacher tabs + 6 teacher top-level screens work and match mobile behavior — Track 4B pending.
+- [ ] Webcam QR scan marks attendance; permission-denied fallback works; HTTPS verified — Track 4B pending.
+- [ ] Builders/results/offline/roster/live-control all route through the correct edge fns; audit rows written — Track 4B pending.
+- [x] All realtime channels cleaned up on unmount (Track 4A — chat-{id}, hands-{id}, ban-{id}-{uid}); one player at a time — automated audit at `apps/web/features/live/__tests__/realtimeCleanupAudit.test.ts`.
+- [x] Typecheck/lint/test/build green for Track 4A; E2E specs landed (live-student, recording).
+- [ ] Manual checklist (incl. one real OBS dry-run) passes on all three browsers — partial: Chrome desktop ready for §A + §B; §G OBS dry-run is Track 4B.
+- [ ] **Web app is now at full feature parity with the mobile app** — Track 4B will close this.
+
+---
+
+## §J — Acceptance ledger (Phase 4 Track 4A closing — 2026-05-28, code-complete pending manual QA)
+
+### Code shipped (apps/web) — Track 4A only
+
+**New top-level routes (2)** — both outside the `(protected)` group so the side-rail / bottom-tabs don't render (W-23 / mobile D-169):
+- `apps/web/app/live/[sessionId]/page.tsx` + `_components/LiveClient.tsx` — wrapped YouTube player + Watermark + Lobby countdown (when scheduled) + realtime chat + raise-hand + own-ban + pinned-announcement + end-of-class detection. Responsive layout: split player|chat on desktop (≥ lg), stacked on narrow.
+- `apps/web/app/recording/[sessionId]/page.tsx` + `_components/RecordingClient.tsx` — wrapped player + Watermark + native YouTube controls + custom Speed 1× / 1.5× / 2× pills + time-synced ChatReplay (offset = `posted_at - started_at`). The replay reveals faster at higher speeds automatically because it keys off the player's *actual* position.
+
+**New feature hooks (5)** — all under `apps/web/features/`:
+- `features/live/useLiveSession.ts` — single session row; polls every 10s while `status='scheduled'` (sessions table is not in the Realtime publication).
+- `features/live/useLivePlaybackSign.ts` — `yt-playback-sign` by `session_id + kind` (separate from `features/library/useYtPlayback` which keys on `content_id`). 409 is a NORMAL "not ready" state, surfaced via `status`.
+- `features/live/useRaiseHand.ts` — `hands-{id}` channel; student raise/lower + teacher queue with denormalized names (D-152). Pairs `.channel(` and `.removeChannel(`.
+- `features/live/useSessionState.ts` — `ban-{id}-{uid}` channel; own-ban live state; flips composer + raise-hand to disabled when banned.
+- `features/chat/useChatChannel.ts` — `chat-{id}` channel (INSERT + UPDATE for soft-delete) + history load + Phase-9 reconnect-reload + direct RLS insert for posting (the SECURITY DEFINER trigger stamps author + enforces 5/30s rate-limit; the client MUST NOT send `author_name`).
+
+**New pure utilities (1)**:
+- `features/live/chat-replay.ts` — `computeReplayOffsetSec`, `withReplayOffsets`, `messagesUpTo`, `countBetween`. No React imports → Vitest imports directly without jsdom.
+
+**New components (6)** under `apps/web/components/live/`:
+- `LobbyCountdown.tsx` — dark `#0f172a` background, radio icon, subject name, countdown MM:SS / HH:MM:SS, then "Waiting for the teacher to go live…" spinner.
+- `ChatPane.tsx` — message list with `MessageBubble` per row (initials avatar, role badge, IST timestamp, body). Filters `kind='chat'` and `!is_deleted`. Auto-scrolls.
+- `ChatComposer.tsx` — textarea + send button. Enter sends; Shift+Enter inserts newline. Disabled-state with reason text when banned / not-live.
+- `RaiseHandButton.tsx` — blue → amber toggle with Hand icon.
+- `PinnedBanner.tsx` — blue-50 tinted banner with Pin icon + "PINNED BY <name>" label + body.
+- `ChatReplay.tsx` — uses `withReplayOffsets` + `messagesUpTo`; memoized so the recording screen's 1×/s `currentSec` tick only re-renders when a new message is revealed.
+
+**Extended components**:
+- `components/player/WrappedYtPlayer.tsx` — refactored to `forwardRef<WrappedYtPlayerHandle, …>` with imperative `play / pause / seekTo`. New optional props: `playbackRate`, `onPlayingChange`, `onDuration`, `onPosition`. The Phase-2 video screen still works without changes (all new props optional).
+
+**Discovery wiring (1 file edited)**:
+- `app/(protected)/classes/_components/StudentClasses.tsx` — `Live` segment cards now `<Link href="/live/{id}">`; `Recorded` segment cards now `<Link href="/recording/{id}">`. The "Phase 4 placeholder" pill + copy were removed.
+
+**Dependencies added**: **none** (Track 4A reuses `react-youtube`, `@supabase/ssr`, `@supabase/supabase-js`, `@tanstack/react-query`, `lucide-react` — already installed). `@yudiel/react-qr-scanner` will be added in Track 4B for the teacher scan page.
+
+### Tests
+
+- **Unit (Vitest):** 117/117 pass across 17 files. Phase-4 Track-4A additions:
+  - `features/live/__tests__/chat-replay.test.ts` — 14 tests covering `computeReplayOffsetSec` (positive / negative-clamped / equal), `withReplayOffsets` (attach + sort + non-mutation), `messagesUpTo` (boundary inclusive / pre-start defensive / past-end), `countBetween` (open-from + closed-to, empty range, 1ms epsilon symmetry).
+  - `features/live/__tests__/realtimeCleanupAudit.test.ts` — 11 tests (one per file in `features/{live,chat,teacher,attendance}/`); each asserts `.channel(` calls equal `.removeChannel(` calls after comments + string literals are stripped. Catches the mobile-era "ghost subscription" foot-gun.
+- **E2E (Playwright):** new specs `e2e/live-student.spec.ts` + `e2e/recording.spec.ts`. Tolerant of empty seed (skips if no live / recording session is visible to the student). Full chat + rate-limit + speed-change coverage lives in the manual plan §A + §B.
+- **Verification gates (all green on `web-phase-1` 2026-05-28):**
+  - `pnpm --filter @fynestudy/web typecheck` → 0 errors.
+  - `pnpm --filter @fynestudy/web lint` → 0 errors, 0 warnings.
+  - `pnpm --filter @fynestudy/web test` → 117/117.
+  - `pnpm --filter @fynestudy/web build` → 29 routes (was 27 in Phase 3; +`/live/[sessionId]` +`/recording/[sessionId]`), sw.js generated.
+  - `Get-ChildItem .next/static -Include *.js -Recurse | Select-String -Pattern 'SUPABASE_SERVICE_ROLE|service_role|sb_secret'` → zero matches.
+
+### W-DEC entries (web decisions log) — Track 4A
+
+- **W-DEC-4A.1:** Live + recording top-level routes live OUTSIDE `(protected)` (mirror of Phase-3 quiz/exam routes + mobile D-169). Each Client component wraps its own `<QueryProvider><SessionProvider>` (W-DEC-3.6 pattern) because the `(protected)` layout's providers are bypassed.
+- **W-DEC-4A.2:** Separate `useLivePlaybackSign` (sessions) from `useYtPlayback` (library content). The two edge-fn invocations differ in key (`session_id` vs `content_id`) and in cache lifetime; reusing a single hook would force a confusing union type. 409 is surfaced via `status`, not `error`, so the lobby can keep retrying without showing a red message.
+- **W-DEC-4A.3:** Chat posting is a DIRECT RLS insert (mobile D-191 mirror). The SECURITY DEFINER `chat_messages` BEFORE-INSERT trigger denormalizes `author_name` + `author_role` and enforces the 5-msgs-per-30s rate-limit. The web client MUST NOT send `author_name` — the trigger overwrites it. Errors come back via PostgREST and are surfaced inline in `ChatComposer`.
+- **W-DEC-4A.4:** Reconnect-reload pattern: a `subscribedBefore` ref inside `useChatChannel` tracks the first vs subsequent SUBSCRIBED events. On the second+, the hook re-fetches history once because Realtime does NOT replay missed INSERTs (Phase-9 carry-over).
+- **W-DEC-4A.5:** `WrappedYtPlayer` extended via `forwardRef` + `useImperativeHandle` exposing `play / pause / seekTo`. New optional props (`playbackRate`, `onPlayingChange`, `onDuration`, `onPosition`) are all additive — Phase-2 `VideoClient` continues to work unchanged. The recording screen uses **YouTube's native controls** (play/pause/seek) PLUS custom Speed 1× / 1.5× / 2× pills wired through `setPlaybackRate`. No custom transport bar like mobile (which existed only because WebView taps were unreliable on iOS Expo Go — not a web concern).
+- **W-DEC-4A.6 (D-173 mirror):** No `controls=0` on the YouTube iframe — kept native YouTube controls visible on both live and recording. The play button serves as the autoplay gesture proxy.
+- **W-DEC-4A.7:** Sessions table is NOT in the Realtime publication, so `useLiveSession` polls every 10s while `status='scheduled'`. Once `status='live'`, polling stops; the chat + bans channels become the only realtime subscriptions, plus the `endedSignal` (a `kind='system'` chat row) which triggers a manual session reload.
+- **W-DEC-4A.8:** Realtime cleanup audit is now an automated Vitest source-scan (`realtimeCleanupAudit.test.ts`). The same parity is also a manual step in `phase-4-manual-tests.md §M.2`, but the source-scan is the authoritative guard against new hooks regressing the pattern.
+
+### Carry-overs (after Track 4A)
+
+1. Track 4B — the entire teacher portal (home, scan webcam QR, classes, content upload, quiz/exam builders + results + offline scores, batch analytics, roster, live-control). 11 build steps, 6 top-level routes, ~20 hooks, ~15 components, ~8 unit tests, ~6 E2E specs. Adds `@yudiel/react-qr-scanner` dep. Picks up §C–§L of the manual test plan.
+2. Pinned-announcement (§A.9) + end-of-class (§A.10) full manual coverage depends on Track 4B's live-control. For Track 4A they're advanced SQL-simulated tests marked N/A.
+3. Real OBS → unlisted-YouTube dry-run (§G) is Track 4B.
+4. Vercel deploy + Supabase Auth redirect-URL allowlist + edge-fn CORS allow-list extension for `web-*.vercel.app` — Phase 5.
+5. iOS Safari + Android Chrome on-device manual QA — needs HTTPS (Phase 5).
+6. Component-level Jest tests for `LiveClient` / `RecordingClient` reducers / effects — Phase 5 hardening; Track 4A covers pure helpers + source-scans.
+
+### Honored decisions from mobile (`docs/decisions.md`)
+
+- **D-152** (teacher batch-scope on `app_users`) — preserved in `useRaiseHand.ts` teacher-queue join.
+- **D-169** (top-level routes outside the tab group) — `live/[sessionId]` and `recording/[sessionId]` live outside `(protected)`.
+- **D-173** (never `controls=0` on the YT iframe on mobile — the same UX argument applies on web for the autoplay gesture proxy) — preserved in `WrappedYtPlayer.tsx`.
+- **D-190..D-196** (Phase-9 live decisions: chat is direct-RLS-insert with SECURITY DEFINER trigger, stream key never persisted, reconnect-reload, banned-cannot-raise-hand RLS, …) — preserved in the new hooks. The web hooks mirror the mobile hooks 1:1 with idiomatic web translations (no `withTimeout` since there's no Expo Go Keychain delay; no `AppState` since we have Page Visibility / `window.blur`; no `KeyboardAvoidingView` since CSS handles it).
+
+### Status
+
+- **Track 4A code-complete:** 2026-05-28 on branch `web-phase-1`.
+- **Automated tests:** all green (117/117 unit, 0 errors typecheck + lint, build green, no service-role leak).
+- **Manual QA:** pending — `Phases/phase-4-manual-tests.md §A + §B + §M + §N + §O + §P` ready for the user to walk through on Chrome desktop.
+- **Track 4B:** picked up in the next conversation. Track 4B's session will append §C–§L to the manual plan and replace this `Track 4A closing` ledger with a full Phase-4-closing ledger.
+
+⚠ **Do NOT mark Phase 4 as fully accepted until Track 4B is built AND the user finishes §P sign-off on the full manual plan.**

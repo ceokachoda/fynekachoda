@@ -75,31 +75,31 @@ export function StudentClasses() {
           live.length === 0 ? (
             <EmptyState
               title="No live class right now"
-              description="When a class starts, it will appear here. Live playback ships in Phase 4."
+              description="When a class starts, it will appear here."
             />
           ) : (
             <ul className="space-y-2">
               {live.map((s) => (
-                <li
-                  key={s.id}
-                  className="flex items-center rounded-2xl border border-red-200 bg-red-50 p-4"
-                >
-                  <Video className="mr-3 size-5 text-red-600" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-slate-900">
-                      {s.subject_name}
-                    </p>
-                    <p className="text-xs text-red-700">
-                      Live now · {formatIstTime(s.scheduled_start)}
-                    </p>
-                  </div>
-                  <Pill tone="error">LIVE</Pill>
+                <li key={s.id}>
+                  <Link
+                    href={`/live/${s.id}`}
+                    data-testid="live-link"
+                    className="flex items-center rounded-2xl border border-red-200 bg-red-50 p-4 transition hover:border-red-300"
+                  >
+                    <Video className="mr-3 size-5 text-red-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-slate-900">
+                        {s.subject_name}
+                      </p>
+                      <p className="text-xs text-red-700">
+                        Live now · {formatIstTime(s.scheduled_start)}
+                      </p>
+                    </div>
+                    <Pill tone="error">LIVE</Pill>
+                    <ChevronRight className="ml-2 size-4 text-red-400" />
+                  </Link>
                 </li>
               ))}
-              <p className="rounded-2xl bg-slate-50 px-4 py-3 text-center text-xs text-slate-500">
-                Live class playback lands in Phase 4 — for now, this list shows the
-                session as live.
-              </p>
             </ul>
           )
         ) : seg === "upcoming" ? (
@@ -132,25 +132,29 @@ export function StudentClasses() {
         ) : recorded.length === 0 ? (
           <EmptyState
             title="No recordings yet"
-            description="When a live class ends and the recording is ready, it'll appear here. Playback ships in Phase 4."
+            description="When a live class ends and the recording is ready, it'll appear here."
           />
         ) : (
           <ul className="space-y-2">
             {recorded.map((s) => (
-              <li
-                key={s.id}
-                className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 opacity-70"
-              >
-                <Video className="mr-3 size-4 text-slate-400" />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-slate-900">
-                    {s.subject_name}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {formatIstDay(s.scheduled_start)} · recording available
-                  </p>
-                </div>
-                <Pill tone="neutral">Phase 4</Pill>
+              <li key={s.id}>
+                <Link
+                  href={`/recording/${s.id}`}
+                  data-testid="recording-link"
+                  className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+                >
+                  <Video className="mr-3 size-4 text-slate-400" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-slate-900">
+                      {s.subject_name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {formatIstDay(s.scheduled_start)} · recording available
+                    </p>
+                  </div>
+                  <Pill tone="neutral">Recording</Pill>
+                  <ChevronRight className="ml-2 size-4 text-slate-400" />
+                </Link>
               </li>
             ))}
           </ul>
