@@ -16,36 +16,47 @@ import { formatWatermark } from "@/lib/watermark";
 interface Props {
   contentId: string;
   fullName: string;
-  phone: string | null;
 }
+
+// "pending"  = waiting for user choice (modal showing) OR for data to load
+// "resume"   = mount the player and seek to last position
+// "restart"  = mount the player from 0
+type ResumeChoice = "pending" | "resume" | "restart";
 
 export function VideoClient({ contentId, fullName }: Props) {
   const { appUser } = useSession();
   const item = useContentItem(contentId);
   const playback = useYtPlayback(contentId);
   const progress = useVideoProgress(contentId);
-  const [resumeOpen, setResumeOpen] = useState(false);
-  const [resumeApplied, setResumeApplied] = useState(false);
+  const [resumeChoice, setResumeChoice] = useState<ResumeChoice>("pending");
 
-  const phoneFromUser = appUser?.phone ?? null;
   const watermarkText =
-    playback.data?.watermark ?? formatWatermark(fullName, phoneFromUser);
+    playback.data?.watermark ??
+    formatWatermark(fullName, appUser?.phone ?? null);
 
+  // When data is loaded, decide:
+  //   - position <= 10s → auto-restart, no modal
+  //   - position >  10s → keep "pending" so the modal shows; user picks
   useEffect(() => {
-    if (resumeApplied) return;
+    if (resumeChoice !== "pending") return;
     if (progress.isLoading || playback.isLoading) return;
-    if ((progress.initial?.position_sec ?? 0) > 10) {
-      setResumeOpen(true);
-    } else {
-      setResumeApplied(true);
+    if ((progress.initial?.position_sec ?? 0) <= 10) {
+      setResumeChoice("restart");
     }
-  }, [progress.isLoading, playback.isLoading, progress.initial, resumeApplied]);
+  }, [progress.isLoading, playback.isLoading, progress.initial, resumeChoice]);
 
-  const startSeconds = resumeApplied
-    ? progress.initial?.position_sec
+  const showResumeModal =
+    resumeChoice === "pending" &&
+    !progress.isLoading &&
+    !playback.isLoading &&
+    (progress.initial?.position_sec ?? 0) > 10;
+
+  const startSeconds =
+    resumeChoice === "resume" && progress.initial?.position_sec
       ? Math.max(0, Math.floor(progress.initial.position_sec))
-      : undefined
-    : undefined;
+      : undefined;
+
+  const playerReady = resumeChoice !== "pending" && !!playback.data;
 
   return (
     <div className="-mx-4 -mt-4 flex h-[calc(100vh-2rem)] flex-col bg-black text-white sm:-mx-6 sm:-mt-6">
@@ -77,7 +88,7 @@ export function VideoClient({ contentId, fullName }: Props) {
               <Link href="/library">Back to library</Link>
             </Button>
           </div>
-        ) : playback.data && resumeApplied ? (
+        ) : playerReady && playback.data ? (
           <>
             <WrappedYtPlayer
               videoId={playback.data.video_id}
@@ -96,30 +107,33 @@ export function VideoClient({ contentId, fullName }: Props) {
           <p className="mt-1 text-xs text-slate-400">{item.data.description}</p>
         </div>
       ) : null}
-      {resumeOpen ? (
+      {showResumeModal ? (
         <div className="absolute inset-0 z-50 flex items-end bg-black/60 sm:items-center sm:justify-center">
           <div className="w-full rounded-t-3xl bg-white p-6 text-slate-900 sm:max-w-sm sm:rounded-3xl">
-            <p className="text-base font-bold">Resume from {Math.floor((progress.initial?.position_sec ?? 0) / 60)}:{String(Math.floor((progress.initial?.position_sec ?? 0) % 60)).padStart(2, "0")}?</p>
+            <p className="text-base font-bold">
+              Resume from{" "}
+              {Math.floor((progress.initial?.position_sec ?? 0) / 60)}:
+              {String(
+                Math.floor((progress.initial?.position_sec ?? 0) % 60),
+              ).padStart(2, "0")}
+              ?
+            </p>
             <p className="mt-1 text-sm text-slate-500">
               You watched part of this video before.
             </p>
             <div className="mt-4 flex gap-2">
               <Button
                 variant="ghost"
-                onClick={() => {
-                  setResumeApplied(true);
-                  setResumeOpen(false);
-                }}
+                onClick={() => setResumeChoice("restart")}
                 className="flex-1"
+                data-testid="resume-restart"
               >
                 Start over
               </Button>
               <Button
-                onClick={() => {
-                  setResumeApplied(true);
-                  setResumeOpen(false);
-                }}
+                onClick={() => setResumeChoice("resume")}
                 className="flex-1"
+                data-testid="resume-resume"
               >
                 Resume
               </Button>

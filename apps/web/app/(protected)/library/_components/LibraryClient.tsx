@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useState, useMemo, useCallback, useEffect } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useDebouncedCallback } from "use-debounce";
 import {
@@ -33,6 +33,10 @@ function iconForKind(kind: ContentItem["kind"]) {
   return <StickyNote className="size-5 text-slate-500" />;
 }
 
+// URL is the source of truth for drill-down (subject/chapter/topic). This lets
+// the browser back button move back up the tree (router.push, NOT replace),
+// and lets the user share a deep link. Search debounces into ?q= with
+// router.replace (no history bloat per keystroke).
 export function LibraryClient({
   initialSubject,
   initialChapter,
@@ -41,21 +45,36 @@ export function LibraryClient({
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
-  const [subjectId, setSubjectId] = useState<string | null>(initialSubject);
-  const [chapterId, setChapterId] = useState<string | null>(initialChapter);
-  const [topicId, setTopicId] = useState<string | null>(initialTopic);
-  const [searchInput, setSearchInput] = useState(initialQuery);
-  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
+  const searchParams = useSearchParams();
+
+  // Read drill-down state from the URL on every render — this is what makes
+  // the browser back button work (popstate updates searchParams).
+  const subjectId = searchParams.get("subject") ?? initialSubject;
+  const chapterId = searchParams.get("chapter") ?? initialChapter;
+  const topicId = searchParams.get("topic") ?? initialTopic;
+
+  // Search input is local + debounced; only the URL persists the committed
+  // query (?q=).
+  const urlQuery = searchParams.get("q") ?? initialQuery;
+  const [searchInput, setSearchInput] = useState(urlQuery);
+  const [debouncedQuery, setDebouncedQuery] = useState(urlQuery);
+
+  // If the URL q= changes from outside (browser back), sync local input.
+  useEffect(() => {
+    setSearchInput(urlQuery);
+    setDebouncedQuery(urlQuery);
+  }, [urlQuery]);
 
   const tree = useLibraryTree(debouncedQuery);
   const quizzes = useStudentQuizDiscovery();
 
   const syncDebounced = useDebouncedCallback((v: string) => {
     setDebouncedQuery(v);
-    const url = new URL(window.location.href);
-    if (v) url.searchParams.set("q", v);
-    else url.searchParams.delete("q");
-    router.replace(`${pathname}${url.search}`, { scroll: false });
+    const params = new URLSearchParams(searchParams.toString());
+    if (v) params.set("q", v);
+    else params.delete("q");
+    const qs = params.toString();
+    router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
   }, 300);
 
   const onSearchChange = (v: string) => {
@@ -63,22 +82,18 @@ export function LibraryClient({
     syncDebounced(v);
   };
 
+  // setNav uses router.push so each drill-down is a separate history entry.
+  // Browser back unwinds one level at a time. The first `null,null,null` push
+  // gets the user back to the subjects view; another back leaves the library.
   const setNav = useCallback(
-    (
-      subject: string | null,
-      chapter: string | null,
-      topic: string | null,
-    ) => {
-      setSubjectId(subject);
-      setChapterId(chapter);
-      setTopicId(topic);
+    (subject: string | null, chapter: string | null, topic: string | null) => {
       const params = new URLSearchParams();
       if (subject) params.set("subject", subject);
       if (chapter) params.set("chapter", chapter);
       if (topic) params.set("topic", topic);
       if (debouncedQuery) params.set("q", debouncedQuery);
       const qs = params.toString();
-      router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+      router.push(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
     },
     [debouncedQuery, pathname, router],
   );

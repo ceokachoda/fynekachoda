@@ -14,11 +14,5 @@ export default async function VideoPage({ params }: Props) {
   if (redirectTo) redirect(redirectTo);
   if (!session) redirect("/login");
   const { contentId } = await params;
-  return (
-    <VideoClient
-      contentId={contentId}
-      fullName={session.full_name}
-      phone={null}
-    />
-  );
+  return <VideoClient contentId={contentId} fullName={session.full_name} />;
 }
