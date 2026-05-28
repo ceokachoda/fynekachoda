@@ -6,9 +6,18 @@
 // fire-and-forget (D-182). The server bumps the counter and returns the
 // new total; the local count is incremented optimistically so the banner
 // stays in sync even if the network round-trip is slow.
+//
+// Dedup: a single Alt-Tab gesture fires BOTH `visibilitychange→hidden`
+// AND `window.blur` on Chrome (Windows/macOS) — without the 500ms
+// dedup the local count flickers to +2 before the server response snaps
+// it back to +1. The dedup window is conservative; two genuine
+// tab-switches in <500ms are rare enough that under-counting them is
+// the safer trade-off.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invokeEdgeFn } from "@/lib/edge-fn";
+
+const DEDUP_WINDOW_MS = 500;
 
 interface State {
   count: number;
@@ -19,6 +28,7 @@ export function useExamTabSwitchLogger(attemptId: string | null): State {
   const [count, setCount] = useState(0);
   const attemptIdRef = useRef<string | null>(null);
   const inFlightRef = useRef(false);
+  const lastLogAtRef = useRef<number>(0);
 
   useEffect(() => {
     attemptIdRef.current = attemptId;
@@ -26,6 +36,9 @@ export function useExamTabSwitchLogger(attemptId: string | null): State {
 
   const log = useCallback(() => {
     if (!attemptIdRef.current) return;
+    const now = Date.now();
+    if (now - lastLogAtRef.current < DEDUP_WINDOW_MS) return;
+    lastLogAtRef.current = now;
     setCount((c) => c + 1);
     if (inFlightRef.current) return;
     inFlightRef.current = true;

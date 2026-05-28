@@ -377,6 +377,19 @@ function ExamClientInner({ examId }: Props) {
     );
   }
 
+  // D-181 flicker guard: when re-entering with a submitted attempt, the
+  // reopenAppliedRef useEffect dispatches the stage change AFTER the first
+  // paint. Without this guard, the user would briefly see the "pre" stage's
+  // Enter-Exam UI before being moved to result/submitted. Render the loader
+  // for that frame instead.
+  if (state.stage === "pre" && pre.existing_attempt?.submitted_at) {
+    return (
+      <div className="grid min-h-svh place-items-center bg-slate-50">
+        <Loader2 className="size-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   // ===== Pre =====
   if (state.stage === "pre") {
     const startsAtMs = new Date(pre.starts_at).getTime();

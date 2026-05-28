@@ -1,12 +1,12 @@
-# Phase 3 — Manual Test Plan (`apps/web` assessments: quizzes + exams)
+# Phase 3 — Manual Test Plan (`apps/web` — Assessments: quizzes + exams)
 
 > **Audience:** the human running the manual tests. **Zero coding background required** — every step has the exact buttons to click, the exact URL to type, and what you should see on screen.
 >
-> **What you're testing:** the Phase 3 student surfaces of `apps/web` — the practice **quiz** screen (intro → attempt → result → solution) and the graded **exam** screen (pre → attempt → submitted → result → solution), the math renderer (KaTeX), the server-anchored countdown, the tab-switch logger, the locked-result waiting screen, the D-181 re-open routing, plus the wiring from Library / Classes / Dashboard. Walk through every section in order. **Chrome on a laptop / desktop is required.** iOS Safari + Android Chrome rows that need HTTPS are tagged **carry-over** (do them after the Vercel deploy session — that's intentional and not a blocker).
+> **What you're testing:** the Phase 3 student surfaces of `apps/web` — the practice **quiz** screen (intro → attempt → result → solution), the graded **exam** screen (pre → attempt → submitted → result → solution), the math renderer (KaTeX), the server-anchored countdown, the tab-switch logger, the locked-result waiting screen, the **D-181** re-open routing, plus the wiring from Library / Classes / Dashboard. Walk through every section in order. **Chrome on a laptop / desktop is required.** iOS Safari + Android Chrome rows that need HTTPS are tagged **carry-over** (do them after the Vercel deploy session — that's intentional and not a blocker).
 >
 > **How to record results:** every test ends with `[ ] PASS / [ ] FAIL / [ ] N/A`. Tick one box. If FAIL, write what you saw in the space below it and ping me — I'll diagnose. If N/A, write the reason.
 >
-> **Estimated time:** ~120 minutes on Chrome desktop if no failures. Phase 3 is the highest-correctness phase — bring patience for §D (clock-skew) and §G (manual-release flow), which involve admin-side actions in a second tab.
+> **Estimated time:** ~120 minutes on Chrome desktop if no failures. Phase 3 is the highest-correctness phase — bring patience for §D (clock-skew) and §G (manual-release flow), which involve admin-side actions in a second tab. Add ~25 min each for the iOS Safari + Android Chrome carry-overs.
 
 ---
 
@@ -17,7 +17,7 @@ These are the SAME accounts you used in Phase 1 + 2. Email + password copy-paste
 | Use in section | Email | Password |
 |---|---|---|
 | **§0.5 + §A–§K all student tests** | `review.student@fynestudy.app` | `ReviewStudent#2026` |
-| **§A.0 fallback (optional)** | `review.teacher@fynestudy.app` | `ReviewTeacher#2026` |
+| **§A.0 + non-student route gating** (optional) | `review.teacher@fynestudy.app` | `ReviewTeacher#2026` |
 | **§G.3 + §H.3 admin release / regrade** | `owner@fynestudy.example.com` | `FyneOwner#2026` |
 | Bonus extra student (Aarav, Batch A) | `test.aarav@fynestudy.app` | `TestPass#2026` |
 | Bonus extra student (Diya, Batch A) | `test.diya@fynestudy.app` | `TestPass#2026` |
@@ -32,18 +32,18 @@ These are the SAME accounts you used in Phase 1 + 2. Email + password copy-paste
 
 ## Table of contents
 
-- **§0 Setup** — branch, env, dependencies, seed, dev server, DevTools (6 sub-tasks)
-- **§A Quiz — intro → attempt → result → solution** (10 tests)
-- **§B Exam — pre / countdown stage** (4 tests)
-- **§C Exam — locked attempt UI + auto-save + resume** (8 tests)
-- **§D Server-anchored timer (D-183) + 60-s resync + clock skew** (5 tests)
-- **§E Tab-switch logging + TabSwitchBanner** (4 tests)
+- **§0 Setup** — branch, env, dependencies, seed, dev server, DevTools (7 sub-tasks)
+- **§A Quiz — intro → attempt → result → solution** (12 tests)
+- **§B Exam — pre / countdown stage** (5 tests)
+- **§C Exam — locked attempt UI + auto-save + resume** (9 tests)
+- **§D Server-anchored timer (D-183) + 60-s resync + clock skew** (6 tests)
+- **§E Tab-switch logging + TabSwitchBanner (D-182)** (5 tests)
 - **§F Auto-submit at deadline** (3 tests)
-- **§G Manual-release exam — locked-result waiting + auto-flip** (4 tests)
-- **§H Instant-release exam + D-181 re-open routing** (4 tests)
-- **§I Solution stage — correctness + explanations + related-content link** (4 tests)
-- **§J Math rendering — inline + block + non-math fast path** (5 tests)
-- **§K Security checks — no `is_correct` mid-attempt, no service-role key, signed URLs only** (5 tests)
+- **§G Manual-release exam — locked-result waiting + auto-flip** (5 tests)
+- **§H Instant-release exam + D-181 re-open routing** (5 tests)
+- **§I Solution stage — correctness + explanations + related-content link** (5 tests)
+- **§J Math rendering — inline + block + non-math fast path (D-178)** (5 tests)
+- **§K Security checks — no `is_correct` mid-attempt, no service-role key, signed URLs only** (6 tests)
 - **§L Responsive + carry-overs — desktop ↔ mobile-web** (4 tests, 2 carry-over)
 - **§M Automated test gates** — typecheck / lint / vitest / build / Playwright (5 commands)
 - **§N Acceptance sign-off** — tick boxes per section + tester name + date
@@ -52,7 +52,7 @@ These are the SAME accounts you used in Phase 1 + 2. Email + password copy-paste
 
 # §0 — Setup (do this once, before any test below)
 
-This section gets your laptop ready. Allow ~10 minutes the first time, ~3 minutes after.
+This section gets your laptop ready. Allow ~12 minutes the first time, ~3 minutes after.
 
 ### 0.1 — Confirm the repo + branch + working directory
 
@@ -71,12 +71,18 @@ This section gets your laptop ready. Allow ~10 minutes the first time, ~3 minute
 **✅ What you should see:**
 
 - The first line says: `On branch web-phase-1`. This branch is shared by all five web-conversion phases.
-- Untracked items include `apps/web/app/quiz/[id]/`, `apps/web/app/exam/[id]/`, `apps/web/components/math/`, `apps/web/components/quiz/`, `apps/web/components/exam/`, several new files under `apps/web/features/quiz/` and `apps/web/features/exams/`, and `Phases/phase-3-manual-tests.md`. Modified files include `apps/web/app/(protected)/library/_components/LibraryClient.tsx`, `apps/web/app/(protected)/classes/_components/StudentClasses.tsx`, `apps/web/components/dashboard/WeakTopicsList.tsx`, `apps/web/app/globals.css`, `apps/web/package.json`. **Leave them alone — Phase 3 has not been committed yet; that's the last thing to do.**
+- Then run:
+   ```powershell
+   git log --oneline -3
+   ```
+   The top commit should be something like `feat(web-phase-3): assessments — quizzes + exams` (`f3102ef` or similar), followed by `feat(web-phase-2): student learning surfaces` and `feat(web-phase-1): foundation, auth, app shell`.
+- `git status` will also list **unstaged** modifications under `apps/mobile/`, `docs/phases/`, `apps/functions/`, `README.md`, `.gitignore`, `pnpm-lock.yaml` (some), `scripts/seed-exam-manual-test.ts`. These are pre-existing edits from prior phases — leave them alone, they have nothing to do with Phase 3.
 
 **❓ If something looks different:**
 
-- Says `On branch main` or `On branch phase-4` → wrong branch. Run `git checkout web-phase-1` and re-check.
-- Says `fatal: not a git repository` → you're in the wrong folder. Re-run the `cd` command exactly as shown.
+- `On branch main` or `On branch phase-4` → wrong branch. Run `git checkout web-phase-1` and re-check.
+- `fatal: not a git repository` → you're in the wrong folder. Re-run the `cd` command exactly as shown.
+- Top commit is NOT `feat(web-phase-3)…` → Phase 3 wasn't committed (or you're on a different commit). Ping me before proceeding.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -102,7 +108,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_ZfvA-ky5eOQ3c-e9yCiLnQ_c06ZYmz9
 NEXT_PUBLIC_ADMIN_URL=https://fyne-study-app-admin.vercel.app
 ```
 
-There MUST NOT be a `SUPABASE_SERVICE_ROLE_KEY` line. If there is, delete it now.
+There MUST NOT be a `SUPABASE_SERVICE_ROLE_KEY` line, a `SENTRY` line, or any other secret. If there is, **delete it now** and save — the web client never gets the service-role key.
+
+**❓ If something looks different:**
+
+- "Cannot find the path …" → the file is missing. Create it by copying these 3 lines into a new file at `C:\Users\kaust\OneDrive\Desktop\FyneStudyLive\apps\web\.env.local`. In Notepad's Save dialog, set **Save as type: All Files** so it doesn't add `.txt`.
+- A line says `SUPABASE_SERVICE_ROLE_KEY=...` → **delete that line** and save. Critical security check.
+
+Close Notepad after confirming.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -110,7 +123,7 @@ There MUST NOT be a `SUPABASE_SERVICE_ROLE_KEY` line. If there is, delete it now
 
 ### 0.3 — Refresh dependencies (Phase 3 added KaTeX)
 
-Phase 3 added 2 new npm packages (`katex`, `react-katex`) plus their typings. If you haven't run install since the Phase 3 code landed, do it now.
+Phase 3 added 2 new npm packages (`katex`, `react-katex`) plus their typings.
 
 **👉 Do this:**
 
@@ -123,13 +136,13 @@ Phase 3 added 2 new npm packages (`katex`, `react-katex`) plus their typings. If
 **✅ What you should see:**
 
 - Output ends with `Done in 18s` (or similar).
-- Yellow `WARN` lines about peer deps or `Ignored build scripts: canvas, esbuild, ...` are normal.
-- The line `apps/web` should appear in the output with `+11 -204` or similar; `+11` is the count of the newly-installed direct + transitive packages.
+- The line `apps/web` should appear at some point with a counter like `+11 -204` — `+11` is the count of the newly-installed Phase 3 packages + their dependencies.
+- Yellow `WARN` lines about peer deps (e.g. "unmet peer @types/react@^19.2.0: found 19.1.17") or `Ignored build scripts: canvas, esbuild, sharp, …` are normal and harmless.
 
 **❓ If something looks different:**
 
-- `ELIFECYCLE` or `ENOENT` red error → run `pnpm install` from the repo root (not `apps/web/`). If still failing, delete `node_modules` and re-run.
-- "Cannot find module 'react-katex'" at later runtime confirms this step was skipped — re-run `pnpm install`.
+- `ELIFECYCLE` or `ENOENT` red error → run `pnpm install` from the repo root (not `apps/web/`). If still failing, delete `node_modules` and `pnpm-lock.yaml` and re-run.
+- "Cannot find module 'react-katex'" at later runtime → confirms this step was skipped; re-run `pnpm install`.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -144,41 +157,52 @@ The mobile seed scripts are reused to seed the Supabase DB with one published qu
 1. From the repo root:
    ```powershell
    pnpm seed:quiz-manual-test --reset
+   ```
+2. Wait ~5–10 seconds.
+3. Then:
+   ```powershell
    pnpm seed:exam-manual-test --reset
    ```
-2. Each command takes ~5 seconds. Each ends with a success line that includes the seeded quiz id / exam ids.
 
-**✅ What you should see (for each):**
+**✅ What you should see (quiz seed):**
 
 ```
+> ts-node scripts/seed-quiz-manual-test.ts --reset
+✓ Reset done — removed N prior rows
+✓ Seed complete
+   Quiz id:       <uuid e.g. 4d3a8b2e-…>
+   Topic id:      <uuid>
+   Question count: 5
+   Published:     true
+```
+
+**✅ What you should see (exam seed):**
+
+```
+> ts-node scripts/seed-exam-manual-test.ts --reset
 ✓ Reset done
 ✓ Seed complete
-   Quiz id: <uuid>
-   Topic id: <uuid>
-   Published: true
+   Live instant:   <uuid>  — started 2 min ago, runs for 60 min, results instant
+   Live manual:    <uuid>  — started 2 min ago, runs for 60 min, results manual
+   Scheduled:      <uuid>  — starts in 1 hour, 30 min duration
+   Ended released: <uuid>  — ended yesterday, results released, score visible
 ```
 
-```
-✓ Reset done
-✓ Seed complete
-   Live instant: <uuid>
-   Live manual:  <uuid>
-   Scheduled:    <uuid>
-   Ended released: <uuid>
-```
-
-**Write the IDs down** — you'll use them in §A and §B.
+**Write the IDs down** — you'll use them in §A, §B, §G, §H. Keep this PowerShell window scrolled up so you can reference them.
 
 **❓ If something looks different:**
 
 - "Cannot connect to Supabase" → DNS / network. Re-run.
-- "Missing service-role key" → the seed script needs the SERVICE_ROLE key from `apps/functions/.env.local` (mobile uses it). If you don't have that file, ping me; otherwise the seed picks it up from `apps/mobile/.env.local`'s `SUPABASE_SERVICE_ROLE_KEY` if present, OR from `apps/functions/.env.local`.
+- "Missing service-role key" → the seed script needs the SERVICE_ROLE key. Check that `apps/mobile/.env.local` or `apps/functions/.env.local` has `SUPABASE_SERVICE_ROLE_KEY=...`. If neither does, ping me.
+- "No published quizzes for student's batch" later in §A → the seed ran but didn't put the quiz on Batch A. Re-run `pnpm seed:quiz-manual-test --reset` and look for "batch_id: <Batch A's id>" in the output.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### 0.5 — Start the dev server
+### 0.5 — Start the dev server (leave it running for the whole session)
+
+The dev server is the local copy of the FyneStudy web app, running on your laptop at `http://localhost:3000`.
 
 **👉 Do this:**
 
@@ -204,37 +228,62 @@ The mobile seed scripts are reused to seed the Supabase DB with one published qu
  ✓ Ready in 3.4s
 ```
 
-The terminal stays running — that's the dev server. **Do NOT close it.**
+The terminal stays running — that's the dev server. **Do NOT close it.** When you're done with all tests, you'll stop it with `Ctrl+C` twice → `Y`.
 
 **❓ If something looks different:**
 
-- "Port 3000 already in use" → another Next.js is already running. Open a NEW PowerShell window and run `taskkill /F /IM node.exe` to kill all Node processes, then re-run.
+- "Port 3000 already in use" → another Next.js is already running. Open a NEW PowerShell window and run `taskkill /F /IM node.exe` to kill all Node processes, then re-run the dev command.
 - "Cannot find module 'react-katex'" → you skipped §0.3. Stop the dev server, run `pnpm install`, re-run.
+- "Missing env: NEXT_PUBLIC_SUPABASE_URL" → you skipped §0.2. Re-create `.env.local`.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### 0.6 — Log in as the seed student
+### 0.6 — Open Chrome DevTools (refresher from Phase 1)
+
+You'll use DevTools several times below. Skip this step if you're comfortable with F12.
 
 **👉 Do this:**
 
-1. Open Chrome → `http://localhost:3000/login`.
-2. Email: `review.student@fynestudy.app`
-3. Password: `ReviewStudent#2026`
-4. Click **Sign in**.
-5. Press **F12** to open DevTools — leave docked at the bottom or right; you'll use Console + Network many times below.
+1. Open **Google Chrome**.
+2. Go to: `http://localhost:3000` — you'll be redirected to `/login`.
+3. Press **F12** (or right-click → **Inspect**). The DevTools panel opens.
 
 **✅ What you should see:**
 
-- URL becomes `http://localhost:3000/`.
-- The student dashboard renders (greeting + side-rail with 7 student tabs).
-- Console shows no red errors.
+- A panel attached to the bottom or right of the browser with tabs at the top: `Elements`, `Console`, `Sources`, `Network`, `Performance`, `Memory`, `Application`, `Security`, `Lighthouse`.
+- You can dock it to a separate window: three-dot menu in DevTools → **Dock side** → **Undock**.
+
+**❓ If you can't find DevTools:** it may have opened in a separate window — check your taskbar for a second Chrome window. Or close Chrome, reopen, and press F12 again.
+
+`Result:` [ ] PASS — DevTools opens.
+
+---
+
+### 0.7 — Log in as the seed student
+
+**👉 Do this:**
+
+1. Still at `http://localhost:3000/login`. If you're not, navigate there.
+2. Enter:
+   - **Email:** `review.student@fynestudy.app`
+   - **Password:** `ReviewStudent#2026`
+3. Click **Sign in**.
+
+**✅ What you should see:**
+
+- The button briefly says **"Signing in…"**.
+- URL changes to `http://localhost:3000/` (the root).
+- An H1 heading appears: `Good morning, …` / `Good afternoon, …` / `Good evening, …` / `Hi, …` (depending on IST time of day) with the student's first name.
+- On the left, the side-rail with FyneStudy logo + 7 student nav items: **Home** (highlighted blue), **Classes**, **Library**, **Attendance**, **Ranks**, **Profile**, **Menu**.
+- Console (DevTools): no red errors. Yellow warnings about `supabase.auth.getSession()` are harmless (you saw these in Phase 1).
 
 **❓ If something looks different:**
 
-- Goes to `/force-password-change` → the seed flag flipped somehow. Set a new password (≥10 chars, upper+lower+digit) and continue.
-- Stays on `/login` → check the dev terminal for errors; reload the page.
+- "Invalid email or password" → typo. Re-enter exactly: `ReviewStudent#2026` (case-sensitive, no trailing space).
+- Goes to `/force-password-change` → the seed flag flipped somehow. Set any valid new password (≥10 chars, upper+lower+digit), then continue.
+- Stays on `/login` after click → check the dev terminal for errors; reload the page.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -246,105 +295,178 @@ The Phase 3 quiz screen lives at `/quiz/[id]` (outside the protected route group
 
 ---
 
-### A.1 — Open a quiz from the library
+### A.1 — Find a quiz in the library
 
 **👉 Do this:**
 
 1. From the dashboard, click **Library** in the side-rail.
-2. The library opens at `/library`. Drill down: click a subject → a chapter → a topic that mentions **"quiz available"** in its subtitle (this only appears on topics with a published quiz from the §0.4 seed).
-3. At the topic page, scroll to the bottom — there's an **amber-tinted** "Practice quizzes" card listing the quizzes on this topic. Each row is a clickable link with the quiz title + duration + marks + attempt count + a chevron.
-4. Click the first quiz row.
+2. The library opens at `/library` showing subject cards.
+3. Drill down: click any **subject** card, then any **chapter**, then look for a **topic** whose subtitle ends with **"· quiz available"**.
+4. Click that topic.
+
+**✅ What you should see:**
+
+- URL becomes something like `/library?subject=...&chapter=...&topic=...`.
+- The page shows the content items for the topic (videos / PDFs) AND, at the bottom, an **amber-tinted** "Practice quizzes" card.
+- Inside the amber card, there's at least one row. Each row is a clickable link with:
+  - The quiz title in bold.
+  - A subtitle like `15 min · +4/-1/0` (duration + correct/wrong/skip marks) and (if attempted before) `· attempted N×`.
+  - A chevron-right arrow on the right.
+
+**❓ If something looks different:**
+
+- No topic with "quiz available" subtitle → the seed quiz isn't on Batch A's topic. Re-run `pnpm seed:quiz-manual-test --reset` and check the printed `topic_id` matches a real topic.
+- Amber card missing on the topic page → the `useStudentQuizDiscovery` query isn't returning the quiz. Open DevTools → Network → look for `quizzes` and `quiz_attempts` PostgREST requests; if `quizzes` returns `[]`, the quiz isn't published or isn't in this student's course.
+
+`Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
+
+---
+
+### A.2 — Click a quiz row → land on the quiz intro screen
+
+**👉 Do this:**
+
+1. Inside the amber "Practice quizzes" card, click the first quiz row.
 
 **✅ What you should see:**
 
 - URL becomes `/quiz/<uuid>`.
-- The page is FULL-WIDTH — **no side-rail, no bottom-tabs**. That's correct: the quiz route lives outside the (protected) group on purpose.
-- An X close button (top-left).
-- A heading with the quiz title in dark-blue (e.g. **"Phase 6 Manual Quiz"** if you used `seed:quiz-manual-test`).
+- The page is **FULL-WIDTH** — **no side-rail on the left, no bottom-tabs**. Just a full-screen view. That's correct: the quiz route lives outside the `(protected)` group on purpose so the AppShell chrome doesn't waste space during attempts.
+- A close **X** button (top-left, in a circle).
+- A heading in dark-blue with the quiz title (e.g. **"Phase 6 Manual Quiz"** if you used the seed).
 - A subtitle: `N questions · X min`.
-- A white box listing the marks scheme (`Correct +4`, `Wrong -1`, `Skip 0`, `Total possible 40`, etc.) — match the seed.
+- A white box listing the marks scheme:
+  ```
+  Correct        +4
+  Wrong          -1
+  Skip            0
+  Total possible 40
+  ```
+  (Exact numbers come from the seed.)
 - A big blue **Start Quiz** button.
 - Below the button: small grey text "Auto-saves every action. You can refresh or leave and come back."
 
 **❓ If something looks different:**
 
-- 404 / "Quiz not available" → the quiz id is wrong, or the quiz `is_published = false`. Re-run the §0.4 seed.
-- Side-rail visible → bug: the route is in the wrong group; tell me.
+- 404 / "Quiz not available" → the quiz id is wrong, OR the quiz `is_published = false`, OR the student isn't in the quiz's batch/course. Re-run the §0.4 seed.
+- Side-rail still visible → bug: the route is in the wrong group. Tell me.
 - No "Start Quiz" button → check Console for an error.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### A.2 — Click Start → attempt screen renders
+### A.3 — Click Start → attempt screen renders
 
 **👉 Do this:**
 
-1. Click **Start Quiz**.
+1. DevTools → click the **Network** tab.
+2. Click the **"Disable cache"** checkbox at the top.
+3. In the filter box, type `quiz-start`.
+4. Click **Start Quiz**.
 
 **✅ What you should see:**
 
-- The page transitions to the attempt stage.
-- A **header bar** at the top: X close button + quiz title (truncated if long) + a **TimerPill** in blue with a clock icon showing **`MM:SS`** (e.g. `15:00` if the quiz is 15 min). The pill is rounded, blue background.
-- A **Q1 / N** label + a difficulty badge (`EASY` / `MEDIUM` / `HARD` — green/amber/red).
-- The question prompt rendered (plain text + any math via KaTeX — see §J).
-- 4 (or however many) options as **OptionRadio** rows: each is a rounded white box with a slate-100 letter circle (A/B/C/D) on the left and the option text on the right.
-- Below the last option: a **Flag** button (grey) + a "Clear" link (only when an option is selected).
-- A horizontal **NavigationGrid** below: small numbered circles (1, 2, 3, …). The current one (Q1) is filled blue.
-- A sticky bottom bar: **Prev** (disabled), the answered/flagged count in the middle (on desktop), **Next** button on the right.
+- The page transitions to the attempt stage immediately.
+- A new request appears in the Network panel: `quiz-start` (POST, status `200`). Click it → response body has:
+  ```json
+  {
+    "attempt_id": "...",
+    "questions": [
+      { "id": "...", "prompt_md": "...", "options": [ { "id": "...", "text_md": "..." }, ... ] },
+      ...
+    ],
+    "server_now": "2026-05-28T...",
+    "deadline_at": "2026-05-28T...",
+    "saved_answers": []
+  }
+  ```
+  **CRITICAL:** confirm each option object has ONLY `id`, `text_md`, `image_url` keys — **NO `is_correct` field**.
+- The screen now shows:
+  - A **header bar** at the top: X close button + quiz title (truncated if long) + a **TimerPill** in blue with a clock icon showing `MM:SS` (e.g. `15:00` if the quiz is 15 min). The pill is rounded, blue background.
+  - A `Q1 / N` label + a difficulty badge (`EASY` / `MEDIUM` / `HARD` — colored green/amber/red respectively).
+  - The question prompt rendered (plain text + any math via KaTeX — see §J).
+  - 4 (or however many) options as **OptionRadio** rows: each is a rounded white box with a slate-100 letter circle (A/B/C/D) on the left and the option text on the right.
+  - Below the last option: a **Flag** button (grey, with a flag icon).
+  - A horizontal **NavigationGrid** below: small numbered circles (1, 2, 3, …). The current one (Q1) is filled blue.
+  - A sticky bottom bar: **Prev** (disabled — it's Q1), the answered/flagged count text in the middle on desktop, **Next** button on the right.
 
 **❓ If something looks different:**
 
-- Timer pill missing or stuck at `--:--` → the `quiz-start` edge fn returned a malformed payload; check Network tab.
-- Options not showing → maybe RLS scope wrong; check Console.
+- Timer pill stuck at `--:--` for more than 3 seconds → the `quiz-start` response's `server_now` is malformed. Check Network response body.
+- Options not showing → check Console.
+- `is_correct` in the response body → **STOP**. Take a screenshot, ping me — this is a P0 leak.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### A.3 — Select an option → it highlights blue + auto-saves
+### A.4 — Select an option → highlights blue + auto-saves within 250ms
 
 **👉 Do this:**
 
-1. In DevTools, click the **Network** tab. Click the **"Disable cache"** checkbox.
-2. Tick the filter to search for `quiz_answers`.
-3. Click option **A** for Q1.
+1. In the Network filter box (DevTools), change it to `quiz_answers`.
+2. Click option **A** for Q1.
 
-**✅ What you should see:**
+**✅ What you should see (visual):**
 
 - Option A's letter circle turns **blue (selected)**. The whole row gets a `border-primary` (blue) outline and a `bg-blue-50` light tint.
-- Within ~250 ms, the Network panel shows a `quiz_answers?on_conflict=...` POST/PATCH (PostgREST upsert) returning **201** or **204**.
-- The body of that request contains `{ "attempt_id": "...", "question_id": "...", "selected_option_id": "...", "is_flagged": false, "answered_at": "..." }`. **CRITICAL:** confirm the payload does NOT contain `is_correct` — that field belongs to the server-only grading dossier.
+
+**✅ What you should see (network):**
+
+- Within ~250 ms, a `quiz_answers?on_conflict=...` request appears (PostgREST upsert) returning **201** or **204**.
+- Click the request → look at "Payload":
+  ```json
+  [
+    {
+      "attempt_id": "...",
+      "question_id": "...",
+      "selected_option_id": "...",
+      "is_flagged": false,
+      "answered_at": "2026-05-28T..."
+    }
+  ]
+  ```
+- **CRITICAL:** the payload does NOT contain `is_correct`. The web client never sends grading data — only the student's selection.
 
 **❓ If something looks different:**
 
 - Option doesn't highlight → React state isn't updating. Check Console for errors.
-- Auto-save never fires → the `attemptId` isn't being passed down. Check the request flow.
-- `is_correct` appears in the payload → STOP. This is a serious leak — ping me.
+- Auto-save never fires (no `quiz_answers` request) → the attemptId isn't being passed to `useQuizAutoSave`. Check the React DevTools tree.
+- `is_correct` appears in the payload → **STOP**. P0 leak.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### A.4 — Flag a question → it shows in the navigation grid
+### A.5 — Flag a question → grid circle turns red
 
 **👉 Do this:**
 
-1. With Q1 still answered (A), click the **Flag** button (the flag icon).
+1. With Q1 still answered (A), click the **Flag** button (the flag icon, left side under the options).
 
 **✅ What you should see:**
 
-- The Flag button changes color: amber background, amber outline, the label changes to **"Flagged"**.
-- In the **NavigationGrid**, the Q1 circle now has a **red tint** (the **"flagged + answered"** state — pink/red bg with red border).
-- Network: another upsert fires within ~250 ms with `is_flagged: true`.
+- The Flag button changes color: amber background, amber outline, the label changes to **"Flagged"** and the flag icon fills amber.
+- In the **NavigationGrid** (below the options), the Q1 circle now has a **red/pink tint** with a red border — the **"flagged + answered"** state.
+- DevTools → Network: another `quiz_answers` upsert fires within ~250 ms with `is_flagged: true`.
 
-**👉 Click Flag again to un-flag** — the button returns to grey ("Flag"), and the grid circle returns to blue (still answered, no longer flagged). One more auto-save fires.
+**👉 Click Flag again to un-flag:**
+
+- The button returns to grey ("Flag" label, outline icon).
+- The grid Q1 circle returns to green/emerald (still answered, no longer flagged).
+- One more auto-save fires with `is_flagged: false`.
+
+**❓ If something looks different:**
+
+- Flag button doesn't toggle → `useQuizAutoSave.enqueue` isn't being called. Check the click handler in QuizClient.
+- Grid color doesn't update → the `statuses` recompute isn't triggering. Check `computeStatuses` in `features/quiz/attemptHelpers.ts`.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### A.5 — Navigation grid: tap Q3 → jumps there
+### A.6 — Navigation grid: tap Q3 → jumps there + Q1 selection preserved
 
 **👉 Do this:**
 
@@ -353,74 +475,113 @@ The Phase 3 quiz screen lives at `/quiz/[id]` (outside the protected route group
 **✅ What you should see:**
 
 - The grid Q3 circle is now blue (current).
-- The main area shows Q3's prompt and options. The Prev button becomes enabled.
+- The main area shows Q3's prompt and options (none selected yet).
+- The Prev button at the bottom is now enabled.
 - The header bar's TimerPill is still ticking — it doesn't reset on navigation.
 
-**👉 Now click circle 1** → back to Q1. Confirm your previous A selection is still highlighted.
-
-`Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
-
----
-
-### A.6 — Refresh mid-attempt → resumes in place
-
-**👉 Do this:**
-
-1. With some questions answered + a flag set, press **F5** (reload the page).
-2. Wait 2 seconds for `quiz-start` to refetch.
-
-**✅ What you should see:**
-
-- After a brief loading state, the page reopens directly on the **attempt** stage (NOT intro).
-- Your previous selections + flags are restored — Q1 still shows A selected, Q3's flag still on, etc.
-- The TimerPill picks up where it left off (the deadline is the same, so the remaining time has decremented by the wall-clock seconds you took to reload).
+**👉 Now click circle 1 in the grid** → back to Q1. Confirm your previous A selection is still highlighted blue.
 
 **❓ If something looks different:**
 
-- Lands on intro stage → `useQuizStart` didn't pick up the in-flight attempt. Check `saved_answers.length` in the Network response — if it's > 0, the hydration logic in QuizClient is broken. Ping me.
-- Selections lost → the auto-save from §A.3 didn't actually land. Check Network for the upserts.
+- Q3 click doesn't navigate → onJump handler isn't firing. Check `NavigationGrid.tsx`.
+- Q1 selection lost on return → React state isn't preserved across question changes. Check the `state.answers` Map handling in QuizClient's reducer.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### A.7 — Submit → confirmation dialog → result
+### A.7 — Clear selection works
 
 **👉 Do this:**
 
-1. Click **Next** all the way to the last question (or click circle N in the grid).
-2. On the last question, the Next button becomes a green **Submit** button.
-3. Click **Submit**.
+1. On Q1 (with A selected), look at the row beside the Flag button. There's a **Clear** link with a refresh-circle icon.
+2. Click **Clear**.
+
+**✅ What you should see:**
+
+- Option A's blue highlight disappears.
+- The Clear link disappears (there's no longer a selection to clear).
+- DevTools → Network: a `quiz_answers` upsert with `selected_option_id: null`.
+- The NavigationGrid Q1 circle returns to "unanswered" (white with grey border).
+
+**❓ If something looks different:**
+
+- Clear link doesn't appear when an option is selected → CSS or conditional render bug. Tell me.
+- Clear doesn't fire the auto-save with null → check `onClearOption` handler.
+
+`Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
+
+---
+
+### A.8 — Refresh mid-attempt → resumes in place
+
+This is the critical resume-on-refresh test (you may have noticed it briefly in §A.4).
+
+**👉 Do this:**
+
+1. Re-answer Q1 with A. Answer Q2 with B. Set a flag on Q3 (no answer).
+2. Press **F5** to reload the page.
+3. Wait 2 seconds for `quiz-start` to refetch.
+
+**✅ What you should see:**
+
+- After a brief loading state, the page **stays on the attempt stage** (does NOT bounce back to intro).
+- Your previous selections + flag are restored: Q1 shows A selected (blue), Q2 shows B selected (blue), Q3's circle in the grid is yellow (flagged-unanswered).
+- The TimerPill picks up where it left off (the deadline didn't change, so remaining time is reduced by the seconds you took to reload).
+- DevTools → Network → look at the `quiz-start` response body: the `saved_answers` array now contains your three rows.
+
+**❓ If something looks different:**
+
+- Lands on intro stage → `useQuizStart` returned an attempt with `saved_answers.length === 0`, OR the QuizClient effect that auto-jumps to attempt when answers exist isn't firing. Check the response.
+- Selections lost → the auto-save in §A.4–§A.5 didn't actually land in the DB. Check Network for the upsert responses (must be 201 or 204).
+- TimerPill resets to full duration → bug in `useServerTimeOffset` mount-time offset. Ping me.
+
+`Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
+
+---
+
+### A.9 — Submit → confirmation dialog with unanswered-list
+
+**👉 Do this:**
+
+1. After the refresh in A.8 you should have Q1 + Q2 answered, Q3 flagged-unanswered, Q4+ untouched.
+2. Click the NavigationGrid circle for the LAST question (e.g. circle 5 if there are 5 questions).
+3. On the last question, the bottom-right button changes from blue **Next** to green **Submit**.
+4. Click **Submit**.
 
 **✅ What you should see:**
 
 - A modal dialog opens with the title **"Submit quiz?"**.
-- Subtitle: `You've answered N/total, flagged X.` (X only shown if > 0).
-- If you left questions unanswered, an amber box appears listing them by number (e.g. `Q2, Q5`).
-- Two buttons: a grey **Cancel** and a green **Submit**.
-4. Click **Submit** in the dialog.
+- Subtitle: `You've answered 2/5, flagged 1.` (counts match your state).
+- An amber box appears listing unanswered questions: `3 unanswered questions: Q3, Q4, Q5` (or however many you left blank).
+- Two buttons at the bottom: a grey **Cancel** and a green **Submit**.
+
+**👉 Click Cancel** → the dialog closes. You stay on the attempt screen.
+
+**👉 Click Submit again, then green Submit in the dialog:**
 
 **✅ What you should see next:**
 
-- The Submit button label briefly says **"Submitting…"**.
+- The green Submit button label briefly says **"Submitting…"**.
+- DevTools → Network: exactly ONE `quiz-submit` POST returning 200 with the full solution dossier (includes `score`, `max_score`, and a `questions` array WITH `is_correct` per option — this is fine, the attempt is over).
 - The screen transitions to the **result** stage:
-  - A big centered score: `XX / YY` and a `%`.
-  - Three coloured stats below: **Correct** (emerald), **Wrong** (red), **Skipped** (slate).
+  - A big centered score: `XX / YY` and `%`.
+  - Three colored stats: **Correct** (emerald), **Wrong** (red), **Skipped** (slate).
   - A blue **Review solutions** button.
   - An outlined **Retake** button.
   - A subtle **Back to Library** link.
-- DevTools → Network: there should be ONE `quiz-submit` POST returning a 200 with the full solution dossier.
 
 **❓ If something looks different:**
 
-- "Submit failed" toast → check Network for the quiz-submit response status. 409 means you already submitted; 403 means scope check failed.
+- "Submit failed" toast → check Network for the `quiz-submit` response status. 409 means already submitted; 403 means scope check failed.
 - Stuck on "Submitting…" → the request never completed. Check the dev terminal for an edge-fn error.
+- Dialog shows wrong unanswered count → check `unansweredIndices` in `features/quiz/attemptHelpers.ts`.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### A.8 — Review solutions → per-question SolutionCard
+### A.10 — Review solutions → per-question SolutionCard
 
 **👉 Do this:**
 
@@ -429,50 +590,49 @@ The Phase 3 quiz screen lives at `/quiz/[id]` (outside the protected route group
 **✅ What you should see:**
 
 - The URL stays at `/quiz/<uuid>`.
-- A header with a back arrow + "Solutions" title.
+- A header with a back arrow (chevron-left in a circle) + "Solutions" title.
 - A scrollable list of **SolutionCard** rows — one per question. Each card contains:
-  - The same QuestionCard (Q#, difficulty, prompt).
-  - 4 OptionRadio rows (now disabled — no hover). The visual state encodes the outcome:
-    - The correct option has a **green border + emerald letter**.
-    - If your selection was wrong, your option has a **red border + red bg**.
-    - If you selected the correct option, BOTH the letter circle and a small **check icon** appear in emerald.
-    - Skipped questions show no "your" option highlight, only the correct one in green.
-  - An **Explanation** section in a slate-50 box with the explanation_md rendered (math is rendered).
-  - A footer bar: outcome label (Correct/Wrong/Skipped) + the point value (e.g. `Correct (+4)`, `Wrong (-1)`, `Skipped (+0)`), and a `FLAGGED` chip on the right if you flagged it.
+  - The same QuestionCard (Q#, difficulty badge, prompt).
+  - Each option rendered as a disabled OptionRadio. The visual state encodes the outcome:
+    - The **correct** option: green border + emerald letter circle. If you picked it, it also has a check icon.
+    - If you picked the **wrong** option: red border + red bg + red letter circle.
+    - **Skipped** questions: only the correct option highlighted in green (no red anywhere).
+  - An **Explanation** section in a slate-50 box rendering the `explanation_md` (math via KaTeX).
+  - A footer bar: outcome label + point value (e.g. `Correct (+4)`, `Wrong (-1)`, `Skipped (+0)`), and a `FLAGGED` chip on the right if you flagged it.
 
 **❓ If something looks different:**
 
-- All options look the same colour → the `correct_option_id` / `your_option_id` matching broke. Check the SolutionCard logic.
-- Explanation shows raw `$x^2$` text instead of rendered math → the MathText KaTeX import didn't load. Check Console for a CSS error.
+- All options look the same color → `correct_option_id` / `your_option_id` matching is broken. Check `SolutionCard.tsx`.
+- Explanation shows raw `$x^2$` text instead of rendered math → the KaTeX CSS isn't loaded. Check `globals.css`.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### A.9 — Solution stage: related-content link routes to /video or /pdf
+### A.11 — Solution stage: related-content link routes to /video or /pdf
 
 **👉 Do this:**
 
-1. Scroll the solution list to find a question whose explanation has a **Related: <title>** link at the bottom (with a play-circle or file-text icon).
+1. Scroll the solution list to find a question whose explanation has a **Related: <title>** link at the bottom (with either a play-circle icon in red, or a file-text icon in emerald).
 2. Click that link.
 
 **✅ What you should see:**
 
 - If the icon was a play-circle (red), URL becomes `/video/<contentId>` and the YouTube wrapper player loads.
 - If the icon was a file-text (emerald), URL becomes `/pdf/<contentId>` and the PDF viewer opens.
-- Press the browser back button — you return to the solution list at the same scroll position.
+- Press the browser back button → you return to the solution list at the same scroll position.
+
+**👉 If the seed quiz has no question_solutions row with a related_content_id, this test is N/A.** Mark accordingly.
 
 **❓ If something looks different:**
 
 - 404 on /video or /pdf → the related_content.id in the solution dossier is stale or the content was deleted. Check Console.
 
-**👉 If the seed quiz has no question_solutions row with a related_content_id, this test is N/A.** Mark accordingly.
-
 `Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _reason:_
 
 ---
 
-### A.10 — Retake → new attempt starts fresh
+### A.12 — Retake → new attempt starts fresh
 
 **👉 Do this:**
 
@@ -483,11 +643,12 @@ The Phase 3 quiz screen lives at `/quiz/[id]` (outside the protected route group
 
 - A brief loading state, then the **intro** stage re-renders.
 - Click **Start Quiz** → a new attempt screen opens, with the answer state EMPTY (no selections, no flags) and the timer at full duration.
-- DevTools → Network: confirm a fresh `quiz-start` POST fired and returned a new `attempt_id` (different from the previous one).
+- DevTools → Network: confirm a fresh `quiz-start` POST fired and returned a NEW `attempt_id` (different from the submitted one).
 
 **❓ If something looks different:**
 
-- Answers from the prior attempt still appear → the new attempt was incorrectly bound to the same `attempt_id`. Check `useQuizStart` reset logic.
+- Answers from the prior attempt still appear → the new attempt was bound to the same `attempt_id` (the prior submitted attempt). Check `useQuizStart.load()` reset logic. Bug.
+- Lands on attempt stage immediately (skips intro) → the `state.answers` hydration logic detected saved_answers from a NEW (empty) attempt incorrectly. Should not happen — the server returns an empty `saved_answers` for a new attempt.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -497,103 +658,151 @@ The Phase 3 quiz screen lives at `/quiz/[id]` (outside the protected route group
 
 The Phase 3 exam screen lives at `/exam/[id]` (also outside the protected group). It's a 5-stage state machine: **pre** (countdown / Enter Exam) → **attempt** (locked UI) → **submitted** (waiting for release) → **result** → **solution**. The pre stage handles three timing scenarios: waiting (before starts_at), live (in [starts_at, ends_at]), and ended.
 
-For §B.1–§B.4 you'll need the seed exam ids from §0.4.
+For §B you'll need the seed exam ids from §0.4.
 
 ---
 
-### B.1 — Open a scheduled exam from /classes → countdown
+### B.1 — Open a Scheduled exam from /classes → "Starts in" countdown
 
 **👉 Do this:**
 
 1. Click **Classes** in the side-rail.
 2. Scroll to the **Examinations** section. You should see the seeded exams listed with status pills (Scheduled / Live / Results pending / Results out / Ended).
-3. Click the row for the **Scheduled** exam (one with `starts_at` in the future). The whole row is now a link (Phase 3 wired this up).
+3. Click the row for the **Scheduled** exam (status pill says "Scheduled" — its `starts_at` is in the future, e.g. 1 hour away).
 
 **✅ What you should see:**
 
 - URL becomes `/exam/<uuid>`.
-- The page is full-width — no side-rail.
-- A close X button (top-left).
-- The exam title in dark-blue.
-- A subtitle: `Day, dd Mon hh:mm · X min · N questions` (all in IST).
-- A **Rules** box with 4 bullets ("Server clock decides…", "Leaving this tab is LOGGED…", "Auto-saves…", "Results are …").
-- A centered card showing **"Starts in"** and a big tabular-nums countdown (e.g. `1h 23m 45s` or `2d 4h 30m`). The countdown ticks every second.
+- The page is FULL-WIDTH — **no side-rail**.
+- A close **X** button (top-left).
+- The exam title in dark-blue (e.g. "Phase 7 Manual Exam — Scheduled").
+- A subtitle: `Day, dd Mon hh:mm · X min · N questions` (all in IST). For example: `Wed, 28 May 17:00 · 30 min · 5 questions`.
+- A **Rules** box with 4 bullets:
+  - "Server clock decides. Changing your device clock won't buy you extra time."
+  - "Leaving this tab is LOGGED (counter visible to your teacher). No auto-submit on tab switch."
+  - "Auto-saves as you answer. You can refresh and resume in place — same remaining time."
+  - "Results are released by your teacher" (or "shown immediately on submit" for instant exams).
+- A centered card showing **"Starts in"** in slate and a big tabular-nums countdown (e.g. `1h 23m 45s` or `2d 4h 30m`). The countdown **ticks every second** — watch the seconds change.
 - A grey, **disabled** "Enter Exam" button — you can't start an exam before its window opens.
 
 **❓ If something looks different:**
 
-- Lands on "exam not visible to you" red error → the student isn't in the exam's batch. Check the seed.
-- Countdown stuck at `--` → JavaScript error; check Console.
+- Lands on "Couldn't open exam" red error → the student isn't in the exam's batch, OR the exam id is wrong. Check the seed output for the right batch_id.
+- Countdown stuck at `--` → JS error; check Console.
+- Card shows "Live now" instead of "Starts in" → the seed's starts_at is in the past. Re-run `pnpm seed:exam-manual-test --reset`.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### B.2 — Switch to a Live exam → Enter Exam button enables
+### B.2 — Open a Live exam → "Live now" + Enter Exam enabled
 
 **👉 Do this:**
 
-1. Go back to /classes. Click the **Live** exam row.
-2. URL becomes `/exam/<uuid>`.
+1. Go back to /classes (browser back or side-rail Classes).
+2. Click the **Live** (status "Live now") exam row.
 
 **✅ What you should see:**
 
-- The page header + rules look the same as B.1.
+- URL becomes `/exam/<uuid>`.
+- The same header + rules layout as B.1.
 - The centered card now shows:
-  - A small red dot + **"Live now"**.
-  - Subtitle: `Window closes in 0h XXm YYs` (counting down).
-  - An ENABLED blue **Enter Exam** button.
+  - A small red dot + **"Live now"** in red bold.
+  - Subtitle: `Window closes in 0h 58m 42s` (counting down — the value is whatever's left of the 60-min window).
+  - An **ENABLED** blue **Enter Exam** button.
 
 **❓ If something looks different:**
 
-- Says "Starts in" instead of "Live now" → your laptop clock is off, OR the seed's starts_at is wrong. Re-run `seed:exam-manual-test`.
+- Card shows "Starts in" instead of "Live now" → your laptop clock is off, OR the seed's starts_at is wrong. Re-run `seed:exam-manual-test`.
+- Card shows "This exam has ended" → the seed's window has closed; re-seed.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### B.3 — Click Enter Exam → attempt screen renders
+### B.3 — Click Enter Exam → attempt screen renders (with server-time sync)
 
 **👉 Do this:**
 
-1. Click **Enter Exam**.
+1. DevTools → Network → in the filter box, type `exam-start`.
+2. Click **Enter Exam**.
 
 **✅ What you should see:**
 
 - The button briefly says "Starting…" with a spinner.
-- DevTools → Network: an `exam-start` POST fires, returns 200 with `attempt_id`, `deadline_at`, `server_now`, `tab_switch_count` etc. — but importantly **without `correct_option_id` or `is_correct`**. Verify by clicking the response and searching the body.
+- A new request appears: `exam-start` (POST, status 200).
+- Click the request → response body has:
+  ```json
+  {
+    "attempt_id": "...",
+    "deadline_at": "...",
+    "server_now": "...",
+    "tab_switch_count": 0,
+    "exam": { "title": "...", "duration_min": 60, "result_release": "instant", ... },
+    "questions": [ { "id": "...", "prompt_md": "...", "options": [...] }, ... ],
+    "saved_answers": []
+  }
+  ```
+- **CRITICAL:** confirm:
+  - Each option object has ONLY `id`, `text_md`, `image_url` keys. **NO `is_correct`.**
+  - The questions array doesn't contain `correct_option_id`.
+
 - The page transitions to the **attempt** stage:
   - The header bar now has a slightly more rigid look (white background with a bottom border).
-  - The TimerPill in the top-right shows the remaining time computed against the server clock. Initially may show `--:--` for a fraction of a second while `useServerTimeOffset` syncs — then resolves to e.g. `30:00` for a 30-min exam.
+  - The TimerPill in the top-right initially may show `--:--` for a fraction of a second while `useServerTimeOffset` syncs — then resolves to the remaining time (e.g. `30:00` for a fresh 30-min exam, or `58:42` if you entered partway through a 60-min window).
+  - The TimerPill is **blue** (not red — it's far above 60s).
   - Question card + options + nav grid (same layout as the quiz).
+  - Above the question, a sticky `<div>` waiting for `TabSwitchBanner` content (will only appear after you tab-switch in §E).
 
 **❓ If something looks different:**
 
-- Timer pill stays at `--:--` for more than 5 seconds → `server-time` edge fn is unreachable. Check Console + Network.
+- Timer pill stays at `--:--` for more than 5 seconds → `server-time` edge fn is unreachable. Open `https://orqwyazvcthgxoadfxfv.supabase.co/functions/v1/server-time` in a new tab — should return JSON `{ now, epoch_ms }`.
 - "exam has ended" red banner → the seed exam's window closed; re-seed.
+- `is_correct` in response body → P0 leak, ping me.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### B.4 — Open an Ended (already-submitted) exam → goes to result, not pre
+### B.4 — Open an Ended (already-submitted) exam → D-181 routes to result, not pre
+
+This is the D-181 re-open routing test. The mobile shipped a bug here — make sure the web doesn't repeat it.
 
 **👉 Do this:**
 
-1. Press the back arrow (browser) to leave the attempt — answer at least one question and click X (top-left). Actually no — DO NOT submit yet; just navigate via the X button. (We're going to come back to this attempt in §C.)
-2. For this test, find an exam that you've already submitted (or in the seed: **Ended released** exam). Click it from /classes.
+1. First, leave the attempt screen WITHOUT submitting — click X (top-left) → back to /classes. (We're going to return to this attempt in §C, so don't submit yet.)
+2. For this test, find an exam that's already been submitted. From the seed: **Ended released** exam (status pill "Results out"). Click that row.
 
-**✅ What you should see (D-181 re-open routing):**
+**✅ What you should see (D-181):**
 
-- The page DOES NOT show the pre stage. It either:
-  - **Instant release**: lands directly on the **result** stage (score + solutions button).
-  - **Manual release without released_at**: lands on the **submitted** stage (locked waiting card).
-  - **Manual release WITH released_at set**: lands on the **result** stage.
-- This routing happens silently — there's no flicker through pre stage first.
+- The page DOES NOT render the pre stage's countdown. It either:
+  - **Instant release**: lands DIRECTLY on the **result** stage (score + Review Solutions button).
+  - **Manual release WITHOUT released_at**: lands on the **submitted** stage (locked waiting card).
+  - **Manual release WITH released_at** (the seed's "Ended released" case): lands on the **result** stage.
+- This routing happens silently — there's **no flicker** through pre → "Enter Exam" first.
 
 **❓ If something looks different:**
 
-- Lands on pre stage with an "Enter Exam" / "View Result" button → the D-181 routing isn't firing. Check `useExamPreInfo.existing_attempt.submitted_at`.
+- Lands on pre stage with an "Enter Exam" / "View Result" button → the D-181 routing isn't firing. Check `useExamPreInfo.existing_attempt.submitted_at` in the React DevTools.
+- Brief flicker (pre UI shown for one frame, then jumps) → the flicker guard in ExamClient isn't catching it.
+
+`Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
+
+---
+
+### B.5 — Open the Live exam attempt mid-session → resume in place
+
+**👉 Do this:**
+
+1. Go to /classes → click the Live exam row again (the one you abandoned in B.3 above).
+
+**✅ What you should see:**
+
+- URL becomes `/exam/<uuid>`.
+- Within ~2 seconds, the page lands directly on the **attempt** stage (NOT pre — because there's an in-flight attempt, the `exam-start` returns the existing attempt id idempotently).
+- Your selections from before (if any) are restored from `saved_answers`.
+- The TimerPill picks up at roughly where it should be.
+- The tab_switch_count is whatever it was when you left.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -601,11 +810,11 @@ For §B.1–§B.4 you'll need the seed exam ids from §0.4.
 
 # §C — Exam: locked attempt UI + auto-save + resume
 
-This section continues from §B.3. You should be on the **attempt** stage of the Live exam.
+This section continues from §B.5. You should be on the **attempt** stage of the Live exam.
 
 ---
 
-### C.1 — No side-rail, no bottom tabs (locked layout)
+### C.1 — No side-rail, no bottom tabs (locked layout, all viewport widths)
 
 **👉 Do this:**
 
@@ -614,12 +823,12 @@ This section continues from §B.3. You should be on the **attempt** stage of the
 **✅ What you should see:**
 
 - Even at desktop width, there's **NO side-rail** on the left.
-- No bottom-tabs bar on the mobile layout (resize to 390px and re-check — still locked).
-- The exam attempt takes the full viewport width.
+- The exam attempt takes the full viewport width with content centered to ~672px (max-w-2xl).
+- Resize to 390px wide (use DevTools device emulation if needed — Ctrl+Shift+M). Still no side-rail. No bottom-tabs bar either.
 
 **❓ If something looks different:**
 
-- Side-rail visible → the route `/exam/[id]` is incorrectly inside the (protected) group. Tell me.
+- Side-rail visible → the route `/exam/[id]` is incorrectly inside the `(protected)` group. Bug.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -629,7 +838,7 @@ This section continues from §B.3. You should be on the **attempt** stage of the
 
 **👉 Do this:**
 
-1. Right-click on the question prompt text.
+1. Right-click on the question prompt text in the middle of the page.
 
 **✅ What you should see:**
 
@@ -638,17 +847,17 @@ This section continues from §B.3. You should be on the **attempt** stage of the
 
 **❓ If something looks different:**
 
-- Right-click menu opens → the lockdown effect isn't applied. Check the `useEffect` in ExamClient that adds the listener.
+- Right-click menu opens → the lockdown effect isn't applied. Check ExamClient's locked-UI `useEffect`.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### C.3 — Text selection is disabled
+### C.3 — Text selection is disabled on the question area
 
 **👉 Do this:**
 
-1. Try to click-drag-select a phrase from the question text.
+1. Try to click-drag-select a phrase from the question prompt.
 
 **✅ What you should see:**
 
@@ -663,7 +872,7 @@ This section continues from §B.3. You should be on the **attempt** stage of the
 
 ---
 
-### C.4 — Select an option → auto-save fires, no is_correct in payload
+### C.4 — Select an option → auto-save fires within 500ms, no is_correct in payload
 
 **👉 Do this:**
 
@@ -672,46 +881,53 @@ This section continues from §B.3. You should be on the **attempt** stage of the
 
 **✅ What you should see:**
 
-- Within ~500 ms (note: exam debounce is 500ms, quiz is 250ms), a `exam_answers?on_conflict=...` upsert fires returning 201/204.
+- Option A highlights blue (same as the quiz).
+- Within ~500 ms (note: **exam debounce is 500ms**, quiz is 250ms — exam is slower per spec), a `exam_answers?on_conflict=...` upsert fires returning 201/204.
 - The payload contains `{ attempt_id, question_id, selected_option_id, is_flagged, answered_at }`. **NO `is_correct`.**
 
 **❓ If something looks different:**
 
 - 403 returned → either you're past the deadline (the deadline-cut RLS kicked in) OR your auth token is stale. The server is correctly rejecting; try clicking the option again.
+- Auto-save fires twice in quick succession → check `useExamAutoSave` debounce logic.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### C.5 — Answer 3 questions, set 1 flag
+### C.5 — Answer 3 questions, set 1 flag, change one selection
 
 **👉 Do this:**
 
-1. Q1: select A.
-2. Q2: select B + click Flag.
-3. Q3: select C.
+1. Q1: click option A.
+2. Q2: click option B. Then click **Flag**.
+3. Q2: click option **C** (changing the selection).
+4. Q3: click option C.
 
 **✅ What you should see:**
 
 - Each click fires an auto-save within 500ms (see Network).
-- The navigation grid colors reflect the state: Q1 green, Q2 red (flagged-answered), Q3 green, Q4+ empty.
+- The navigation grid colors reflect the state in real time:
+  - Q1 circle: green (answered).
+  - Q2 circle: red (flagged + answered).
+  - Q3 circle: green (answered).
+  - Q4+ circles: white (unanswered).
 - The bottom bar's text reads "Answered 3/N · 1 flagged".
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### C.6 — Refresh mid-attempt → resumes with same remaining time
+### C.6 — Refresh mid-attempt → resumes with same remaining time + state
 
 **👉 Do this:**
 
 1. Note the TimerPill reading (e.g. `28:32`).
-2. Press **F5** to reload.
+2. Press **F5** to reload the page.
 3. Wait 2-3 seconds.
 
 **✅ What you should see:**
 
-- After a brief loading state, the **attempt** stage re-renders directly (NOT pre stage — D-181 honored).
+- After a brief loading state, the **attempt** stage re-renders directly (NOT pre).
 - Your selections + flag are restored.
 - The TimerPill picks up where it should be: roughly `28:32` minus the seconds it took to reload + render.
 - The `tab_switch_count` is preserved (still 0 if you haven't switched tabs).
@@ -719,7 +935,7 @@ This section continues from §B.3. You should be on the **attempt** stage of the
 **❓ If something looks different:**
 
 - TimerPill resets to full duration → bug in deadline derivation. Ping me.
-- Selections lost → check the `saved_answers` in the exam-start response.
+- Selections lost → check the `saved_answers` in the `exam-start` response.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -754,7 +970,25 @@ This section continues from §B.3. You should be on the **attempt** stage of the
 - The exam is still in-flight — refresh the row in /classes shows the same status (Live).
 - Coming back to the exam (click the row again) lands on attempt stage with everything restored.
 
-**❓ Note:** the X button title hint says "Leaving counts as a tab switch" — but actually X+route-leave does NOT trigger the tab-switch logger (the route unmounts before the visibilitychange fires). That's mobile-parity behavior. If your teacher policy needs to track this, that's a future enhancement.
+**❓ Note:** the X button title hint says "Leaving counts as a tab switch" — actually X+route-leave does NOT trigger the tab-switch logger (the route unmounts before the visibilitychange fires). That's mobile-parity behavior.
+
+`Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
+
+---
+
+### C.9 — Re-enter the attempt — banner count + selections survive
+
+**👉 Do this:**
+
+1. After C.8, you're on /classes. Click the Live exam row.
+2. The page re-mounts.
+
+**✅ What you should see:**
+
+- Lands on attempt stage in <2 seconds.
+- All selections + flags from C.5 + C.7 are preserved.
+- TabSwitchBanner is NOT visible (count = 0).
+- TimerPill is on time.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -762,9 +996,9 @@ This section continues from §B.3. You should be on the **attempt** stage of the
 
 # §D — Server-anchored timer (D-183) + 60-s resync + clock skew
 
-This section is the **highest-correctness** part of Phase 3. The exam timer must derive its remaining time from the **server's clock**, not the device clock, so a student can't extend their time by skewing their laptop clock.
+This is the **highest-correctness** part of Phase 3. The exam timer must derive its remaining time from the **server's clock**, not the device clock — otherwise a student could extend their time by skewing their laptop clock.
 
-Re-enter the Live exam attempt (from §C) for these tests.
+Re-enter the Live exam attempt for these tests.
 
 ---
 
@@ -794,8 +1028,8 @@ Re-enter the Live exam attempt (from §C) for these tests.
 
 **✅ What you should see:**
 
-- A `server-time` POST fires at ~60s, ~120s, etc. — every 60 seconds during the attempt.
-- The TimerPill keeps ticking down smoothly between syncs.
+- A `server-time` POST fires at approximately ~60s, then ~120s, etc. — every 60 seconds during the attempt.
+- The TimerPill keeps ticking down smoothly between syncs (1Hz tick).
 
 **❓ If something looks different:**
 
@@ -824,70 +1058,89 @@ Re-enter the Live exam attempt (from §C) for these tests.
 
 ### D.4 — Clock-skew attack: set device clock 5 minutes ahead → timer corrects
 
+**⚠ Important: this changes your laptop clock — write down the real time first.**
+
 **👉 Do this:**
 
-1. **Important: this changes your laptop clock — write down the real time first.**
-2. Open **Settings → Time & language → Date & time** (Windows).
-3. Toggle off **"Set time automatically"**.
-4. Click **Change** and set the time **5 minutes AHEAD** of what it actually is. Click Change.
-5. Return to the exam tab.
-6. Within 60 seconds, the next `server-time` resync should fire.
+1. Open **Settings → Time & language → Date & time** (Windows).
+2. Toggle off **"Set time automatically"**.
+3. Click **Change** and set the time **5 minutes AHEAD** of what it actually is. Click Change to apply.
+4. Return to the exam tab.
+5. Within 60 seconds, the next `server-time` resync should fire.
 
 **✅ What you should see:**
 
-- Before the resync, the TimerPill may briefly jump down by 5 minutes (because Date.now() now reads 5 min ahead, but the mount-time offset is stale).
-- **After the resync** (within 60s of the clock change), the TimerPill **corrects itself** — `offsetMs` becomes negative (server is "5 min behind" the device), and `remaining = deadline - (deviceNow + offsetMs)` corrects to the true server-clock-based remaining.
-- A late `exam_answers` write (try clicking a different option NOW that the clock is fast) — should be rejected with **403** by the deadline-cut RLS IF the device clock is past the deadline. If your exam still has 25+ minutes left, even with +5 min of skew you're not at the deadline yet — the write succeeds. This is correct.
+- Before the resync: the TimerPill may briefly jump down by 5 minutes (because `Date.now()` now reads 5 min ahead, but the mount-time offset is stale). Some browsers may not show this jump if React doesn't tick within the window — that's fine.
+- **After the resync** (within 60s of the clock change): the TimerPill **corrects itself** — `offsetMs` becomes negative (server is "5 min behind" the device), and `remaining = deadline - (deviceNow + offsetMs)` corrects to the true server-clock-based remaining.
 
-**👉 Critical test:** with the clock still 5 min ahead, advance the clock further so you cross the SERVER's deadline (impossible with 25 min remaining, but if you set the clock to, say, `2026-12-31`, the device will think the deadline has passed. The TimerPill will show `00:00` briefly until the next resync corrects it.
-
-**👉 Reset the clock:** Settings → Date & time → toggle "Set time automatically" back ON.
+**👉 Reset your clock:** Settings → Date & time → toggle "Set time automatically" back ON.
 
 **❓ If something looks different:**
 
-- TimerPill stays at the skewed value (doesn't correct) → `useServerTimeOffset` isn't applying the new offset. Check `setOffsetMs` calls.
-- Late writes succeed past the server deadline → the `exam_answers` RLS deadline-cut isn't installed. Check the migration `20260520xxxx_exam_answers_deadline_cut`.
+- TimerPill stays at the skewed value forever (doesn't correct after 60s) → `useServerTimeOffset` isn't applying the new offset. Check `setOffsetMs` calls.
 
-`Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _reason: skipped clock change_
 
 ---
 
 ### D.5 — TimerPill turns red at ≤ 60 s
 
-**👉 Do this:**
+The unit test `TimerPill > turns red when remaining ≤ 60s` covers this. If you have a short test exam where you can watch the timer drop to 1 minute live, do it; otherwise mark N/A.
 
-1. (Optional — only if you have a short test exam.) Wait for the timer to reach `01:00` or below.
+**👉 Do this (only if you have a short test exam):**
+
+1. Wait for the timer to reach `01:00` or below.
 
 **✅ What you should see:**
 
-- At `01:00`, the TimerPill background changes from blue to **red** (`bg-red-100`) with red text and a red clock icon. The `data-warning="true"` attribute is set.
-- At `00:00`, the auto-submit fires.
-
-**👉 If your seed exam is too long to wait, you can mark this PASS based on the unit test (`TimerPill.test.tsx > turns red when remaining ≤ 60s`).**
+- At `01:00`, the TimerPill background changes from blue to **red** (`bg-red-100`) with red text and a red clock icon.
+- The HTML attribute `data-warning="true"` is set on the timer.
+- At `00:00`, the auto-submit fires (§F covers this).
 
 `Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _reason: unit test covers it_
 
 ---
 
-# §E — Tab-switch logging + TabSwitchBanner
+### D.6 — Late `exam_answers` write returns 403 (server-side deadline cut)
+
+This verifies the server-side defense-in-depth backing up the client timer.
+
+**👉 Do this:**
+
+1. (Only if you did D.4 — clock is still skewed past the deadline.) Click a different option on the current question.
+
+**✅ What you should see:**
+
+- The `exam_answers` upsert fails with **HTTP 403** (visible in Network).
+- The student's local UI may still show the option as selected (optimistic UI), but on next reload the server-side state won't reflect it.
+
+**👉 Reset your clock if you haven't.**
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _reason: skipped clock manipulation_
+
+---
+
+# §E — Tab-switch logging + TabSwitchBanner (D-182)
 
 Phase 3 uses the **Page Visibility API** + `window.blur` to detect when the student leaves the exam tab. Each detection bumps a server-side counter via `exam-tab-switch` (fire-and-forget). The TabSwitchBanner renders the count.
 
 ---
 
-### E.1 — Switch to a new tab → banner appears
+### E.1 — Switch to a new tab → yellow banner appears (count 1)
 
 **👉 Do this:**
 
-1. Re-enter the Live exam attempt.
-2. Open a new Chrome tab (Ctrl+T) and visit any URL (e.g. google.com).
-3. Wait 3 seconds.
-4. Switch back to the exam tab.
+1. DevTools → Network → filter for `exam-tab-switch`.
+2. Re-enter the Live exam attempt.
+3. Open a new Chrome tab (Ctrl+T) and visit any URL (e.g. google.com).
+4. Wait 3 seconds.
+5. Switch back to the exam tab.
 
 **✅ What you should see:**
 
-- At the top of the exam attempt screen, a **yellow banner** appears: "You left the exam tab. Switches: 1".
+- At the top of the exam attempt screen (just above the question card), a **yellow banner** appears: "You left the exam tab. Switches: 1".
 - The banner has a shield-alert icon on the left.
+- The banner has `data-severity="warning"` (yellow tone, NOT severe).
 - DevTools → Network: an `exam-tab-switch` POST fired with `attempt_id`. The response body is `{ "tab_switch_count": 1 }`.
 - The banner does NOT auto-dismiss — it stays for the rest of the attempt (mirrors mobile).
 
@@ -895,12 +1148,13 @@ Phase 3 uses the **Page Visibility API** + `window.blur` to detect when the stud
 
 - No banner appears → the `useExamTabSwitchLogger` isn't attaching the visibilitychange listener. Check ExamClient.
 - Banner shows count 0 → the count comes from the server response; check the response body.
+- Multiple `exam-tab-switch` requests fire for a single Alt-Tab → the 500ms dedup guard isn't working. Check `lastLogAtRef` in `useExamTabSwitchLogger.ts`.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
 ---
 
-### E.2 — Two more tab switches → still yellow at 2, red at 3+
+### E.2 — Two more tab switches → still yellow at 2, **red at 3+**
 
 **👉 Do this:**
 
@@ -909,9 +1163,9 @@ Phase 3 uses the **Page Visibility API** + `window.blur` to detect when the stud
 
 **✅ What you should see:**
 
-- At 2 switches: banner is yellow, count = 2.
-- At 3 switches: banner turns **red** (`bg-red-50`), label includes " · Further switches may be reviewed by your teacher.", and the icon's `data-severity` is `severe`.
-- Each switch fires one `exam-tab-switch` request.
+- At 2 switches: banner is **yellow**, count = 2. `data-severity="warning"`.
+- At 3 switches: banner turns **red** (`bg-red-50`), label includes " · Further switches may be reviewed by your teacher.", and `data-severity="severe"`.
+- Each switch fires ONE `exam-tab-switch` request (not two).
 
 **❓ If something looks different:**
 
@@ -940,7 +1194,32 @@ Phase 3 uses the **Page Visibility API** + `window.blur` to detect when the stud
 
 ---
 
-### E.4 — D-182: silent on submitted
+### E.4 — Alt+Tab dedup: visibilitychange + blur in the same gesture counts as ONE switch
+
+This is the dedup guard added in the polish pass. On Chrome, Alt+Tab fires BOTH `visibilitychange→hidden` AND `window.blur` within a few milliseconds.
+
+**👉 Do this:**
+
+1. Note the current banner count (e.g. 3).
+2. Use **Alt+Tab** (NOT Ctrl+T new-tab) to switch to another open window briefly, then Alt+Tab back.
+3. Watch the banner count + Network requests.
+
+**✅ What you should see:**
+
+- Banner count goes up by exactly **1** (e.g. 3 → 4).
+- Exactly **ONE** `exam-tab-switch` request fires.
+
+**❓ If something looks different:**
+
+- Count jumps by 2 → the dedup window in `useExamTabSwitchLogger.lastLogAtRef` isn't working. Check the source.
+
+`Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
+
+---
+
+### E.5 — D-182: silent on submitted
+
+After you submit (§F or §A.9), tab-switching MUST be silent (no errors, no console warnings).
 
 **👉 Do this:**
 
@@ -948,8 +1227,8 @@ Phase 3 uses the **Page Visibility API** + `window.blur` to detect when the stud
 
 **✅ What you should see:**
 
-- The `exam-tab-switch` fires but the server returns the existing count without bumping (because the attempt is submitted). The client's local `count` may bump optimistically but the visible result-stage UI doesn't show the banner anyway.
-- No error in the console, no broken UI.
+- The `exam-tab-switch` fires but the server returns 200 with the existing count without bumping (because the attempt is submitted).
+- No error in the Console, no broken UI.
 
 `Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _reason: covered by unit test `examTabSwitchLogger > silent on 404`_
 
@@ -957,9 +1236,9 @@ Phase 3 uses the **Page Visibility API** + `window.blur` to detect when the stud
 
 # §F — Auto-submit at deadline
 
-The exam timer fires `onExpire` exactly once when the remaining time reaches 0. The handler calls `useExamSubmit.submit()` with `auto = true`. The result stage is shown immediately (instant-release) or the submitted stage (manual-release).
+The exam timer fires `onExpire` exactly once when remaining hits 0. The handler calls `useExamSubmit.submit()` with `auto = true`. The result stage is shown immediately (instant-release) or the submitted stage (manual-release).
 
-For these tests you'll need a **short** test exam. The seed scripts in §0.4 don't create one by default. **Skip §F.1 if you don't have a short exam — the unit test covers the trigger logic.**
+For F.1 you'll need a **short** test exam. The seed scripts in §0.4 don't create one by default. **Skip F.1 if you don't have a short exam — the unit test covers the trigger logic.**
 
 ---
 
@@ -972,13 +1251,9 @@ For these tests you'll need a **short** test exam. The seed scripts in §0.4 don
 
 **✅ What you should see:**
 
-- At `00:00`, the page transitions to the **result** stage (instant) or **submitted** stage (manual).
+- At `00:00`, the page transitions to the **result** stage (instant-release) or **submitted** stage (manual-release).
 - The user did NOT click any submit button.
 - DevTools → Network: exactly ONE `exam-submit` request fired with `auto_submitted=true` in the response.
-
-**❓ If something looks different:**
-
-- Timer reaches 0 but no submit → check Console for an error in `onTimerExpired`. The `firedRef` guard in TimerPill prevents double-fire but should NOT block the first fire.
 
 `Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _reason:_
 
@@ -986,31 +1261,33 @@ For these tests you'll need a **short** test exam. The seed scripts in §0.4 don
 
 ### F.2 — Auto-submit fires exactly once (no duplicate submission)
 
-This is covered by `apps/web/components/quiz/__tests__/TimerPill.test.tsx > calls onExpire exactly once`. Mark PASS based on the unit test, or repeat F.1 with the dev tools open to confirm only one `exam-submit` request fires.
+This is covered by `apps/web/components/quiz/__tests__/TimerPill.test.tsx > calls onExpire exactly once`. Mark PASS based on the unit test, or repeat F.1 to confirm.
 
 `Result:` [ ] PASS — unit test covers it.
 
 ---
 
-### F.3 — Confirmation dialog warns about unanswered questions
+### F.3 — Submit confirmation dialog warns about unanswered questions
 
 **👉 Do this:**
 
 1. Enter any live exam attempt.
 2. Answer Q1 only. Leave the rest blank.
-3. Click **Next** to Q2, Q3, … up to the last question.
-4. On the last question, click **Submit** (the green button).
+3. Click **Next** all the way to the last question.
+4. On the last question, click the green **Submit** button.
 
 **✅ What you should see:**
 
 - The submit confirmation dialog opens.
-- Subtitle: "You've answered 1/N. This cannot be undone."
+- Subtitle: "You've answered 1/N. This cannot be undone." (Note the "This cannot be undone" — only present for the exam variant.)
 - An amber alert box: "(N−1) unanswered questions: Q2, Q3, Q4, …" (with `data-testid="unanswered-list"`).
 - Two buttons: **Cancel** + green **Submit**.
 
 **👉 Click Cancel** → the dialog closes, you stay on the attempt screen.
 
-**👉 Click Submit again, then Submit in the dialog** → you submit (jump to result/submitted).
+**👉 Click Submit again, then green Submit in the dialog:**
+
+- You submit → jump to result/submitted (depending on release mode).
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -1026,18 +1303,19 @@ A **manual-release** exam (`exams.result_release = 'manual'`) doesn't reveal the
 
 **👉 Do this:**
 
-1. From /classes, click the **Live manual** exam. (You may need to wait for one to be live, or use the seed.)
+1. From /classes, click the **Live manual** exam (the one from `seed:exam-manual-test` that has `result_release: manual`).
 2. Enter the exam, answer all questions, and click Submit → confirm.
 
 **✅ What you should see:**
 
 - The page transitions to the **submitted** stage, NOT result.
-- A `LockedResultCard` displays:
-  - A lock icon in a slate circle.
-  - Heading: "Results will be available after your teacher releases them"
+- A `LockedResultCard` (data-testid="locked-result") displays:
+  - A lock icon in a slate circle (top center).
+  - Heading: **"Results will be available after your teacher releases them"**
   - A paragraph explaining auto-refresh on focus.
-  - "Submitted: <timestamp>" line.
-  - A "Refresh now" outline button.
+  - "Submitted: <timestamp>" line in slate-500.
+  - "Tab switches recorded: N" line (if N > 0).
+  - A **"Refresh now"** outlined button with a refresh icon.
 - DevTools → Network: the `exam-submit` response includes `results_released: false` (no score). A subsequent `exam-attempt-result` POST returns **HTTP 423** with `status: "submitted_awaiting_release"`.
 
 **❓ If something looks different:**
@@ -1107,6 +1385,22 @@ A **manual-release** exam (`exams.result_release = 'manual'`) doesn't reveal the
 
 ---
 
+### G.5 — Result → solution → see correct/wrong/skipped per question
+
+**👉 Do this:**
+
+1. On the result screen, click **Review solutions**.
+
+**✅ What you should see:**
+
+- The stage transitions to **solution**.
+- A header with back arrow + "Solutions" title.
+- The same SolutionCard list as the quiz (§A.10) — each question with the right outcome coloring.
+
+`Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
+
+---
+
 # §H — Instant-release exam + D-181 re-open routing
 
 An **instant-release** exam shows the score immediately on submit. D-181 says: re-opening a submitted instant exam must route directly to the **result** stage, NOT restart.
@@ -1118,12 +1412,12 @@ An **instant-release** exam shows the score immediately on submit. D-181 says: r
 **👉 Do this:**
 
 1. From /classes, click the **Live instant** exam.
-2. Enter, answer, submit, confirm.
+2. Enter, answer all questions, submit, confirm.
 
 **✅ What you should see:**
 
-- The page transitions directly to the **result** stage (NOT submitted).
-- DevTools → Network: the `exam-submit` response includes `results_released: true` with score, max_score, etc.
+- The page transitions DIRECTLY to the **result** stage (NOT submitted).
+- DevTools → Network: the `exam-submit` response includes `results_released: true` with `score`, `max_score`, `correct_count`, `wrong_count`, `skipped_count`.
 - The score breakdown card is visible.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
@@ -1131,6 +1425,8 @@ An **instant-release** exam shows the score immediately on submit. D-181 says: r
 ---
 
 ### H.2 — D-181: Close the tab, re-open the exam → lands on result, not restart
+
+This is the EXACT scenario the mobile shipped a bug on. Make sure web doesn't repeat it.
 
 **👉 Do this:**
 
@@ -1141,12 +1437,14 @@ An **instant-release** exam shows the score immediately on submit. D-181 says: r
 
 - URL becomes `/exam/<uuid>`.
 - The page renders directly on the **result** stage (with the same score).
-- It does NOT go through pre → attempt → submitted → result. It does NOT try to start a new attempt.
-- This proves the D-181 routing reads `existing_attempt.submitted_at` and `result_release` correctly.
+- It does NOT go through pre → "Enter Exam" UI. There's **no flicker** — even for a single frame.
+- It does NOT try to start a new attempt.
+- This proves the D-181 routing reads `existing_attempt.submitted_at` and `result_release` correctly + the flicker guard prevents the pre UI from briefly showing.
 
 **❓ If something looks different:**
 
-- Lands on pre stage → bug. Mobile shipped this exact bug once — make sure it's not reintroduced. Check `useExamPreInfo.data.existing_attempt.submitted_at` and the `useEffect` in ExamClient that flips to result.
+- Lands on pre stage → bug. Check `useExamPreInfo.data.existing_attempt.submitted_at` + the `reopenAppliedRef` `useEffect` in ExamClient.
+- Brief flicker of "Enter Exam" → the flicker guard isn't catching it; check the guard right before the pre render.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -1182,9 +1480,25 @@ An **instant-release** exam shows the score immediately on submit. D-181 says: r
 
 ---
 
+### H.5 — D-181: Open a not-yet-submitted exam → starts at pre
+
+**👉 Do this:**
+
+1. Find any exam where you have NOT submitted yet (`pnpm seed:exam-manual-test --reset` and DON'T submit the Live exam this time).
+2. From /classes, click that exam.
+
+**✅ What you should see:**
+
+- Lands on **pre** stage (with countdown or "Live now" depending on the window).
+- No flicker through other stages.
+
+`Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
+
+---
+
 # §I — Solution stage: correctness + explanations + related-content
 
-Solutions are loaded on-demand via `exam-attempt-result` (for exams) or `quiz-attempt-result` / `quiz-submit` (for quizzes). The dossier includes `is_correct` per option, the `explanation_md`, and optional `related_content`.
+Solutions are loaded on-demand via `exam-attempt-result` (for exams) or `quiz-attempt-result` / `quiz-submit` (for quizzes). The dossier includes `is_correct` per option, `explanation_md`, and optional `related_content`.
 
 ---
 
@@ -1200,7 +1514,7 @@ Solutions are loaded on-demand via `exam-attempt-result` (for exams) or `quiz-at
 - A back arrow (Chevron-left) + "Solutions" title in the header.
 - A scrollable list of solution cards. For each:
   - Question prompt rendered (math via KaTeX if any).
-  - Options with the right outcome encoding (see A.8 for the color rules).
+  - Options with the right outcome encoding (see A.10 for the color rules).
   - Explanation box.
   - Outcome footer.
 
@@ -1212,7 +1526,7 @@ Solutions are loaded on-demand via `exam-attempt-result` (for exams) or `quiz-at
 
 **👉 Do this:**
 
-1. Scroll through your solutions and find one where you got it wrong.
+1. Scroll through your solutions and find one where you got it WRONG.
 
 **✅ What you should see:**
 
@@ -1224,7 +1538,23 @@ Solutions are loaded on-demand via `exam-attempt-result` (for exams) or `quiz-at
 
 ---
 
-### I.3 — Skipped questions show only the correct option
+### I.3 — Correct answer cards show only emerald
+
+**👉 Do this:**
+
+1. Find a question you got RIGHT.
+
+**✅ What you should see:**
+
+- The option you picked has a **green border + green bg** + check icon.
+- No red anywhere.
+- Outcome footer says "Correct (+4)" in emerald.
+
+`Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
+
+---
+
+### I.4 — Skipped questions show only the correct option
 
 **👉 Do this:**
 
@@ -1239,15 +1569,15 @@ Solutions are loaded on-demand via `exam-attempt-result` (for exams) or `quiz-at
 
 ---
 
-### I.4 — Related-content link routes correctly
+### I.5 — Related-content link routes correctly
 
-Same test as A.9 — quiz solution related links go to `/video/[id]` or `/pdf/[id]`. The exam solution cards use the SAME SolutionCard component, so this should work identically.
+Same test as A.11 — quiz solution related links go to `/video/[id]` or `/pdf/[id]`. The exam solution cards use the SAME SolutionCard component.
 
 `Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _reason:_
 
 ---
 
-# §J — Math rendering: inline + block + non-math fast path
+# §J — Math rendering: inline + block + non-math fast path (D-178)
 
 KaTeX is mounted ONLY when the input contains math delimiters (D-178). Plain text bypasses KaTeX entirely for performance.
 
@@ -1347,10 +1677,9 @@ This section is the make-or-break for Phase 3. Even a single `is_correct` leak d
 
 **👉 Do this:**
 
-1. Enter a fresh quiz or exam attempt.
-2. DevTools → Network → click any of the requests in the list (e.g. the `quiz-start` or `exam-start` response).
-3. Press **Ctrl+F** in DevTools to open the response-body search.
-4. Search for `is_correct` across the responses (or, in the Filter box at the top of the Network panel, type `is_correct` to see all responses containing it).
+1. Enter a fresh quiz or exam attempt (re-run the seed if needed).
+2. DevTools → Network → click `quiz-start` (or `exam-start`) → "Response" tab → press **Ctrl+F** to search.
+3. Search for `is_correct`.
 
 **✅ What you should see:**
 
@@ -1393,7 +1722,7 @@ This section is the make-or-break for Phase 3. Even a single `is_correct` leak d
 
 **✅ What you should see:**
 
-- No output. Zero matches. The service-role key is NEVER in the static bundle.
+- **No output.** Zero matches. The service-role key is NEVER in the static bundle.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -1419,24 +1748,32 @@ This section is the make-or-break for Phase 3. Even a single `is_correct` leak d
 
 ---
 
-### K.5 — `exam_answers` write after deadline returns 403
+### K.5 — Phase 3 source files don't accidentally leak `is_correct`
 
-This is the server-side defense-in-depth check that backs up the client timer.
+The `cacheKeySecurity.test.ts` test scans the actual source files (after stripping comments) and asserts that attempt-stage hooks never reference `is_correct` or `correct_option_id`. Run it directly:
 
-**👉 Do this:**
-
-1. (See §D.4 — set the device clock 5 min ahead so it's past the deadline.)
-2. With the clock ahead, click an option.
+```powershell
+pnpm --filter @fynestudy/web test features/quiz/__tests__/cacheKeySecurity.test.ts
+```
 
 **✅ What you should see:**
 
-- The `exam_answers` upsert fails with **HTTP 403** (visible in Network).
-- The student's local UI may still show the option as selected (optimistic UI), but on next reload the server-side state will not reflect it (because the write was rejected).
-- The auto-save's onError fires; the change is re-queued but will fail again. This is acceptable — the server is the source of truth.
+```
+ ✓ features/quiz/__tests__/cacheKeySecurity.test.ts (4 tests) 5ms
 
-**👉 Reset your clock back to automatic.**
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+```
 
-`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _reason: skipped clock manipulation_
+`Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
+
+---
+
+### K.6 — `exam_answers` write after deadline returns 403
+
+Already covered in §D.6. Mark accordingly.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _see §D.6_
 
 ---
 
@@ -1534,17 +1871,17 @@ pnpm --filter @fynestudy/web test
 
 ```
  Test Files  15 passed (15)
-      Tests  91 passed (91)
+      Tests  92 passed (92)
 ```
 
-The 15 files include the 6 Phase 3 additions:
+The 15 files include the 7 Phase 3 additions:
 - `components/math/__tests__/MathText.test.tsx` (16 tests — parser + render)
 - `components/quiz/__tests__/TimerPill.test.tsx` (5 tests — server-anchored countdown)
 - `components/quiz/__tests__/NavigationGrid.test.tsx` (3 tests — status mapping)
 - `features/quiz/__tests__/attemptHelpers.test.ts` (6 tests — computeStatuses/countAnswered/unansweredIndices)
 - `features/quiz/__tests__/cacheKeySecurity.test.ts` (4 tests — no is_correct in attempt-stage source)
 - `features/exams/__tests__/serverTimeOffset.test.ts` (11 tests — computeRemainingMs + formatRemainingMmSs)
-- `features/exams/__tests__/examTabSwitchLogger.test.ts` (5 tests — fire-and-forget + silent on 404)
+- `features/exams/__tests__/examTabSwitchLogger.test.ts` (6 tests — fire-and-forget, silent on 404, Alt-Tab dedup)
 
 `Result:` [ ] PASS · [ ] FAIL — _passed/failed counts:_ ____
 
@@ -1571,7 +1908,7 @@ cd C:\Users\kaust\OneDrive\Desktop\FyneStudyLive\apps\web
 pnpm exec playwright test --reporter=list
 ```
 
-**✅ Expected (last line):** all Phase 1 + Phase 2 + Phase 3 specs run; the new Phase 3 specs are `quiz-attempt.spec.ts`, `exam-attempt.spec.ts`, `security-attempt.spec.ts`. Specific tests that depend on a seeded quiz/exam will **skip** automatically if the seed isn't fresh; that's expected.
+**✅ Expected:** all Phase 1 + Phase 2 + Phase 3 specs run; the new Phase 3 specs are `quiz-attempt.spec.ts`, `exam-attempt.spec.ts`, `security-attempt.spec.ts`. Specific tests that depend on a seeded quiz/exam will **skip** automatically if the seed isn't fresh; that's expected.
 
 The number to watch is: **0 failed**.
 
@@ -1590,17 +1927,17 @@ pnpm --filter @fynestudy/web dev
 
 Tick the checkboxes once all rows above are marked PASS (or N/A with reason).
 
-- [ ] **§A** Quiz attempt — A.1–A.10 all PASS (A.9 may be N/A)
-- [ ] **§B** Exam pre stage — B.1–B.4 all PASS
-- [ ] **§C** Exam locked attempt — C.1–C.8 all PASS
-- [ ] **§D** Server-anchored timer — D.1–D.4 PASS; D.5 PASS or N/A (unit test)
-- [ ] **§E** Tab-switch logging — E.1–E.3 PASS; E.4 PASS or N/A (unit test)
+- [ ] **§A** Quiz attempt — A.1–A.12 all PASS (A.11 may be N/A)
+- [ ] **§B** Exam pre stage — B.1–B.5 all PASS
+- [ ] **§C** Exam locked attempt — C.1–C.9 all PASS
+- [ ] **§D** Server-anchored timer — D.1–D.6 PASS or N/A (D.4/D.6 may be skipped)
+- [ ] **§E** Tab-switch logging — E.1–E.4 PASS; E.5 PASS or N/A (unit test)
 - [ ] **§F** Auto-submit — F.3 PASS; F.1/F.2 PASS or N/A (no short exam)
-- [ ] **§G** Manual-release waiting — G.1–G.4 all PASS
-- [ ] **§H** Instant-release + D-181 — H.1–H.4 all PASS
-- [ ] **§I** Solution stage — I.1–I.3 PASS; I.4 PASS or N/A
+- [ ] **§G** Manual-release waiting — G.1–G.5 all PASS
+- [ ] **§H** Instant-release + D-181 — H.1–H.5 all PASS
+- [ ] **§I** Solution stage — I.1–I.4 PASS; I.5 PASS or N/A
 - [ ] **§J** Math rendering — J.1–J.3 PASS; J.4/J.5 PASS or N/A
-- [ ] **§K** Security — K.1–K.3 PASS; K.4 PASS or N/A; K.5 PASS or N/A
+- [ ] **§K** Security — K.1–K.3 + K.5 PASS; K.4 PASS or N/A; K.6 PASS or N/A
 - [ ] **§L** Responsive — L.1, L.2 PASS; L.3, L.4 CARRY-OVER
 - [ ] **§M** Automated gates — M.1–M.5 PASS
 
@@ -1614,11 +1951,10 @@ Notes / anything unusual:
 
 Once these boxes are ticked, paste this back to me (Claude). I will then:
 
-1. Append the §J acceptance ledger to the bottom of `Phases/phase-3-assessments-quizzes-exams.md`.
-2. Update `CLAUDE.md`'s "🌐 Web App Conversion track" with `Phase 3 ✅ — <today's date>` + a one-line summary.
-3. Save `project_web-phase-3-status.md` in the project memory + add the pointer to `MEMORY.md`.
-4. (Already committed by the build step.) Confirm the commit `feat(web-phase-3): assessments — quizzes + exams` is on `web-phase-1` branch.
-5. **Stop.** Phase 4 starts in a fresh new conversation.
+1. Confirm the §J acceptance ledger at the bottom of `Phases/phase-3-assessments-quizzes-exams.md` is complete (it's already appended at code-complete time).
+2. Update `CLAUDE.md`'s "🌐 Web App Conversion track" line — replace "code-complete" with "✅ ACCEPTED" + the sign-off date.
+3. Update `project_web-phase-3-status.md` memory file with the sign-off date.
+4. **Stop.** Phase 4 starts in a fresh new conversation with the kickoff prompt I'll provide separately.
 
 ---
 
@@ -1632,7 +1968,7 @@ These items are explicitly deferred and tracked:
 4. **Multi-role + suspended account creation** — pending user opt-in.
 5. **Local KaTeX bundle hardening** — currently CSS is imported via the npm `katex` package, which Next bundles. The fonts are pulled from the same package. If the package URL ever changes this is a single import to update.
 6. **Component-level Jest tests** for the quiz/exam reducers — the unit tests cover the pure helpers; a future hardening pass could add tests for the reducers + state machine transitions.
-7. **Maestro / Playwright Mobile-web** — same surface as L.3/L.4.
+7. **Short-duration test exam in the seed** — to make F.1 testable without skipping.
 
 # Troubleshooting cheat-sheet
 
@@ -1644,7 +1980,9 @@ These items are explicitly deferred and tracked:
 | `exam_answers` 403 on every write | Past the deadline OR wrong attempt_id | Check the deadline-cut RLS migration is applied; verify `attempt_id` matches the current attempt |
 | Math renders as raw `$x^2$` | KaTeX CSS not loaded | Confirm `apps/web/app/globals.css` has `@import "katex/dist/katex.min.css";` |
 | Tab-switch banner doesn't appear | `visibilitychange` not firing on this OS/browser combo | Try Alt+Tab to a desktop window; the hook also listens for `window.blur` as fallback |
+| Tab-switch count jumps by 2 on Alt-Tab | The 500ms dedup window in `useExamTabSwitchLogger` failed | Check `lastLogAtRef` in the hook |
 | Instant exam re-open lands on pre stage | D-181 routing logic broken | Check `useExamPreInfo.data.existing_attempt.submitted_at` + the `reopenAppliedRef` `useEffect` in ExamClient |
+| Pre stage flickers briefly on re-open | The flicker guard isn't catching | Check the early-return guard in ExamClient right before the pre render |
 | Solution stage shows wrong correctness colors | `correct_option_id` vs `your_option_id` swapped | Inspect a SolutionCard's `q` prop — confirm both fields are present and distinct |
 | `is_correct` in a Network response during attempt | P0 leak — STOP | Take a screenshot of the response URL + body, ping me. Do NOT continue testing |
 | Refresh mid-attempt restarts the attempt | `saved_answers` not hydrating | Check `useEffect` in QuizClient/ExamClient that hydrates state from `startState.data.saved_answers` |

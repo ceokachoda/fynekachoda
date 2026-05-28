@@ -81,6 +81,29 @@ describe("useExamTabSwitchLogger", () => {
     expect(result.current.count).toBe(5);
   });
 
+  it("dedupes two events within 500ms (Alt-Tab fires both visibilitychange + blur)", async () => {
+    (invokeEdgeFn as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 200,
+      body: { tab_switch_count: 1 },
+      error: null,
+    });
+    const { result } = renderHook(() => useExamTabSwitchLogger("attempt-d"));
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => "hidden",
+    });
+    // Pretend Alt-Tab: blur first, then visibilitychange a few ms later.
+    await act(async () => {
+      window.dispatchEvent(new Event("blur"));
+      document.dispatchEvent(new Event("visibilitychange"));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    // Only one network call, count is 1 (not 2).
+    expect(invokeEdgeFn).toHaveBeenCalledTimes(1);
+    expect(result.current.count).toBe(1);
+  });
+
   it("silent on 404 (D-182 fire-and-forget; already submitted)", async () => {
     (invokeEdgeFn as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       status: 404,
