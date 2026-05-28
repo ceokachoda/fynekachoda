@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Calendar, Video, Clock } from "lucide-react";
+import Link from "next/link";
+import { Calendar, Video, Clock, ChevronRight } from "lucide-react";
 import { Segmented } from "@/components/fyne/Segmented";
 import { EmptyState } from "@/components/fyne/EmptyState";
 import { Pill } from "@/components/fyne/Pill";
@@ -170,28 +171,33 @@ export function StudentClasses() {
           <ul className="space-y-2">
             {(exams.data ?? []).map((e) => {
               const p = examPill(e.status);
+              // D-181: re-open routing. ANY status routes to /exam/[id];
+              // the ExamClient figures out which stage to render
+              // (instant + submitted → result, manual + submitted → submitted
+              // → result once released, live → attempt entry, scheduled → pre).
               return (
-                <li
-                  key={e.id}
-                  className="flex items-center rounded-2xl border border-slate-100 bg-white p-4"
-                >
-                  <Calendar className="mr-3 size-4 text-slate-400" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold text-slate-900">
-                      {e.title}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {formatIstDay(e.starts_at)} ·{" "}
-                      {formatIstTime(e.starts_at)} · {e.duration_min} min
-                    </p>
-                  </div>
-                  <Pill tone={p.tone}>{p.label}</Pill>
+                <li key={e.id}>
+                  <Link
+                    href={`/exam/${e.id}`}
+                    data-testid="exam-link"
+                    className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+                  >
+                    <Calendar className="mr-3 size-4 text-slate-400" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-slate-900">
+                        {e.title}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {formatIstDay(e.starts_at)} ·{" "}
+                        {formatIstTime(e.starts_at)} · {e.duration_min} min
+                      </p>
+                    </div>
+                    <Pill tone={p.tone}>{p.label}</Pill>
+                    <ChevronRight className="ml-2 size-4 text-slate-400" />
+                  </Link>
                 </li>
               );
             })}
-            <p className="rounded-2xl bg-slate-50 px-4 py-3 text-center text-xs text-slate-500">
-              Exam attempts (taking the exam) ship in Phase 3.
-            </p>
           </ul>
         )}
       </section>

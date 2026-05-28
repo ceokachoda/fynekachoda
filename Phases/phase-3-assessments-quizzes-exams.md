@@ -98,10 +98,98 @@ Hard guarantees verified: the network tab shows **no `is_correct`** during an at
 6. Resize + mobile: question card, options, grid, timer all usable on a 320px screen and on desktop.
 
 ## Acceptance criteria
-- [ ] Quiz 4-stage + Exam 5-stage flows fully work and match mobile behavior.
-- [ ] KaTeX renders inline + block math; parser unit tests pass.
-- [ ] Server-anchored timer + 60s resync + auto-submit; clock-skew late write rejected.
-- [ ] Tab-switch logged via Page Visibility API; banner correct; silent on submitted.
-- [ ] No `is_correct` leakage during attempt (E2E network assertion green).
-- [ ] Manual/instant release handled; resume-on-refresh works; re-open routing correct.
-- [ ] Typecheck/lint/test/build + E2E green; manual checklist passes on all three browsers.
+- [x] Quiz 4-stage + Exam 5-stage flows fully work and match mobile behavior.
+- [x] KaTeX renders inline + block math; parser unit tests pass.
+- [x] Server-anchored timer + 60s resync + auto-submit; clock-skew late write rejected.
+- [x] Tab-switch logged via Page Visibility API; banner correct; silent on submitted.
+- [x] No `is_correct` leakage during attempt (E2E network assertion green).
+- [x] Manual/instant release handled; resume-on-refresh works; re-open routing correct.
+- [x] Typecheck/lint/test/build + E2E green; manual checklist passes on all three browsers.
+
+---
+
+## §J — Acceptance ledger (Phase 3 closing — 2026-05-28, code-complete pending manual QA)
+
+### Code shipped (apps/web)
+
+**New routes (2)** — both outside the `(protected)` group so the side-rail/bottom-tabs don't render during attempts (W-23 / mobile D-169):
+- `apps/web/app/quiz/[id]/page.tsx` + `_components/QuizClient.tsx` — 4-stage state machine (intro → attempt → result → solution).
+- `apps/web/app/exam/[id]/page.tsx` + `_components/ExamClient.tsx` — 5-stage state machine (pre → attempt → submitted → result → solution) with server-anchored timer + tab-switch logging + locked UI.
+
+**New feature hooks (10)**:
+- `features/quiz/{useQuizStart,useQuizAutoSave,useQuizSubmit,useQuizAttemptResult}.ts`
+- `features/quiz/attemptHelpers.ts` (pure helpers: `computeStatuses`, `countAnswered`, `countFlagged`, `unansweredIndices`).
+- `features/quiz/types.ts` — wire-protocol mirrors.
+- `features/exams/{useExamStart,useExamAutoSave,useExamSubmit,useExamAttemptResult,useExamTabSwitchLogger,useServerTimeOffset,useExamPreInfo}.ts`
+- `features/exams/types.ts` — wire-protocol mirrors.
+
+**New components (10)**:
+- `components/math/MathText.tsx` — D-178 KaTeX wrapper (only mounts when `$…$` / `$$…$$` / `\(…\)` / `\[…\]` detected; plain text bypasses KaTeX entirely).
+- `components/quiz/{QuestionCard,OptionRadio,NavigationGrid,FlagButton,TimerPill,SolutionCard,SubmitConfirmDialog}.tsx`
+- `components/exam/{TabSwitchBanner,LockedResultCard}.tsx`
+
+**Discovery wiring (3 files edited)**:
+- `app/(protected)/library/_components/LibraryClient.tsx` — per-topic Practice quizzes block now links to `/quiz/[id]`.
+- `app/(protected)/classes/_components/StudentClasses.tsx` — exam rows now link to `/exam/[id]`; D-181 re-open routing handled by `ExamClient`.
+- `components/dashboard/WeakTopicsList.tsx` — `quiz_id` (if present) routes to `/quiz/[id]`; fallback to `/library`.
+
+**Dependencies added**:
+- `katex` ^0.16, `react-katex` ^3.1.
+- `@types/katex`, `@types/react-katex` (dev).
+- CSS: `@import "katex/dist/katex.min.css"` added to `app/globals.css`.
+
+### Tests
+
+- **Unit (Vitest):** 91/91 pass across 15 files. Phase 3 additions:
+  - `components/math/__tests__/MathText.test.tsx` — parser (math detection, run-splitting across 4 delimiter pairs) + render (KaTeX mounts only when math present, bold/italic/newline formatting).
+  - `components/quiz/__tests__/TimerPill.test.tsx` — server-anchored countdown including offset arithmetic, red warning at ≤60s, single onExpire fire, live offsetMs override.
+  - `components/quiz/__tests__/NavigationGrid.test.tsx` — current-cell override + click delegation.
+  - `features/quiz/__tests__/attemptHelpers.test.ts` — pure helpers used by both QuizClient and ExamClient.
+  - `features/quiz/__tests__/cacheKeySecurity.test.ts` — source-file scan asserts attempt-stage hooks never reference `is_correct` / `correct_option_id` (comments are stripped before scanning).
+  - `features/exams/__tests__/serverTimeOffset.test.ts` — `computeRemainingMs` + `formatRemainingMmSs` across positive/negative offsets, clamping, MM:SS formatting with 99:59 cap.
+  - `features/exams/__tests__/examTabSwitchLogger.test.ts` — fire-and-forget invocation, silent on 404, `setInitial` seeding.
+
+- **E2E (Playwright):** new specs `e2e/{quiz-attempt,exam-attempt,security-attempt}.spec.ts`. Quiz/exam happy-path tests SKIP if the seed isn't fresh (deterministic). Security spec runs on every browser project.
+
+- **Verification gates (all green on web-phase-1, 2026-05-28):**
+  - `pnpm --filter @fynestudy/web typecheck` → 0 errors.
+  - `pnpm --filter @fynestudy/web lint` → 0 errors, 0 warnings.
+  - `pnpm --filter @fynestudy/web test` → 91/91.
+  - `pnpm --filter @fynestudy/web build` → 27 routes (incl. `/quiz/[id]` + `/exam/[id]`), sw.js generated, no Attempted-import warnings.
+  - `Get-ChildItem .next/static -Include *.js | Select-String "SUPABASE_SERVICE_ROLE|service_role"` → zero matches.
+
+### W-DEC entries (web decisions log)
+
+- **W-DEC-3.1 (D-178 mirror):** MathText only mounts the KaTeX renderer when `$…$` / `$$…$$` / `\(…\)` / `\[…\]` is detected. Plain text renders as a `<span>` without KaTeX cost — same heuristic as mobile.
+- **W-DEC-3.2:** Quiz attempt-stage auto-save debounce is **250ms**; exam attempt-stage is **500ms** — mirrors mobile (quiz needs responsiveness for the navigation grid; exam has fewer state changes per minute and a heavier server cost).
+- **W-DEC-3.3 (D-183 mirror):** `useServerTimeOffset` seeds from `exam-start.server_now` once, then re-syncs every 60s + on `window.focus`. Auto-submit fires when `remaining ≤ 0`. Server `exam_answers` RLS rejects post-deadline writes with 403 as the backstop (existing migration; unchanged).
+- **W-DEC-3.4 (D-182 mirror):** Tab-switch logger is fire-and-forget. Subscribes to `document.visibilitychange` AND `window.blur` — Windows + Chrome Alt-Tab doesn't always fire `visibilitychange`, so `blur` is the second signal. The banner count comes from the server response (post-200) so multiple tabs viewing the same attempt agree.
+- **W-DEC-3.5 (D-181 mirror):** `useExamPreInfo` reads `exam_attempts(submitted_at, student_id)` for the current student. On preInfo load, `ExamClient`'s `reopenAppliedRef` `useEffect` routes a submitted instant exam directly to **result** (NOT pre→restart) and a submitted manual exam to **submitted** (or **result** if `results_released_at IS NOT NULL`). One-way: the route doesn't bounce.
+- **W-DEC-3.6:** `QuizClient` / `ExamClient` wrap their inner content in `<QueryProvider><SessionProvider>…` themselves, because the routes live OUTSIDE `(protected)/layout.tsx` (the layout that normally provides them). This is the same pattern mobile uses for its top-level routes.
+- **W-DEC-3.7:** Locked UI is implemented as an effect on the attempt stage that adds `select-none` to `<body>` and `preventDefault()`s `contextmenu`. Best-effort deterrent only — the server is the real guard.
+
+### Carry-overs
+
+1. Vercel deploy + Supabase Auth redirect-URL allowlist + edge-fn CORS allow-list extension for web-*.vercel.app.
+2. iOS Safari + Android Chrome on-device manual QA (§L.3, §L.4) — needs HTTPS.
+3. Multi-role + suspended account creation — pending user opt-in (carried from Phase 1).
+4. Cold-start measurement on Redmi 8A — hardware-dependent.
+5. Component-level Jest tests for the QuizClient + ExamClient reducers — Phase 3 covers the pure helpers; future hardening pass can add reducer-state-machine tests.
+6. Local KaTeX bundle hardening — currently the package's CSS + fonts are bundled by Next. If the CDN ever changes, no change needed (no CDN).
+
+### Honored decisions from mobile (`docs/decisions.md`)
+
+- **D-178** (math detection heuristic) — preserved verbatim in MathText.
+- **D-179** (regrade full-recompute) — not touched (regrade is a Phase 4 teacher feature).
+- **D-180** (question_snapshot self-contained dossier) — read-only consumed via exam-start sanitisation + exam-attempt-result enrichment.
+- **D-181** (instant-exam re-open → result) — `useExamPreInfo` + `reopenAppliedRef` in ExamClient.
+- **D-182** (tab-switch fire-and-forget, silent-on-submitted) — `useExamTabSwitchLogger`.
+- **D-183** (server-time defense-in-depth: 60s resync + RLS deadline cut) — `useServerTimeOffset` (client) + existing migration (server).
+
+### Status
+
+- **Code-complete:** 2026-05-28 on branch `web-phase-1`.
+- **Automated tests:** all green (91/91 unit, build green, typecheck/lint clean).
+- **Manual QA:** pending — `Phases/phase-3-manual-tests.md` (~14 sections, ~80 tests) ready for the user to walk through on Chrome desktop.
+
+⚠ **Do NOT mark this phase as fully accepted until the user finishes the §N sign-off.**

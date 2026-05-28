@@ -14,26 +14,33 @@ export function WeakTopicsList({ items }: { items: WeakTopicItem[] }) {
   }
   return (
     <div className="space-y-2">
-      {items.map((w) => (
-        <Link
-          key={w.topic_id}
-          href="/library"
-          className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
-        >
-          <div className="mr-3 flex size-12 items-center justify-center rounded-2xl bg-amber-50">
-            <span className="text-sm font-extrabold text-amber-700">
-              {Math.round(w.mastery)}%
-            </span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-slate-900">{w.topic_name}</p>
-            <p className="mt-1 text-[11px] font-semibold text-primary">
-              {w.quiz_id ? "Practice this topic" : "Review in library"}
-            </p>
-          </div>
-          <ChevronRight className="size-4 text-slate-400" />
-        </Link>
-      ))}
+      {items.map((w) => {
+        // If the dashboard RPC surfaced a recommended quiz for this weak
+        // topic, route the student straight into the attempt screen.
+        // Otherwise fall back to the library for review materials.
+        const href = w.quiz_id ? `/quiz/${w.quiz_id}` : "/library";
+        return (
+          <Link
+            key={w.topic_id}
+            href={href}
+            data-testid={w.quiz_id ? "weak-topic-quiz-link" : "weak-topic-library-link"}
+            className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+          >
+            <div className="mr-3 flex size-12 items-center justify-center rounded-2xl bg-amber-50">
+              <span className="text-sm font-extrabold text-amber-700">
+                {Math.round(w.mastery)}%
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-slate-900">{w.topic_name}</p>
+              <p className="mt-1 text-[11px] font-semibold text-primary">
+                {w.quiz_id ? "Practice this topic" : "Review in library"}
+              </p>
+            </div>
+            <ChevronRight className="size-4 text-slate-400" />
+          </Link>
+        );
+      })}
     </div>
   );
 }

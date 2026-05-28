@@ -327,16 +327,23 @@ export function LibraryClient({
               </p>
               <ul className="space-y-1">
                 {(quizzes.data?.byTopic.get(topic!.id) ?? []).map((q) => (
-                  <li
-                    key={q.id}
-                    className="flex items-center justify-between rounded-xl bg-white px-3 py-2"
-                  >
-                    <p className="truncate text-sm font-semibold text-slate-900">
-                      {q.title}
-                    </p>
-                    <span className="text-[11px] font-bold text-slate-400">
-                      Phase 3
-                    </span>
+                  <li key={q.id}>
+                    <Link
+                      href={`/quiz/${q.id}`}
+                      data-testid="quiz-link"
+                      className="flex items-center justify-between rounded-xl bg-white px-3 py-2 transition hover:bg-amber-100/60"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {q.title}
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          {q.duration_min} min · +{q.marks_correct}/{q.marks_wrong}/{q.marks_skip}
+                          {q.attempt_count > 0 ? ` · attempted ${q.attempt_count}×` : ""}
+                        </p>
+                      </div>
+                      <ChevronRight className="size-4 text-slate-400" />
+                    </Link>
                   </li>
                 ))}
               </ul>
