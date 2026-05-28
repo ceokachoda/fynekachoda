@@ -31,8 +31,25 @@ function inGroup(pathname: string, group: "student" | "teacher"): boolean {
   // /attendance, /leaderboard, /profile, /menu. Teacher-only: /scan, /content,
   // /quizzes, /exams, /batch. /classes + /profile + /library overlap, so we
   // arbitrate via the active-role cookie when ambiguous.
+  //
+  // Phase 4 Track 4B adds 6 top-level teacher-only routes OUTSIDE
+  // `(protected)` (FocusLayout, no side-rail). /live/{id} + /recording/{id}
+  // stay open to BOTH roles (Track 4A — student joins live + watches
+  // recordings; teacher uses /live-control for the broadcast operator view).
   const studentOnly = ["/attendance", "/leaderboard", "/menu"];
-  const teacherOnly = ["/scan", "/content", "/quizzes", "/exams", "/batch"];
+  const teacherOnly = [
+    "/scan",
+    "/content",
+    "/quizzes",
+    "/exams",
+    "/batch",
+    "/quiz-builder",
+    "/exam-builder",
+    "/exam-results",
+    "/offline-scores",
+    "/roster",
+    "/live-control",
+  ];
   if (group === "student") return studentOnly.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   return teacherOnly.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }

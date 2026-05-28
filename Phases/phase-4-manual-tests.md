@@ -6,9 +6,9 @@
 >
 > **How to record results:** every test ends with `[ ] PASS / [ ] FAIL / [ ] N/A`. Tick one box. If FAIL, write what you saw in the space below it and ping me — I'll diagnose. If N/A, write the reason.
 >
-> **Estimated time (Track 4A only):** ~45 minutes on Chrome desktop if no failures. Track 4B sections (§C–§L) will be added in the next conversation — that session's QA is ~3 hours including the OBS dry-run.
+> **Estimated time:** ~3 hours on Chrome desktop for the full Track 4A + 4B sweep, plus ~30 minutes for the §G OBS real-stream dry-run on a second device.
 >
-> **🟡 Phase 4 is being built in two tracks.** This document is the FULL Phase 4 doc; the **Track 4A** sections (§0, §A, §B, security spot-checks in §M, responsive in §N, automated gates in §O) are LIVE and ready to test now. The **Track 4B** sections (§C teacher home → §L roster + live-control) will be appended in the next conversation when those features are built. Until then, treat §C–§L as `N/A — pending Track 4B`.
+> **🟢 Phase 4 is code-complete (Track 4A + 4B both built).** Every section §0–§P below is LIVE. iOS Safari + Android Chrome rows in §N.3 + §N.4 remain `N/A — Phase 5` (need HTTPS).
 
 ---
 
@@ -27,7 +27,6 @@ Same accounts as Phase 1/2/3.
 **Skipped sections (mark N/A unless instructed otherwise):**
 - iOS Safari + Android Chrome carry-overs (§N.3, §N.4) — needs the Vercel deploy.
 - Multi-role student/teacher account switch — account never created in Phase 1.
-- §C–§L — pending Track 4B (next conversation).
 
 > Source of truth for credentials: `CREDENTIALS.local.md` at the repo root (git-ignored, do not paste publicly).
 
@@ -38,16 +37,16 @@ Same accounts as Phase 1/2/3.
 - **§0 Setup** — branch, env, dependencies, seed, dev server, DevTools (7 sub-tasks)
 - **§A Student live class** — lobby countdown → player → chat → raise-hand → pinned → end-of-class (10 tests) ✅ Track 4A
 - **§B Student recording** — playback → speed buttons → chat replay sync (7 tests) ✅ Track 4A
-- **§C Teacher home dashboard** — Track 4B (pending)
-- **§D Teacher scan (webcam QR)** — Track 4B (pending)
-- **§E Teacher classes** — Track 4B (pending)
-- **§F Teacher content upload** — Track 4B (pending)
-- **§G Teacher live control + REAL OBS DRY-RUN** — Track 4B (pending)
-- **§H Teacher quiz builder** — Track 4B (pending)
-- **§I Teacher exam builder + results + regrade** — Track 4B (pending)
-- **§J Teacher offline scores** — Track 4B (pending)
-- **§K Teacher batch analytics** — Track 4B (pending)
-- **§L Roster corrections** — Track 4B (pending)
+- **§C Teacher home dashboard** — quick actions + Pending list (4 tests) ✅ Track 4B
+- **§D Teacher scan (webcam QR)** — start-on-gesture + decode + dedup + fallback (7 tests) ✅ Track 4B
+- **§E Teacher classes** — Today/Upcoming/Past + Schedule-Live + Ad-hoc FABs (4 tests) ✅ Track 4B
+- **§F Teacher content upload** — curriculum picker + Video URL + PDF presign+PUT+finalize (3 tests) ✅ Track 4B
+- **§G Teacher live control + REAL OBS DRY-RUN** — Setup → OBS → Go Live → moderate → end (7 tests) ✅ Track 4B
+- **§H Teacher quiz builder** — list + builder + bank + publish (4 tests) ✅ Track 4B
+- **§I Teacher exam builder + results + regrade** — atomic replace + release + 3-mode regrade (4 tests) ✅ Track 4B
+- **§J Teacher offline scores** — pre-fill + validation + save → student profile (3 tests) ✅ Track 4B
+- **§K Teacher batch analytics** — Risk / Mastery / Attendance tabs (4 tests) ✅ Track 4B
+- **§L Roster corrections** — pill marks + D-164 toggle + CorrectionDialog + bulk + realtime (5 tests) ✅ Track 4B
 - **§M Security + cleanup** — realtime cleanup grep, no service-role-key, no `is_correct` leak (Phase-3 invariant guard) (4 tests) ✅ Track 4A
 - **§N Responsive + carry-overs** — desktop ↔ mobile-web at 320 → 1440 px (4 tests, 2 carry-over) ✅ Track 4A
 - **§O Automated test gates** — typecheck / lint / vitest / build / Playwright (5 commands) ✅ Track 4A
@@ -690,20 +689,891 @@ The recording screen lives at `/recording/[sessionId]` (also outside `(protected
 
 ---
 
-# §C–§L — Track 4B (pending)
+# §C — Teacher home dashboard
 
-These sections will be appended in the next conversation when Track 4B (teacher portal) is built. For now, mark them `N/A — pending Track 4B`:
+> Sign in with `review.teacher@fynestudy.app` (`ReviewTeacher#2026`) before §C. Stay signed in for §D–§L.
 
-- §C Teacher home dashboard
-- §D Teacher scan (webcam QR)
-- §E Teacher classes
-- §F Teacher content upload
-- §G Teacher live control + REAL OBS DRY-RUN
-- §H Teacher quiz builder
-- §I Teacher exam builder + results + regrade
-- §J Teacher offline scores
-- §K Teacher batch analytics
-- §L Roster corrections
+### C.1 — Teacher branch renders on `/`
+
+**👉 Do this:**
+
+1. Sign in (form at `http://localhost:3000/login`).
+2. After redirect to `/`, look at the top of the main column.
+
+**✅ What you should see:**
+
+- Page header reads `Good morning, <FirstName>` (or evening/afternoon based on IST).
+- A row of three "Quick actions" tiles labelled **Scan QR**, **New exam**, **Upload** on the right side (or below the main column on a narrow window).
+- On the left, either a blue "Next" card (subject + batch + start time) or — if no future class today — only the "Pending" section.
+- The Pending section either says "You're all caught up — nothing pending." OR shows one row per exam awaiting release + one row "Review N raised hand(s)" if hands are queued.
+- The "My batches" section in the right column lists every batch with a course code + name + student count + next-session label.
+
+**❓ If something looks different:**
+
+- "Phase 4 placeholder" copy appears → the teacher dashboard didn't replace the empty state in `app/(protected)/page.tsx`. Re-confirm `web-phase-1` is checked out + the build is fresh.
+- "Loading…" never resolves on Pending → the `teacher_dashboard` RPC threw. Open DevTools → Console; copy the supabase error.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### C.2 — "Take attendance" CTA opens `/scan`
+
+**👉 Do this:**
+
+1. From the Next card click **Take Attendance**.
+
+**✅ What you should see:**
+
+- URL changes to `/scan`.
+- The page header reads "Scan".
+- Side rail / bottom-tabs still visible (we're inside `(protected)`).
+
+**❓ If something looks different:**
+
+- Stays on `/` → the `<Link>` href is wrong. Check `app/(protected)/_components/TeacherDashboard.tsx`.
+- 403 redirect to `/` → middleware blocked the teacher; re-check `active_role` cookie.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### C.3 — Pending list deep-links to `/exam-results/[id]`
+
+**👉 Do this:**
+
+1. Back on `/`. If any "Release results: X" rows show, click the first.
+
+**✅ What you should see:**
+
+- URL becomes `/exam-results/<uuid>`.
+- The page renders with the exam title at top + a release banner.
+
+**❓ If something looks different:**
+
+- Page 404s → the exam id in `pending.exams_awaiting_release` is stale. Refresh `/` and retry.
+- Empty page → `useExamResultsBoard` errored. Check Console.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### C.4 — Window-focus refresh
+
+**👉 Do this:**
+
+1. Open `/` in one tab. Open the Supabase dashboard in another tab.
+2. In Supabase Studio insert a `raise_hand_events` row for one of the teacher's sessions (you can also just open a student tab and tap Raise hand).
+3. Click back to the `/` tab.
+
+**✅ What you should see:**
+
+- Within ~1 second the Pending card updates to show the new raised hand count.
+
+**❓ If something looks different:**
+
+- Pending stale → the focus listener in `useTeacherDashboard` didn't fire. Check Console for errors; reload.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+# §D — Teacher scan (webcam QR)
+
+### D.1 — Camera is OFF on mount (iOS Safari gesture safety)
+
+**👉 Do this:**
+
+1. Navigate to `/scan`.
+2. Observe the camera viewport (the 3:4 black box).
+
+**✅ What you should see:**
+
+- A dark box with a camera icon + **Start camera** button + helper text.
+- The browser has NOT yet shown a camera permission prompt.
+- DevTools → Elements: no `<video>` tag inside the camera frame.
+
+**❓ If something looks different:**
+
+- Permission prompt appears immediately → the WebcamScanner mounted on first render. Check `active` gating in `components/teacher/WebcamScanner.tsx`.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### D.2 — Start camera prompts for permission, then renders the live feed
+
+**👉 Do this:**
+
+1. Click **Start camera**.
+2. When the browser asks "Allow camera?", click **Allow**.
+
+**✅ What you should see:**
+
+- Within ~1 second the dark box swaps to your live webcam feed.
+- The corner-bracket viewfinder overlay shows around the centre.
+- The hint reads "Point at the student's QR" if a class is auto-picked, or "Pick a class first" otherwise.
+- Top-right "Reset camera" and "Stop" buttons appear.
+
+**❓ If something looks different:**
+
+- "Camera blocked" amber card appears instead → permission was denied. Click the address-bar camera icon → Allow → reload.
+- Feed shows but mirrored → the scanner mounted the front camera. We requested `facingMode: 'environment'`; on a laptop this falls back to the only built-in cam, which is fine. Move on.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### D.3 — Session picker lists today + upcoming, NOT past
+
+**👉 Do this:**
+
+1. Click the picker bar above the camera (the row that says "Scanning for · …").
+
+**✅ What you should see:**
+
+- A drop-down lists every session in your assigned batches that is `today` or `upcoming` — never `past`.
+- Each row shows subject · time · "Today" or "Upcoming" tag.
+
+**❓ If something looks different:**
+
+- "No upcoming or live classes in your batches" → you have no future sessions. Run `pnpm seed:live-manual-test --reset` to materialise one.
+- Past sessions show → `useTeacherSessions` filter changed. Check `bucket !== 'past'`.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### D.4 — Decode + success toast (real two-device test)
+
+**👉 Do this:**
+
+1. On a second device (phone) sign in as `review.student@fynestudy.app` and open `/attendance`. The rotating QR appears.
+2. Hold the phone in front of the laptop's webcam (or use Chrome DevTools → "Sensors" → upload an image with the QR).
+
+**✅ What you should see:**
+
+- Within ~1 second a green toast appears at the top of the camera frame: `✔ <student name>` + "Marked present".
+- The viewfinder briefly tints green, then back to neutral.
+
+**❓ If something looks different:**
+
+- Red toast "QR expired" → the QR is older than the verify window. Refresh `/attendance` on the phone; rotate-token is every 30 s.
+- Red toast "Wrong class" → the QR belongs to a different batch. Switch the picker to the right class.
+- No toast at all → the decode didn't fire. Open Console; if you see `BarcodeDetector` errors, try a different browser (Chrome desktop fully supports it).
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### D.5 — 500ms debounce + same-token dedup (no double-marks)
+
+**👉 Do this:**
+
+1. While the QR is in view, watch the network tab in DevTools.
+
+**✅ What you should see:**
+
+- Multiple decode frames per second, but only ONE `POST /functions/v1/attendance-qr-verify` per QR token AND per ~500ms window.
+- Subsequent identical tokens are silently dropped until the QR rotates (every 30s).
+
+**❓ If something looks different:**
+
+- Rapid duplicate POSTs → the `lastCallAt`/`lastPayload` refs aren't working. Inspect `features/teacher/useScanVerify.ts`.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### D.6 — Permission-denied fallback to manual roster
+
+**👉 Do this:**
+
+1. Click "Stop", then in the address bar click the camera icon → Block → reload.
+2. Click **Start camera**.
+
+**✅ What you should see:**
+
+- The amber "Camera permission was blocked" card appears below the camera.
+- A "Open roster instead" link routes to `/roster/<active session>`.
+
+**❓ If something looks different:**
+
+- No fallback card → the `onError` mapping in `ScanClient` didn't see the `NotAllowedError`. Open Console for the raw error message; you may need to add a substring to the recogniser.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### D.7 — Reset camera button re-mounts the scanner
+
+**👉 Do this:**
+
+1. Re-allow camera → start.
+2. Click **Reset camera**.
+
+**✅ What you should see:**
+
+- The feed momentarily flickers to the loading state, then re-mounts. `resetKey` increments which forces React to drop + re-create the lazy Scanner.
+
+**❓ If something looks different:**
+
+- Nothing happens → the `key={"scanner-" + resetKey}` isn't wired. Inspect `WebcamScanner.tsx`.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+# §E — Teacher classes
+
+### E.1 — Today / Upcoming / Past segmented + per-row actions
+
+**👉 Do this:**
+
+1. Open `/classes`.
+
+**✅ What you should see:**
+
+- Three segmented tabs `Today · Upcoming · Past` with counts.
+- Each row in the current bucket shows subject, batch + course code, schedule, status pill (Live / Scheduled / Ended / Cancelled).
+- Live-class rows have a **Go live / Live control** button (red); other rows have **Scan** (blue). Both have a **Roster** chip.
+
+**❓ If something looks different:**
+
+- "Coming in Phase 4" placeholder still shows → the page didn't switch on `active_role === 'teacher'`. Re-check `app/(protected)/classes/page.tsx`.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### E.2 — Schedule live FAB → SessionCreateSheet → routes to live-control
+
+**👉 Do this:**
+
+1. Click the floating red **Radio** FAB (bottom-right).
+2. Pick a batch (defaults to your first assigned), keep 60 min, click **Set up live class**.
+
+**✅ What you should see:**
+
+- A new session is created server-side via `session-create-ad-hoc` with `is_live_class: true`.
+- The page redirects to `/live-control/<new session id>`.
+
+**❓ If something looks different:**
+
+- Sheet doesn't close → the mutation errored. Check the inline red text; if "403" you're not assigned to that batch (pick another).
+- Routes to `/roster/...` instead → the `onCreated` wiring went to the wrong place. Inspect `TeacherClasses.tsx`.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### E.3 — Ad-hoc FAB → SessionCreateSheet → routes to roster
+
+**👉 Do this:**
+
+1. Back on `/classes`, click the blue **Plus** FAB.
+2. Confirm a non-live session.
+
+**✅ What you should see:**
+
+- New session created with `is_live_class: false`. Route is `/roster/<id>`.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### E.4 — Roster + Scan chips on rows
+
+**👉 Do this:**
+
+1. Pick any row → click **Roster**.
+
+**✅ What you should see:**
+
+- URL is `/roster/<session id>` (FocusLayout — no side-rail). Back button works.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+# §F — Teacher content upload
+
+### F.1 — Cascading topic picker
+
+**👉 Do this:**
+
+1. Open `/content`.
+2. Click each select in order: (Course if >1) → Subject → Chapter → Topic.
+
+**✅ What you should see:**
+
+- Each picker is `disabled` until the prior one is chosen.
+- After picking a Topic, the Batch selector below becomes enabled.
+
+**❓ If something looks different:**
+
+- Pickers don't enable → `useTeacherCurriculum` didn't load. Check the Console + the `useAssignedBatches` query.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### F.2 — Video URL flow
+
+**👉 Do this:**
+
+1. Pick Kind = **Video**.
+2. Pick Topic + Batch.
+3. Paste any unlisted YouTube URL in the YouTube field (e.g. `https://youtu.be/dQw4w9WgXcQ`).
+4. Title: "Test video upload".
+5. Click **Upload**.
+
+**✅ What you should see:**
+
+- Within ~3 seconds a green pill appears: "Video linked successfully." or "Linked. (YT verification is currently disabled — admin will review.)"
+- Form resets (Title clears, URL clears).
+- Student `/library` now lists this title under the same Topic.
+
+**❓ If something looks different:**
+
+- Red pill with 503 / "YouTube isn't configured" → the Vault keys aren't loaded. This is expected on a fresh project; check `apps/functions/_shared/yt-api.ts`.
+- Red pill with 403 → the teacher isn't assigned to that batch.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### F.3 — PDF presign → PUT → finalize with progress bar
+
+**👉 Do this:**
+
+1. Pick Kind = **PDF**.
+2. Click "Pick a PDF" and select any PDF ≤ 5 MB.
+3. Click **Upload**.
+
+**✅ What you should see:**
+
+- The file label updates to your PDF's name + size in MB.
+- A blue progress bar appears under the picker, animating 0 → 100% while the bytes upload to the signed URL.
+- A green pill appears: "Uploaded — content added to library."
+- Student `/library` now lists this PDF.
+
+**❓ If something looks different:**
+
+- 413 → the file is too big (>50 MB). Pick a smaller one.
+- 403 on presign → batch RLS rejected. Pick a different batch.
+- Progress bar never moves → XHR isn't firing onprogress; check Console.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+# §G — Teacher live control + REAL OBS DRY-RUN
+
+> ⚠ This is the most important section. The mobile manual plan ran a real OBS dry-run on the dev's "NOvA FX" YouTube channel; replicate that here.
+
+### G.1 — Setup phase renders RTMP + key
+
+**👉 Do this:**
+
+1. From `/classes` schedule a new live session (or open an existing scheduled one) → land on `/live-control/<id>`.
+
+**✅ What you should see:**
+
+- A "Preparing broadcast…" spinner for ~2 seconds.
+- The page then shows: a card with **Server (RTMP URL)** + **Stream key** + Copy buttons + a "Copy Server + Key" combined button + a red **Go Live** button at the bottom.
+- The stream key is masked (looks like a long alphanumeric); copying it to your clipboard works (try pasting in Notepad).
+
+**❓ If something looks different:**
+
+- Inline red error card "YouTube isn't configured yet" / 503 → Vault secrets missing. Add `YT_CLIENT_ID/SECRET/REFRESH_TOKEN` to Supabase Vault. The Retry button keeps your form state.
+- Error other than 503 → tap **Retry**; it re-fires `yt-broadcast-create` (state is preserved).
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### G.2 — Copy buttons hit `navigator.clipboard.writeText`
+
+**👉 Do this:**
+
+1. Click **Copy** next to the server URL. Then **Copy** next to the stream key.
+
+**✅ What you should see:**
+
+- Each button briefly swaps to a green ✓ "Copied" label for ~1.6s, then back.
+- Paste both into a Notepad / text editor; verify they look like an RTMP URL (`rtmp://a.rtmp.youtube.com/live2`) and a UUID-style key.
+
+**❓ If something looks different:**
+
+- Nothing copied → the browser blocked clipboard on an insecure context. localhost is fine; on http://lan-ip it's blocked. Use https://localhost or the Vercel deploy.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### G.3 — OBS handoff (real-streaming dry-run)
+
+**👉 Do this:**
+
+1. Open **OBS Studio** on a second computer (or same machine if the camera is free).
+2. Settings → Stream → Service: **Custom…**
+3. **Server**: paste the RTMP URL from the Copy button.
+4. **Stream Key**: paste the stream key.
+5. Apply, close.
+6. Click **Start Streaming** in OBS.
+7. Wait ~10 seconds. Then in the web app click **Go Live**.
+
+**✅ What you should see (web app):**
+
+- A loading spinner on Go Live; ~3 seconds later the page swaps to the LIVE view: a player preview at the top, two tabs (Stream · Moderate).
+- The header reads "● Live now" with a viewer count chip.
+
+**✅ What you should see (a second tab signed in as the student):**
+
+- `/classes` shows the session under the **Live** segment with a red LIVE pill.
+- Clicking it opens `/live/<id>` and the YouTube player begins streaming OBS's feed within ~5 seconds.
+
+**❓ If something looks different:**
+
+- Go Live errors with 503 → broadcast not bound to a stream; OBS hasn't connected yet. Wait + retry.
+- Student sees "Loading…" forever → `yt-playback-sign` returns 409. Check the live broadcast's status in YouTube Studio.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### G.4 — Moderate tab: delete + ban
+
+**👉 Do this:**
+
+1. From the student tab, post 2-3 chat messages.
+2. In the teacher live-control tab, switch to the **Moderate** tab.
+3. Hover one of the student's messages → click the ⋯ kebab → **Delete message**.
+4. Hover another → kebab → **Mute … for this class**.
+
+**✅ What you should see:**
+
+- Deleted message immediately strikes through + reads "(message deleted)" in both tabs.
+- The student tab disables the chat composer + raise-hand button live (`useSessionState` channel pushes the ban).
+- Back in moderation, the muted user's row shows "· muted".
+
+**❓ If something looks different:**
+
+- Kebab not visible → the moderation menu only renders on hover for non-own messages; tap the message first.
+- Composer stays enabled on student tab → the `ban-{sessionId}-{userId}` channel didn't fire. Reload the student tab.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### G.5 — Pin announcement
+
+**👉 Do this:**
+
+1. Moderate tab → tap **Pin an announcement**.
+2. Type "Quiz at 8 PM" → Pin.
+
+**✅ What you should see:**
+
+- The Stream tab shows a blue **Pinned by …** banner with your message.
+- Student tabs show the same banner above the chat.
+
+**❓ If something looks different:**
+
+- No banner → the `chat-{id}` channel didn't replay. Reload.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### G.6 — Raise-hand queue + Resolve
+
+**👉 Do this:**
+
+1. From the student tab tap **Raise hand**.
+2. Switch to teacher Moderate tab.
+
+**✅ What you should see:**
+
+- The raise-hand queue lists the student in slot 1.
+- Tap **Resolve** — the row vanishes.
+- The student's "Raise hand" button toggles back to its default state within ~1 second.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### G.7 — End class
+
+**👉 Do this:**
+
+1. Tap **End class** (top-right red button).
+2. Confirm in the dialog "End class for everyone?".
+
+**✅ What you should see:**
+
+- yt-broadcast-stop fires → `sessions.status='ended'` → a `kind='system'` chat row is inserted.
+- The teacher returns to `/classes`.
+- The student tab pivots from the live player to "This class has ended" → tap to view recording (recording will become available after YouTube finishes processing — usually 5-15 minutes).
+
+**❓ If something looks different:**
+
+- Dialog doesn't appear → ConfirmDialog mounted but not opened; inspect `confirmEnd` state.
+- Student stays on the live screen → the system message didn't arrive; the chat channel may have dropped. Reload the student tab.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+# §H — Teacher quiz builder
+
+### H.1 — List + "New quiz" routes to FocusLayout builder
+
+**👉 Do this:**
+
+1. Open `/quizzes`. If empty, click **New quiz**.
+
+**✅ What you should see:**
+
+- URL becomes `/quiz-builder/new`.
+- FocusLayout (no side-rail) — only a back arrow + title.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### H.2 — Scope picker + topic gating
+
+**👉 Do this:**
+
+1. Pick Subject → Chapter → Topic. Leave Batch as "Course-wide (no batch)".
+
+**✅ What you should see:**
+
+- Each select enables only after its parent is picked.
+- The save buttons become enabled once Title + Topic + Duration are valid.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### H.3 — Add from bank, reorder, remove
+
+**👉 Do this:**
+
+1. Click **From bank** → tick 2-3 questions → **Add**.
+2. Use the up/down arrows to reorder.
+3. Click the trash to remove one.
+
+**✅ What you should see:**
+
+- Each interaction updates the list immediately. The arrows are disabled at the top/bottom edges.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### H.4 — Save draft + publish
+
+**👉 Do this:**
+
+1. Type a title.
+2. Click **Save draft**. Confirm green toast.
+3. Re-open the saved quiz from `/quizzes`.
+4. Click **Publish**.
+
+**✅ What you should see:**
+
+- After Save draft: redirect to `/quizzes`; new row shows with status "Draft".
+- After Publish: status flips to "Published"; student `/library` / dashboard surfaces the quiz.
+
+**❓ If something looks different:**
+
+- Save errors with `quizzes_teacher_insert` policy → confirm `created_by` matches the teacher's `app_users.id`.
+- Atomic question replace: if the publish hangs mid-way, the old questions stay (no empty published quiz).
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+# §I — Teacher exam builder + results + regrade
+
+### I.1 — `/exam-builder/new` FocusLayout
+
+**👉 Do this:**
+
+1. Open `/exams` → **New exam**.
+
+**✅ What you should see:**
+
+- FocusLayout. Title input + Batch select + datetime-local picker + duration select + release radios (Manual / Instant) + Marking grid + Questions empty state.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### I.2 — Atomic question replace (Phase-7 carry-over)
+
+**👉 Do this:**
+
+1. Add 3 bank questions, set duration 30 min, batch, future start.
+2. Publish.
+3. Re-open the exam and remove 1 question + add 1 different one + reorder; Publish again.
+
+**✅ What you should see:**
+
+- The first publish writes `exam_questions` rows.
+- The second publish UPSERTs the kept rows (updates sort_order), THEN deletes the removed one. Never empty mid-save.
+- Verify in Supabase Studio: `SELECT * FROM exam_questions WHERE exam_id = '<id>' ORDER BY sort_order;` — exactly the questions you saved.
+
+**❓ If something looks different:**
+
+- Empty `exam_questions` rows mid-save → the upsert-then-delete order was reversed. Check `builder-question-replace.ts` is honoured.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### I.3 — Results board release
+
+**👉 Do this:**
+
+1. From `/exams` open a published manual-release exam with ≥1 submitted attempt.
+2. Open `/exam-results/<id>` (via the "Results · Locked" link).
+3. Click **Release results to students**.
+4. Confirm in the dialog.
+
+**✅ What you should see:**
+
+- The release banner flips green + shows the IST timestamp.
+- A student tab on the same exam — refresh /exam/<id> — now shows the score + per-question breakdown (D-181 re-open routing).
+
+**❓ If something looks different:**
+
+- 403 on release → the teacher doesn't own the exam AND isn't admin. Confirm `exams.created_by` or use the owner account.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### I.4 — Regrade: change correct + mark all correct
+
+**👉 Do this:**
+
+1. In the question analysis section click **Regrade** on Q1.
+2. Mode = "Change correct option" → pick a different option → write a reason ≥ 3 chars → Apply regrade.
+3. Re-open Regrade on Q2 → "Mark all correct" → reason → Apply.
+
+**✅ What you should see:**
+
+- Each regrade pops a confirmation "N attempt(s) recomputed." Pct on the analysis bar updates after the page refetches.
+- `audit_log` shows two rows with `entity='exam_question'` (one per regrade).
+
+**❓ If something looks different:**
+
+- The pct doesn't update → `useExamResultsBoard.refetch()` wasn't called. Reload the page.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+# §J — Teacher offline scores
+
+### J.1 — Pick batch + test → roster loads with existing scores pre-filled
+
+**👉 Do this:**
+
+1. Open `/offline-scores`. Pick a batch. Type "Weekly Test 12". Today's date pre-fills.
+
+**✅ What you should see:**
+
+- Roster loads under the form.
+- If any saved scores already exist for that test name/date/batch, the inputs pre-fill silently (no warning).
+
+**❓ If something looks different:**
+
+- Inputs always blank → `useOfflineScores.existing` was empty (no prior scores) — that's normal for a brand-new test name.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### J.2 — Validation: empty + out-of-range + non-numeric
+
+**👉 Do this:**
+
+1. Type `abc` in one cell → **Save all**.
+2. Clear → type `150` (with max=100) → Save.
+3. Clear → leave all empty → Save.
+
+**✅ What you should see:**
+
+- "isn't a number" pill for `abc`.
+- "outside [0, 100]" pill for `150`.
+- "Enter at least one student's score before saving." pill for all-empty.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### J.3 — Save → student profile reflects the score
+
+**👉 Do this:**
+
+1. Fill 2-3 cells with valid scores → **Save all**.
+2. Green pill: "N new, M updated."
+3. Switch to a student tab → `/profile`.
+
+**✅ What you should see:**
+
+- A new offline-test row in their profile activity (Phase-2 surface).
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+# §K — Teacher batch analytics
+
+### K.1 — `/batch` lists assigned batches → tap → `/batch/[id]` analytics
+
+**👉 Do this:**
+
+1. Open `/batch`.
+2. Tap a row.
+
+**✅ What you should see:**
+
+- URL becomes `/batch/<id>`.
+- Three tabs: Risk · Mastery · Attendance.
+- Side rail / bottom-tabs stay visible (decision: analytics inside `(protected)`).
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### K.2 — Risk tab — At-risk list (composite < 0.4)
+
+**👉 Do this:**
+
+1. Click the **Risk** tab.
+
+**✅ What you should see:**
+
+- Either "No students at risk" emerald card OR a list of students with red composite scores.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### K.3 — Mastery tab — Topic mastery bars
+
+**👉 Do this:**
+
+1. Click **Mastery**.
+
+**✅ What you should see:**
+
+- A list of topics with coloured progress bars (green ≥75% / amber 50–74% / red <50%) and the student-with-data count.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### K.4 — Attendance tab — 30-day heatmap
+
+**👉 Do this:**
+
+1. Click **Attendance**.
+
+**✅ What you should see:**
+
+- A horizontal heatmap of the last 30 days with day labels + a colour legend.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+# §L — Roster corrections
+
+### L.1 — P/L/A pills mark unmarked students
+
+**👉 Do this:**
+
+1. Open any session's roster: `/roster/<id>`.
+2. Tap a **P** pill on an unmarked row.
+
+**✅ What you should see:**
+
+- The pill turns solid emerald + the row briefly disables.
+- The status persists (refresh confirms).
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### L.2 — Tap active pill → unmark dialog (D-164)
+
+**👉 Do this:**
+
+1. Tap the now-active P pill again.
+
+**✅ What you should see:**
+
+- The "Un-mark this student?" confirmation appears.
+- Confirming clears the pill back to unmarked.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### L.3 — Different pill on a marked row → CorrectionDialog with preset reasons
+
+**👉 Do this:**
+
+1. Mark a student Present. Then tap their **L** pill.
+
+**✅ What you should see:**
+
+- A correction dialog opens with status pre-selected = Late.
+- Preset reason chips appear: "Late entry confirmed" · "QR scan failed" · "Teacher error" · "Other".
+- Save → status persists. `audit_log` has a row with `entity='attendance'` and `action='correct'`.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### L.4 — Bulk "All Present" / "All Absent"
+
+**👉 Do this:**
+
+1. With some students still unmarked, tap **All Present**.
+2. Confirm.
+
+**✅ What you should see:**
+
+- The "Pending" chip drops to 0; every previously-unmarked row flips to Present. Existing marks are not changed.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
+### L.5 — Realtime sync from a second device
+
+**👉 Do this:**
+
+1. Keep the roster open on one device.
+2. On a second device, sign in as another teacher (or scan a QR from the student attendance screen) for the same session.
+
+**✅ What you should see:**
+
+- The roster on the first device updates within ~1 second when the second device's mark commits — the `teacher-roster-{id}` channel pushes the change.
+
+**❓ If something looks different:**
+
+- No update → the channel name in `features/teacher/useRoster.ts` was changed; ensure it stays `teacher-roster-${sessionId}`.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
 
 ---
 
@@ -748,13 +1618,35 @@ These sections will be appended in the next conversation when Track 4B (teacher 
 **✅ What you should see:**
 
 - Both counts are equal. For Track 4A baseline, both should print **`3`** (chat-channel + raise-hand + ban-state — plus the existing Phase-2 attendance realtime channel makes it **`4`** depending on how Phase 2 inventoried; the parity is what matters).
-- The same audit is automated as `features/live/__tests__/realtimeCleanupAudit.test.ts` (it iterates files and per-file enforces parity).
+- With Track 4B added, the count grows to **`6`** (Track 4A's 3 + teacher-roster + teacher session bans + same-batch chat-channel reuse). The automated `realtimeCleanupAudit.test.ts` source-scan iterates `features/{live,chat,teacher,attendance}/` and per-file enforces parity (34 file checks).
 
 **❓ If something looks different:**
 
 - Counts mismatch → some hook subscribed without a corresponding `removeChannel` in its cleanup function. The realtimeCleanupAudit test will also fail in §O — open the failing file path it prints and add the missing `void supabase.removeChannel(channel)` to the effect's cleanup return.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, what you saw:_
+
+---
+
+### M.3a — D-172 audit row coverage (Track 4B)
+
+**👉 Do this:**
+
+1. After running §G (live-control end class), §I (release + regrade), §J (offline scores save), §L (correction / unmark) in Supabase Studio:
+   ```sql
+   SELECT created_at, actor_role, action, entity, entity_id
+     FROM public.audit_log
+    WHERE created_at > now() - interval '2 hours'
+    ORDER BY created_at DESC
+    LIMIT 50;
+   ```
+
+**✅ What you should see:**
+
+- Rows for: `attendance.correct`, `attendance.manual_mark`, `attendance.unmark`, `attendance.bulk_mark`, `exam.release`, `exam.regrade`, `offline_score.upsert`, `chat.delete`, `chat.ban`, `chat.unban`, `session.create_ad_hoc`, `yt_broadcast.create/golive/stop`. `before_json` + `after_json` populated.
+- **NOTE:** quiz/exam builder writes (`quizzes` + `quiz_questions` + `exams` + `exam_questions`) do NOT show audit rows — they go through RLS-protected direct PostgREST writes (mobile precedent + `quiz-admin-mutate` / `exam-admin-mutate` are admin-only, line 36/38 of each edge fn). Builder writes are still RLS-policy-guarded.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
 
 ---
 
@@ -846,6 +1738,31 @@ These sections will be appended in the next conversation when Track 4B (teacher 
 
 ---
 
+### N.2a — Teacher screens 320px → 1440px sweep (Track 4B)
+
+**👉 Do this:**
+
+1. Resize the Chrome window from 320px → 1440px in 5 steps. Visit each of the teacher screens at each size:
+   - `/` (teacher home — Quick actions tiles + Pending list + My batches)
+   - `/scan` (camera frame + session picker)
+   - `/classes` (segmented + cards + FABs)
+   - `/quiz-builder/new` + `/exam-builder/new` (form + sticky bottom bar)
+   - `/exam-results/<id>` (roster + analysis)
+   - `/offline-scores`
+   - `/roster/<id>`
+   - `/live-control/<id>` (setup card or Tabs view in live mode)
+
+**✅ What you should see:**
+
+- No horizontal scroll at 320px.
+- At ≥1024px the teacher home becomes a 2-column layout (left col = Next / Pending / Today; right col = Quick actions / My batches).
+- All FABs stay above the bottom-tabs on narrow widths.
+- Sticky bottom bars on builders + offline-scores stay above the bottom-tabs.
+
+`Result:` [ ] PASS · [ ] FAIL · [ ] N/A — _Notes:_
+
+---
+
 ### N.3 — iOS Safari (carry-over)
 
 **👉 Do this:** _CARRY-OVER — requires HTTPS / Vercel deploy. Mark N/A for now._
@@ -896,9 +1813,16 @@ pnpm --filter @fynestudy/web lint
 pnpm --filter @fynestudy/web test
 ```
 
-**✅ Expected (Track 4A baseline):** 117/117 tests pass across 17 files. Notable Phase-4 files:
-- `features/live/__tests__/chat-replay.test.ts` — 14 tests.
-- `features/live/__tests__/realtimeCleanupAudit.test.ts` — 11 tests (file-by-file parity audit).
+**✅ Expected (Phase 4 closing — Track 4A + 4B):** 196/196 tests pass across 24 files. Notable Phase-4 files:
+- Track 4A: `features/live/__tests__/chat-replay.test.ts` — 14 tests.
+- Track 4A: `features/live/__tests__/realtimeCleanupAudit.test.ts` — 34 tests (file-by-file parity audit; auto-discovers Track-4B teacher hooks).
+- Track 4B: `features/teacher/__tests__/scanToastMapper.test.ts` — 15 tests.
+- Track 4B: `features/teacher/__tests__/rosterCorrectionState.test.ts` — 9 tests (D-164 active-pill toggle).
+- Track 4B: `features/teacher/__tests__/builderQuestionReplace.test.ts` — atomic replace plan + reorder helper.
+- Track 4B: `features/teacher/__tests__/offlineScoreValidation.test.ts` — zod schema + score-entry filtering.
+- Track 4B: `features/teacher/__tests__/raiseHandQueue.test.ts` — FIFO ordering + ban dedup.
+- Track 4B: `features/teacher/__tests__/cameraGesture.test.ts` — source-scan: WebcamScanner gates on `active`.
+- Track 4B: `features/teacher/__tests__/streamKeyNoCache.test.ts` — source-scan: stream key never in React Query / localStorage.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, paste the failing test name + assertion:_
 
@@ -910,7 +1834,7 @@ pnpm --filter @fynestudy/web test
 pnpm --filter @fynestudy/web build
 ```
 
-**✅ Expected:** 29 routes total. New routes from Track 4A: `/live/[sessionId]` (ƒ) and `/recording/[sessionId]` (ƒ). sw.js generated. No `Attempted import error` warnings.
+**✅ Expected (Phase 4 closing):** 36 routes total (Track 4A added 2, Track 4B added 7). Track 4B routes: `/scan` (now functional), `/content` `/quizzes` `/exams` `/batch` `/batch/[id]` (replaced placeholders), plus top-level FocusLayout `/quiz-builder/[quizId]` `/exam-builder/[examId]` `/exam-results/[examId]` `/offline-scores` `/roster/[sessionId]` `/live-control/[sessionId]`. sw.js generated. No `Attempted import error` warnings.
 
 `Result:` [ ] PASS · [ ] FAIL — _If FAIL, paste the error:_
 
@@ -919,10 +1843,10 @@ pnpm --filter @fynestudy/web build
 ### O.5 — Playwright (optional smoke, may skip on no-seed)
 
 ```powershell
-pnpm --filter @fynestudy/web e2e -- live-student.spec.ts recording.spec.ts
+pnpm --filter @fynestudy/web e2e
 ```
 
-**✅ Expected:** Either tests pass, or they skip with the message "No live sessions in this environment" / "No recordings in this environment" — both are acceptable signals. The Playwright suite is not yet a CI gate; manual §A + §B is the real coverage.
+**✅ Expected:** Tests in `live-student.spec.ts`, `recording.spec.ts`, `teacher-scan.spec.ts`, `teacher-classes.spec.ts`, `teacher-builders.spec.ts`, `teacher-results.spec.ts`, `live-control.spec.ts`, `teacher-roster.spec.ts`, `teacher-content.spec.ts` either pass or skip with a seed-tolerant message ("No live sessions" / "No exams"). The Playwright suite is not yet a CI gate; manual §A–§L is the authoritative coverage.
 
 `Result:` [ ] PASS · [ ] SKIP · [ ] FAIL — _If FAIL, what you saw:_
 
@@ -935,8 +1859,17 @@ Tick when every section above is green (or correctly marked N/A).
 - [ ] §0 Setup
 - [ ] §A Student live class
 - [ ] §B Student recording
-- [ ] §C–§L (Track 4B — pending)
-- [ ] §M Security + cleanup
+- [ ] §C Teacher home dashboard
+- [ ] §D Teacher scan (webcam QR)
+- [ ] §E Teacher classes (Schedule-Live + Ad-hoc FAB)
+- [ ] §F Teacher content upload (video URL + PDF presign+PUT+finalize)
+- [ ] §G Teacher live control + REAL OBS DRY-RUN (most important)
+- [ ] §H Teacher quiz builder
+- [ ] §I Teacher exam builder + results + regrade
+- [ ] §J Teacher offline scores
+- [ ] §K Teacher batch analytics
+- [ ] §L Roster corrections
+- [ ] §M Security + cleanup (incl. M.3a D-172 audit coverage)
 - [ ] §N Responsive + carry-overs
 - [ ] §O Automated test gates
 

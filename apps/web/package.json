@@ -19,6 +19,7 @@
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.105.4",
     "@tanstack/react-query": "^5.62.0",
+    "@yudiel/react-qr-scanner": "^2.6.0",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
