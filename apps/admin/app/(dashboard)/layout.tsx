@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
+import { RouteProgress } from "@/components/route-progress";
 import { logoutAction } from "../actions/logout";
 
 interface NavItem {
@@ -36,6 +37,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="grid min-h-screen grid-cols-[240px_1fr] bg-slate-50">
+      <RouteProgress />
       <aside className="flex flex-col border-r border-slate-200 bg-white px-4 py-6">
         <div className="mb-6 px-2">
           <p className="text-xs uppercase tracking-wide text-slate-400">
