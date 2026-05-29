@@ -62,13 +62,13 @@ export function TimerPill({ deadlineAt, serverNow, offsetMs, onExpire }: Props) 
       aria-live="polite"
       aria-label={`Time remaining ${label}`}
       data-warning={isWarn ? "true" : "false"}
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm font-bold tabular-nums ${
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-bold tabular-nums transition-colors ${
         isWarn
-          ? "border-red-300 bg-red-100 text-red-700"
+          ? "border-red-300 bg-red-100 text-red-700 animate-pulse"
           : "border-blue-200 bg-blue-50 text-blue-700"
       }`}
     >
-      <Clock className="size-3.5" />
+      <Clock className="size-4" />
       <span>{label}</span>
     </span>
   );

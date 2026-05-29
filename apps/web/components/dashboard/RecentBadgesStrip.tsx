@@ -20,9 +20,11 @@ const BADGE_COLOR: Record<string, string> = {
 export function RecentBadgesStrip({ badges }: { badges: RecentBadge[] }) {
   if (badges.length === 0) {
     return (
-      <p className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-        Earn badges by attending sessions, hitting streaks, and topping quizzes.
-      </p>
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 px-4 py-6 text-center">
+        <p className="text-sm text-slate-500">
+          Earn badges by attending sessions, hitting streaks, and topping quizzes.
+        </p>
+      </div>
     );
   }
   return (
@@ -32,15 +34,15 @@ export function RecentBadgesStrip({ badges }: { badges: RecentBadge[] }) {
         return (
           <div
             key={b.code}
-            className="flex flex-1 flex-col items-center rounded-2xl border border-slate-100 bg-white p-3"
+            className="flex flex-1 flex-col items-center rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-slate-300"
           >
             <div
-              className="mb-1.5 flex size-11 items-center justify-center rounded-2xl"
-              style={{ backgroundColor: `${color}1a` }}
+              className="mb-1.5 flex size-11 items-center justify-center rounded-2xl ring-1"
+              style={{ backgroundColor: `${color}1a`, borderColor: `${color}33` }}
             >
               <Award className="size-5" style={{ color }} />
             </div>
-            <p className="text-center text-[11px] font-bold text-slate-700 line-clamp-2">
+            <p className="line-clamp-2 text-center text-xs font-bold text-slate-700">
               {b.name}
             </p>
           </div>

@@ -67,7 +67,7 @@ export function LoginForm({ next }: { next?: string }) {
       <Button
         type="submit"
         size="lg"
-        className="h-12 w-full text-base font-bold"
+        className="h-12 w-full text-base font-bold shadow-sm transition-all hover:shadow-md"
         disabled={pending}
       >
         {pending ? "Signing in…" : "Sign in"}
@@ -76,7 +76,7 @@ export function LoginForm({ next }: { next?: string }) {
       <div className="text-right">
         <Link
           href="/forgot-password"
-          className="text-xs font-semibold text-primary hover:underline"
+          className="text-sm font-semibold text-primary transition-colors hover:text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 rounded"
         >
           Forgot password?
         </Link>

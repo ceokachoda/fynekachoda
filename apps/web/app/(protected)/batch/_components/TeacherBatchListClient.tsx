@@ -34,24 +34,24 @@ export function TeacherBatchListClient() {
             <li key={b.batch_id}>
               <Link
                 href={`/batch/${b.batch_id}`}
-                className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+                className="block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               >
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1 pr-3">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                    <p className="text-xs font-bold uppercase tracking-wider text-primary">
                       {b.course_code}
                     </p>
                     <p className="mt-1 truncate text-base font-extrabold text-slate-900">
                       {b.batch_name}
                     </p>
-                    <p className="text-[11px] font-medium text-slate-500">
+                    <p className="text-xs font-medium text-slate-500">
                       {b.course_name}
                     </p>
                   </div>
                   <ChevronRight className="size-4 text-slate-300" />
                 </div>
-                <div className="mt-3 flex items-center gap-4 text-[11px] font-semibold text-slate-700">
-                  <span className="flex items-center">
+                <div className="mt-3 flex items-center gap-4 text-xs font-semibold text-slate-700">
+                  <span className="flex items-center tabular-nums">
                     <Users className="mr-1.5 size-3.5 text-slate-500" />
                     {b.student_count}{" "}
                     <span className="ml-1 font-medium text-slate-500">

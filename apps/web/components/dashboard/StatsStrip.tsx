@@ -13,10 +13,10 @@ function StatTile({ label, value, href }: StatTileProps) {
   return (
     <Link
       href={href}
-      className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-slate-100 bg-white px-3 py-4 shadow-sm shadow-slate-200/40 transition hover:border-slate-200 hover:shadow-md"
+      className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white px-3 py-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
     >
-      <span className="text-xs font-medium text-slate-500">{label}</span>
-      <span className="mt-1 text-xl font-extrabold text-slate-900">{value}</span>
+      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span>
+      <span className="mt-1 text-xl font-extrabold text-slate-900 tabular-nums">{value}</span>
     </Link>
   );
 }

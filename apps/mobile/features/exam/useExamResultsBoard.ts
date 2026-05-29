@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { withTimeout } from "@/features/auth/network-errors";
+import { invokeEdgeFn } from "@/lib/edge-fn";
 
 export interface ResultsBoardAttempt {
   attempt_id: string;
@@ -181,26 +182,34 @@ export function useExamResultsBoard(examId: string | null): State {
       // would leave the bar stale after mark_all_correct.
       const correctByAttemptQ = new Map<string, string | null>();
       const overrideByAttemptQ = new Map<string, "all" | "none" | null>();
-      const snapRes = await withTimeout(
-        supabase
-          .from("exam_attempts")
-          .select("id, question_snapshot")
-          .eq("exam_id", examId)
-          .not("submitted_at", "is", null),
-      );
-      for (const a of (snapRes.data ?? []) as Array<{
-        id: string;
-        question_snapshot: {
-          questions?: Array<{
+      // Answer keys (correct_option_id + regrade_override) via a teacher-scoped
+      // edge fn — `question_snapshot` is no longer directly selectable by
+      // `authenticated` (it would leak the answer key to students mid-exam; see
+      // migration 20260529120000).
+      const {
+        status: keyStatus,
+        body: keyBody,
+        error: keyErr,
+      } = await invokeEdgeFn<{
+        attempts: Array<{
+          attempt_id: string;
+          questions: Array<{
             id: string;
             correct_option_id: string | null;
-            regrade_override?: "all" | "none" | null;
+            regrade_override: "all" | "none" | null;
           }>;
-        };
-      }>) {
-        for (const q of a.question_snapshot?.questions ?? []) {
-          correctByAttemptQ.set(`${a.id}:${q.id}`, q.correct_option_id);
-          overrideByAttemptQ.set(`${a.id}:${q.id}`, q.regrade_override ?? null);
+        }>;
+      }>("exam-answer-keys", { exam_id: examId });
+      if (keyStatus !== 200 || !keyBody) {
+        throw new Error(keyErr ?? `answer-keys failed (${keyStatus})`);
+      }
+      for (const a of keyBody.attempts) {
+        for (const q of a.questions) {
+          correctByAttemptQ.set(`${a.attempt_id}:${q.id}`, q.correct_option_id);
+          overrideByAttemptQ.set(
+            `${a.attempt_id}:${q.id}`,
+            q.regrade_override ?? null,
+          );
         }
       }
 

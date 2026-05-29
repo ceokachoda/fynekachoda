@@ -16,7 +16,7 @@ export function ContinueStrip({ items }: { items: ContinueItem[] }) {
           <Link
             key={c.content_id}
             href={href}
-            className="flex w-56 shrink-0 flex-col rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+            className="flex w-56 shrink-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <div className="mb-3 flex items-center gap-2">
               <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-50">
@@ -28,11 +28,11 @@ export function ContinueStrip({ items }: { items: ContinueItem[] }) {
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
               <div
-                className="h-full rounded-full bg-primary"
+                className="h-full rounded-full bg-primary transition-all"
                 style={{ width: `${pct}%` }}
               />
             </div>
-            <p className="mt-1.5 text-[11px] text-slate-500">
+            <p className="mt-1.5 text-xs font-medium text-slate-500 tabular-nums">
               {pct}% {c.kind === "pdf" ? "read" : "watched"}
             </p>
           </Link>

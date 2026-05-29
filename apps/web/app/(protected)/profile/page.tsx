@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { loadWebSession } from "@/lib/auth";
-import { PageHeader } from "@/components/fyne/PageHeader";
-import { EmptyState } from "@/components/fyne/EmptyState";
 import { ProfileClient } from "./_components/ProfileClient";
+import { TeacherProfileClient } from "./_components/TeacherProfileClient";
 
 export const metadata = { title: "Profile" };
 
@@ -17,13 +16,10 @@ export default async function ProfilePage({ searchParams }: Props) {
 
   if (session.active_role !== "student") {
     return (
-      <div className="space-y-6">
-        <PageHeader title="Profile" />
-        <EmptyState
-          title="Teacher profile coming in Phase 4"
-          description="The full teacher portal lands in the next phase."
-        />
-      </div>
+      <TeacherProfileClient
+        fullName={session.full_name}
+        email={session.email}
+      />
     );
   }
 

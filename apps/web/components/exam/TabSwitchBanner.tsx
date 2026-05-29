@@ -15,16 +15,16 @@ export function TabSwitchBanner({ count }: Props) {
     <div
       role="alert"
       data-severity={severe ? "severe" : "warning"}
-      className={`mb-3 flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold ${
+      className={`mb-3 flex items-start gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-semibold ${
         severe
           ? "border-red-300 bg-red-50 text-red-800"
           : "border-amber-300 bg-amber-50 text-amber-800"
       }`}
     >
-      <ShieldAlert className="size-4" />
+      <ShieldAlert className="mt-0.5 size-4 shrink-0" />
       <span>
         You left the exam tab. Switches:{" "}
-        <span className="tabular-nums">{count}</span>
+        <span className="font-bold tabular-nums">{count}</span>
         {severe
           ? " · Further switches may be reviewed by your teacher."
           : ""}

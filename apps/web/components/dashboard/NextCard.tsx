@@ -76,22 +76,22 @@ function specFor(card: NextCardType): Spec {
 export function NextCard({ card }: { card: NextCardType }) {
   const spec = specFor(card);
   return (
-    <div className="rounded-[28px] bg-primary p-5 text-white shadow-sm shadow-blue-300/40">
+    <div className="rounded-sheet bg-gradient-to-br from-primary to-blue-700 p-5 text-white shadow-lg shadow-blue-500/20">
       <div className="mb-3 flex items-center gap-3">
-        <div className="flex size-11 items-center justify-center rounded-2xl bg-white/20">
+        <div className="flex size-11 items-center justify-center rounded-2xl bg-white/20 ring-1 ring-white/30">
           {spec.icon}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-white/70">
+          <p className="text-xs font-bold uppercase tracking-wider text-white/80">
             Up next
           </p>
           <h3 className="truncate text-lg font-extrabold">{spec.title}</h3>
         </div>
       </div>
-      <p className="mb-4 text-sm leading-5 text-white/80">{spec.subtitle}</p>
+      <p className="mb-4 text-sm leading-5 text-white/85">{spec.subtitle}</p>
       <Link
         href={spec.href}
-        className="block rounded-xl bg-white py-3 text-center text-base font-bold text-primary transition hover:bg-white/95"
+        className="block rounded-xl bg-white py-3 text-center text-base font-bold text-primary shadow-sm transition-colors hover:bg-white/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
       >
         {spec.cta}
       </Link>

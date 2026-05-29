@@ -39,11 +39,11 @@ export function TodayScheduleStrip({ items }: { items: TodayItem[] }) {
           <Link
             key={s.session_id}
             href="/attendance"
-            className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+            className="flex items-center rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <div className="w-14">
               <p className="text-sm font-bold text-slate-900">{formatIstTime(s.start)}</p>
-              <p className="text-[11px] text-slate-400">{formatIstTime(s.end)}</p>
+              <p className="text-xs text-slate-400">{formatIstTime(s.end)}</p>
             </div>
             <p className="ml-2 flex-1 truncate text-sm font-semibold text-slate-800">
               {s.subject}
@@ -52,7 +52,7 @@ export function TodayScheduleStrip({ items }: { items: TodayItem[] }) {
               className={`flex items-center rounded-md px-2 py-1 ${b.bg}`}
             >
               {b.dot ? <span className="mr-1.5 size-1.5 rounded-full bg-red-500" /> : null}
-              <span className={`text-[11px] font-bold ${b.text}`}>{b.label}</span>
+              <span className={`text-xs font-bold ${b.text}`}>{b.label}</span>
             </span>
           </Link>
         );

@@ -79,7 +79,7 @@ export function ChatComposer({
         </div>
       ) : null}
       <div className="flex items-end gap-3 px-4 py-3">
-        <div className="flex min-h-11 flex-1 items-center rounded-3xl border border-slate-200 bg-white px-4">
+        <div className="flex min-h-11 flex-1 items-center rounded-3xl border border-slate-200 bg-white px-4 transition-colors focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
           <textarea
             ref={inputRef}
             value={text}
@@ -99,7 +99,7 @@ export function ChatComposer({
           disabled={sending || !text.trim()}
           aria-label="Send message"
           className={cn(
-            "flex size-11 items-center justify-center rounded-full text-white transition",
+            "flex size-11 items-center justify-center rounded-full text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2",
             text.trim() && !sending
               ? "bg-blue-600 hover:bg-blue-700"
               : "bg-slate-300 cursor-not-allowed",

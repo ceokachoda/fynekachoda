@@ -86,14 +86,17 @@ function LiveInner({ sessionId, fullName, activeRole }: LiveClientProps) {
 
   if (error) {
     return (
-      <div className="flex min-h-svh flex-col bg-slate-50 p-6">
-        <p className="mb-3 text-sm text-red-600">{error}</p>
-        <Link
-          href="/classes"
-          className="self-start rounded-xl bg-slate-200 px-4 py-2 text-sm text-slate-800"
-        >
-          Go back
-        </Link>
+      <div className="flex min-h-svh flex-col items-center justify-center bg-slate-50 px-6">
+        <div className="w-full max-w-sm rounded-2xl border border-red-200 bg-white p-6 text-center shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900">Can&apos;t open this class</h2>
+          <p className="mt-2 text-sm text-red-600">{error}</p>
+          <Link
+            href="/classes"
+            className="mt-5 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+          >
+            Back to Classes
+          </Link>
+        </div>
       </div>
     );
   }
@@ -166,7 +169,7 @@ function LiveInner({ sessionId, fullName, activeRole }: LiveClientProps) {
                 <div className="absolute right-2 top-2 z-20">
                   <Link
                     href={`/live-control/${sessionId}`}
-                    className="rounded-md bg-white/90 px-2 py-1 text-[11px] font-semibold text-slate-800 hover:bg-white"
+                    className="rounded-md bg-white/90 px-2.5 py-1.5 text-xs font-semibold text-slate-800 shadow-sm transition-colors hover:bg-white"
                   >
                     Open Live Control →
                   </Link>
@@ -235,24 +238,24 @@ function LiveInner({ sessionId, fullName, activeRole }: LiveClientProps) {
 
 function Header({ subject, isLive }: { subject: string; isLive: boolean }) {
   return (
-    <header className="flex items-center bg-white px-4 py-3 lg:px-6">
+    <header className="flex items-center border-b border-slate-200 bg-white px-4 py-3 lg:px-6">
       <Link
         href="/classes"
         aria-label="Back to classes"
-        className="mr-3 flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-800 hover:bg-slate-200"
+        className="mr-3 flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-800 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
       >
         <ChevronLeft className="size-4" />
       </Link>
-      <h1 className="min-w-0 flex-1 truncate text-sm font-bold text-blue-900 sm:text-base">
+      <h1 className="min-w-0 flex-1 truncate text-sm font-bold text-slate-900 sm:text-base">
         {subject}
       </h1>
       {isLive ? (
         <span
           data-testid="live-pill"
-          className="ml-2 inline-flex items-center rounded-md bg-red-100 px-2 py-1 text-[11px] font-bold text-red-600"
+          className="ml-2 inline-flex items-center rounded-md bg-red-100 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-red-600"
         >
-          <span className="mr-1.5 inline-block size-1.5 rounded-full bg-red-500" />
-          LIVE
+          <span className="mr-1.5 inline-block size-1.5 animate-pulse rounded-full bg-red-500" />
+          Live
         </span>
       ) : null}
     </header>

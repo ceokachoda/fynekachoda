@@ -27,8 +27,10 @@ export function RaiseHandButton({
       aria-label={raised ? "Lower hand" : "Raise hand"}
       aria-pressed={raised}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition",
-        raised ? "bg-amber-500 hover:bg-amber-600" : "bg-blue-800 hover:bg-blue-900",
+        "inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        raised
+          ? "bg-amber-500 hover:bg-amber-600 focus-visible:ring-amber-400"
+          : "bg-blue-800 hover:bg-blue-900 focus-visible:ring-blue-500",
         (disabled || busy) && "cursor-not-allowed opacity-50",
       )}
     >

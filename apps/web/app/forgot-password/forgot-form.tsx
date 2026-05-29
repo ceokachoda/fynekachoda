@@ -39,13 +39,16 @@ export function ForgotForm() {
 
   if (done) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+      <div
+        role="status"
+        className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm leading-relaxed text-emerald-800"
+      >
         If an account exists for <strong>{email}</strong>, we&apos;ve sent a reset
         link. It expires in 1 hour. Check your inbox (and spam folder).
         <div className="mt-4">
           <Link
             href="/login"
-            className="text-xs font-semibold text-primary hover:underline"
+            className="inline-flex rounded text-sm font-semibold text-primary transition-colors hover:text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             ← Back to sign in
           </Link>
@@ -72,14 +75,17 @@ export function ForgotForm() {
         />
       </div>
       {error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div
+          role="alert"
+          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
           {error}
         </div>
       ) : null}
       <Button
         type="submit"
         size="lg"
-        className="h-12 w-full text-base font-bold"
+        className="h-12 w-full text-base font-bold shadow-sm transition-all hover:shadow-md"
         disabled={pending || !email.trim()}
       >
         {pending ? "Sending…" : "Send reset link"}
@@ -87,7 +93,7 @@ export function ForgotForm() {
       <div className="text-center">
         <Link
           href="/login"
-          className="text-xs font-semibold text-primary hover:underline"
+          className="inline-flex rounded text-sm font-semibold text-primary transition-colors hover:text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
         >
           ← Back to sign in
         </Link>

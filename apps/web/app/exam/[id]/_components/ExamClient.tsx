@@ -349,6 +349,18 @@ function ExamClientInner({ examId }: Props) {
     }
   }, [state.stage, lazyResult.data]);
 
+  // Inverse guard: if we're on the result stage but nothing is released yet
+  // (no submit payload AND the lazy result is locked), flip back to submitted.
+  // Done in an effect — never dispatch during render.
+  useEffect(() => {
+    if (state.stage !== "result") return;
+    const released = !!(submitResult && submitResult.results_released);
+    const fallback = lazyResult.data;
+    if (!released && !fallback && lazyResult.locked) {
+      dispatch({ type: "set-stage", stage: "submitted" });
+    }
+  }, [state.stage, submitResult, lazyResult.data, lazyResult.locked]);
+
   // ===== Render guards =====
   if (preInfo.isLoading && !preInfo.data) {
     return (
@@ -535,11 +547,9 @@ function ExamClientInner({ examId }: Props) {
         : null;
     const fallback = lazyResult.data;
     if (!released && !fallback) {
-      if (lazyResult.locked) {
-        // Flip back to submitted — the teacher hasn't released yet.
-        dispatch({ type: "set-stage", stage: "submitted" });
-        return null;
-      }
+      // Either still loading, or locked (teacher hasn't released). The effect
+      // above flips a locked attempt back to "submitted" after paint; show the
+      // loader for that frame instead of dispatching during render.
       return (
         <div className="grid min-h-svh place-items-center bg-slate-50">
           <Loader2 className="size-8 animate-spin text-primary" />

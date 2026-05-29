@@ -14,6 +14,9 @@
 
 import { useMemo } from "react";
 import { InlineMath, BlockMath } from "react-katex";
+// KaTeX CSS is imported HERE (not in globals.css) so Next bundles it into the
+// /quiz + /exam route chunks only — keeping it off every other route (§C6).
+import "katex/dist/katex.min.css";
 
 type Run =
   | { kind: "text"; value: string }

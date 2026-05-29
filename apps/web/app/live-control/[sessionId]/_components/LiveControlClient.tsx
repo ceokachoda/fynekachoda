@@ -230,7 +230,7 @@ function LiveControlInner({ sessionId, fullName }: Props) {
 
   return (
     <div className="flex min-h-svh flex-col bg-slate-50">
-      <header className="flex items-center gap-3 border-b border-slate-100 bg-white px-4 py-3">
+      <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 shadow-sm">
         <Button
           variant="outline"
           size="icon-sm"
@@ -243,8 +243,17 @@ function LiveControlInner({ sessionId, fullName }: Props) {
           <p className="truncate text-base font-bold text-slate-900">
             {session?.subject_name ?? "Live class"}
           </p>
-          <p className="text-[11px] text-slate-500">
-            {isLive ? "● Live now" : ended ? "Ended" : "Setup"}
+          <p className="flex items-center text-xs text-slate-500">
+            {isLive ? (
+              <>
+                <span className="mr-1.5 inline-block size-1.5 animate-pulse rounded-full bg-red-500" />
+                <span className="font-semibold text-red-600">Live now</span>
+              </>
+            ) : ended ? (
+              "Ended"
+            ) : (
+              "Setup"
+            )}
           </p>
         </div>
         {isLive ? (
@@ -368,10 +377,11 @@ function LiveControlInner({ sessionId, fullName }: Props) {
                   )}
                   {copied === "both" ? "Copied Server + Key" : "Copy Server + Key"}
                 </Button>
-                <p className="mt-3 text-[11px] text-slate-400">
-                  Tip: tap Copy Server + Key, then paste it into a message to
-                  yourself (WhatsApp / Telegram / email) and open it on your
-                  streaming computer. Keep your stream key private.
+                <p className="mt-3 text-xs leading-relaxed text-slate-500">
+                  <strong className="font-semibold text-slate-700">Tip:</strong>{" "}
+                  tap Copy Server + Key, then paste it into a message to yourself
+                  (WhatsApp / Telegram / email) and open it on your streaming
+                  computer. Keep your stream key private.
                 </p>
               </div>
             )}
@@ -417,11 +427,12 @@ function LiveControlInner({ sessionId, fullName }: Props) {
                   </div>
                 )}
                 {lastPinned ? (
-                  <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3">
-                    <p className="text-[10px] font-bold uppercase text-blue-700">
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3.5">
+                    <p className="text-xs font-bold uppercase tracking-wide text-blue-700">
+                      <Pin className="mr-1 inline size-3" />
                       Pinned by {lastPinned.author_name}
                     </p>
-                    <p className="text-sm text-slate-900">{lastPinned.body}</p>
+                    <p className="mt-1 text-sm text-slate-900">{lastPinned.body}</p>
                   </div>
                 ) : null}
               </TabsContent>

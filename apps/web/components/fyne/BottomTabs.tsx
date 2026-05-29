@@ -34,7 +34,7 @@ export function BottomTabs({ activeRole }: BottomTabsProps) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-full flex-col items-center justify-center gap-1 px-2 text-[11px] font-semibold transition-colors",
+                  "flex h-full flex-col items-center justify-center gap-1 px-2 text-xs font-semibold transition-colors",
                   active ? "text-primary" : "text-slate-500 hover:text-slate-700",
                 )}
               >

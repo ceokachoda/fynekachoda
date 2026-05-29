@@ -51,7 +51,7 @@ export function TeacherClasses() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-slate-900">Classes</h1>
+        <h1 className="text-2xl font-extrabold text-slate-900 sm:text-3xl">Classes</h1>
         <p className="text-sm text-slate-500">Today, upcoming and past sessions.</p>
       </div>
 
@@ -103,16 +103,16 @@ export function TeacherClasses() {
           variant="destructive"
           aria-label="Schedule live class"
           onClick={() => setSheet("live")}
-          className="size-12 rounded-full p-0 shadow-lg"
+          className="size-14 rounded-full bg-red-600 p-0 text-white shadow-xl shadow-red-600/30 transition-all hover:bg-red-700 hover:shadow-2xl hover:shadow-red-600/40"
         >
-          <Radio />
+          <Radio className="size-5" />
         </Button>
         <Button
           aria-label="New ad-hoc class"
           onClick={() => setSheet("adhoc")}
-          className="size-12 rounded-full p-0 shadow-lg"
+          className="size-14 rounded-full p-0 shadow-xl shadow-blue-600/30 transition-all hover:shadow-2xl hover:shadow-blue-600/40"
         >
-          <Plus />
+          <Plus className="size-5" />
         </Button>
       </div>
 
@@ -147,20 +147,20 @@ function ClassRow({
 }) {
   const pill = statusPill(session);
   return (
-    <li className="rounded-2xl border border-slate-100 bg-white p-4">
+    <li className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-slate-300">
       <div className="flex items-start">
-        <div className="mr-3 flex size-10 items-center justify-center rounded-2xl bg-blue-50">
+        <div className={`mr-3 flex size-10 items-center justify-center rounded-2xl ${session.status === "live" ? "bg-red-50 ring-1 ring-red-100" : "bg-blue-50"}`}>
           {session.is_live_class ? (
-            <Radio className="size-4 text-primary" />
+            <Radio className={`size-5 ${session.status === "live" ? "text-red-600" : "text-primary"}`} />
           ) : (
-            <Calendar className="size-4 text-primary" />
+            <Calendar className="size-5 text-primary" />
           )}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-extrabold text-slate-900">
             {session.subject_name ?? "Class"}
             {session.is_ad_hoc ? (
-              <span className="ml-1 text-xs text-amber-600">· ad-hoc</span>
+              <span className="ml-1 text-xs font-semibold text-amber-600">· ad-hoc</span>
             ) : null}
           </p>
           <p className="mt-0.5 text-xs text-slate-500">
@@ -175,14 +175,14 @@ function ClassRow({
         <Pill tone={pill.tone}>{pill.label}</Pill>
       </div>
       <div className="mt-3 flex items-center gap-2">
-        <p className="flex-1 text-xs text-slate-500">
+        <p className="flex-1 text-xs font-medium text-slate-500 tabular-nums">
           {session.attendance_count} / {session.batch_student_count} marked
         </p>
         {session.is_live_class ? (
           <button
             type="button"
             onClick={onLiveControl}
-            className="flex items-center rounded-xl bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100"
+            className="flex items-center rounded-xl bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700 transition-colors hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-1"
           >
             <Radio className="mr-1 size-3.5" />
             {session.status === "live" ? "Live control" : "Go live"}
@@ -191,7 +191,7 @@ function ClassRow({
           <button
             type="button"
             onClick={onScan}
-            className="flex items-center rounded-xl bg-blue-50 px-3 py-1.5 text-xs font-bold text-primary hover:bg-blue-100"
+            className="flex items-center rounded-xl bg-blue-50 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
           >
             <Camera className="mr-1 size-3.5" />
             Scan
@@ -204,7 +204,7 @@ function ClassRow({
             e.preventDefault();
             onRoster();
           }}
-          className="flex items-center rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-800 hover:bg-slate-200"
+          className="flex items-center rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-800 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1"
         >
           <ListChecks className="mr-1 size-3.5" />
           Roster

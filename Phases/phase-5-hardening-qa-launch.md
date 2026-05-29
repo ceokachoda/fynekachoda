@@ -103,3 +103,32 @@ Write this as `Phases/phase-5-manual-tests.md` (full click-by-click), record res
 - [ ] SEO meta + `robots.txt` + `sitemap.ts` on public pages; auth-gated pages disallowed from indexing.
 - [ ] Sentry/PostHog status documented (deferred, mirroring mobile); `lib/log.ts` shim in place.
 - [ ] `docs/web-app-deploy.md` written; `README.md` + `CLAUDE.md` updated. **Conversion complete.**
+
+---
+
+## W-DEC — Phase 5 deviations (recorded 2026-05-29)
+
+- **W-DEC-5.1 — Backend change beyond "front-end only".** The conversion rule is
+  "front-end only," but the Phase-5 security review (verified by SQL) found a
+  pre-existing **cross-surface** answer-key leak: `exam_attempts.question_snapshot`
+  (pins `correct_option_id`) was readable by a student mid-exam (RLS filters rows,
+  not columns). With the owner's approval, the fix touched the backend + BOTH
+  clients: migration `20260529120000_exam_attempts_hide_snapshot.sql` (column
+  revoke) + new `exam-answer-keys` edge fn + rerouted web **and** mobile
+  `useExamResultsBoard` off the direct read. See **D-204**. Grading is unaffected
+  (service-role). Mobile picks up its client change on its next build.
+- **W-DEC-5.2 — CORS pinned to the `fyne-study-web` Vercel slug.** `_shared/cors.ts`
+  allow-lists `https://fyne-study-web.vercel.app` + a `fyne-study-web-*.vercel.app`
+  preview regex (mirroring the admin pattern). The Vercel project **must** be named
+  `fyne-study-web` or privileged calls are CORS-blocked. A custom domain is added
+  to the allow-list when attached (see `docs/web-app-deploy.md §7`).
+- **W-DEC-5.3 — Supabase `site_url` set to the web prod URL + redirect allow-list
+  expanded** (`localhost:3000`, web prod + preview, admin) so the `/reset` email
+  link resolves. Admin + mobile use server-side / explicit-`redirectTo` reset
+  flows, so they're unaffected. Backend config change per overview §6.
+- **W-DEC-5.4 — KaTeX JS left route-confined (not further lazy-split).** Next's
+  route-based code-splitting already keeps `react-katex` out of the initial/shared
+  bundle (it ships only in `/quiz` + `/exam` chunks). The real bundle leak was the
+  **global** `katex.min.css` `@import` in `globals.css`; that import was moved into
+  the `MathText` module so the stylesheet travels only with the assessment routes.
+  Satisfies §C6's intent without a higher-risk component refactor.

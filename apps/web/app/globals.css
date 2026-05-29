@@ -1,7 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "katex/dist/katex.min.css";
+/* KaTeX CSS is NOT imported globally — it ships only with the lazy MathText
+ * module (apps/web/components/math/MathText.tsx) so the ~23KB stylesheet stays
+ * off every non-assessment route (Phase 5 §C6 code-splitting). */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -177,5 +179,21 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/*
+ * Accessibility: honour the OS "reduce motion" setting (Phase 5 §F / WCAG
+ * 2.3.3). Neutralises CSS animations + transitions app-wide; JS-driven motion
+ * (confetti) is gated separately via prefersReducedMotion() in lib/motion.ts.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

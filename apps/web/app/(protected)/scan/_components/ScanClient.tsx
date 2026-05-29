@@ -169,11 +169,12 @@ export function ScanClient() {
         <button
           type="button"
           onClick={() => setPickerOpen((v) => !v)}
-          className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3"
+          aria-expanded={pickerOpen}
+          className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 transition-colors hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           data-testid="scan-session-picker"
         >
           <div className="min-w-0 flex-1 text-left">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600">
+            <p className="text-xs font-bold uppercase tracking-widest text-amber-600">
               Scanning for
             </p>
             <p className="mt-0.5 truncate text-sm font-bold text-slate-900">
@@ -184,10 +185,12 @@ export function ScanClient() {
                   : "No live or upcoming class — pick one"}
             </p>
           </div>
-          <ChevronDown className="size-4 text-slate-500" />
+          <ChevronDown
+            className={`size-4 text-slate-500 transition-transform ${pickerOpen ? "rotate-180" : ""}`}
+          />
         </button>
         {pickerOpen ? (
-          <div className="mt-2 max-h-64 overflow-y-auto rounded-2xl border border-slate-100 bg-white">
+          <div className="mt-2 max-h-64 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
             {scannable.length === 0 ? (
               <p className="px-4 py-6 text-center text-xs text-slate-500">
                 No upcoming or live classes in your batches.
@@ -201,12 +204,12 @@ export function ScanClient() {
                     setPickedSessionId(s.id);
                     setPickerOpen(false);
                   }}
-                  className="block w-full border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-muted/50"
+                  className="block w-full border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/70 focus-visible:outline-none"
                 >
                   <p className="truncate text-sm font-semibold text-slate-900">
                     {s.subject_name ?? "Class"} · {fmtTime(s.scheduled_start)}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-slate-500">
+                  <p className="mt-0.5 text-xs text-slate-500">
                     {s.batch_name} · {s.bucket === "today" ? "Today" : "Upcoming"}
                   </p>
                 </button>

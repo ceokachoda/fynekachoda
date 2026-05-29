@@ -5,6 +5,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { invokeEdgeFn } from "@/lib/edge-fn";
 
 export interface ResultsBoardAttempt {
   attempt_id: string;
@@ -152,26 +153,32 @@ export function useExamResultsBoard(examId: string | null) {
         selByQ.set(a.question_id, m);
       }
 
-      const snapRes = await supabase
-        .from("exam_attempts")
-        .select("id, question_snapshot")
-        .eq("exam_id", examId)
-        .not("submitted_at", "is", null);
-      const correctByAttemptQ = new Map<string, string | null>();
-      const overrideByAttemptQ = new Map<string, "all" | "none" | null>();
-      for (const a of (snapRes.data ?? []) as Array<{
-        id: string;
-        question_snapshot: {
-          questions?: Array<{
+      // Answer keys (correct_option_id + regrade_override, frozen at attempt
+      // start) are read via a teacher-scoped edge fn — `question_snapshot` is no
+      // longer directly selectable by `authenticated` (it would leak the key to
+      // students; see migration 20260529120000).
+      const keyRes = await invokeEdgeFn<{
+        attempts: Array<{
+          attempt_id: string;
+          questions: Array<{
             id: string;
             correct_option_id: string | null;
-            regrade_override?: "all" | "none" | null;
+            regrade_override: "all" | "none" | null;
           }>;
-        };
-      }>) {
-        for (const q of a.question_snapshot?.questions ?? []) {
-          correctByAttemptQ.set(`${a.id}:${q.id}`, q.correct_option_id);
-          overrideByAttemptQ.set(`${a.id}:${q.id}`, q.regrade_override ?? null);
+        }>;
+      }>("exam-answer-keys", { exam_id: examId });
+      if (keyRes.status !== 200 || !keyRes.body) {
+        throw new Error(keyRes.error ?? `answer-keys failed (${keyRes.status})`);
+      }
+      const correctByAttemptQ = new Map<string, string | null>();
+      const overrideByAttemptQ = new Map<string, "all" | "none" | null>();
+      for (const a of keyRes.body.attempts) {
+        for (const q of a.questions) {
+          correctByAttemptQ.set(`${a.attempt_id}:${q.id}`, q.correct_option_id);
+          overrideByAttemptQ.set(
+            `${a.attempt_id}:${q.id}`,
+            q.regrade_override ?? null,
+          );
         }
       }
       const questions: QuestionAnalysisRow[] = examQuestions.map((q) => {

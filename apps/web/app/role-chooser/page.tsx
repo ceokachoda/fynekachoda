@@ -19,13 +19,13 @@ export default async function RoleChooserPage() {
   if (!(isStudent && isTeacher)) redirect("/");
 
   return (
-    <main className="grid min-h-svh place-items-center bg-slate-50 px-4 py-10">
+    <main className="grid min-h-svh place-items-center bg-gradient-to-br from-slate-50 via-white to-blue-50/50 px-4 py-10">
       <div className="w-full max-w-md space-y-6">
         <div className="flex justify-center">
           <FyneLogo variant="large" />
         </div>
-        <header className="space-y-1 text-center">
-          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
+        <header className="space-y-1.5 text-center">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
             Choose a role
           </h1>
           <p className="text-sm text-slate-500">
@@ -33,13 +33,13 @@ export default async function RoleChooserPage() {
           </p>
         </header>
 
-        <div className="space-y-3">
+        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-md sm:p-7">
           <form action={setActiveRoleAction}>
             <input type="hidden" name="role" value="student" />
             <Button
               type="submit"
               size="lg"
-              className="h-14 w-full text-base font-bold"
+              className="h-12 w-full text-base font-bold shadow-sm transition-all hover:shadow-md"
             >
               Continue as student
             </Button>
@@ -51,7 +51,7 @@ export default async function RoleChooserPage() {
               type="submit"
               size="lg"
               variant="outline"
-              className="h-14 w-full text-base font-bold"
+              className="h-12 w-full text-base font-bold"
             >
               Continue as teacher
             </Button>
@@ -61,7 +61,7 @@ export default async function RoleChooserPage() {
             <Button
               type="submit"
               variant="ghost"
-              className="h-10 w-full text-sm text-slate-500"
+              className="h-11 w-full text-sm text-slate-500 hover:text-slate-700"
             >
               Sign out
             </Button>

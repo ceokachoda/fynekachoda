@@ -40,7 +40,7 @@ export function PdfClient({ contentId, fullName }: Props) {
   const startPage = progress.initial?.last_page ?? 1;
 
   return (
-    <div className="-mx-4 -mt-4 flex h-[calc(100vh-2rem)] flex-col bg-slate-900 text-white sm:-mx-6 sm:-mt-6">
+    <div className="flex h-[100dvh] flex-col bg-slate-900 text-white">
       <div className="flex items-center gap-3 border-b border-slate-700 px-4 py-3">
         <Link
           href="/library"

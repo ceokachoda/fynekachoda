@@ -55,68 +55,75 @@ export function ForcePasswordForm({ email }: Props) {
     router.push("/");
   }
 
+  // Sign-out is a sibling <form> (never nested inside the password form — nested
+  // forms are invalid HTML and the browser drops the inner one).
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="password">New password</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          autoFocus
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value);
-            setError(null);
-          }}
-        />
-        <p className="text-[11px] text-slate-500">
-          At least 10 characters with upper, lower, and a digit. No spaces. Cannot
-          match your email.
-        </p>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="confirm">Confirm new password</Label>
-        <Input
-          id="confirm"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={confirm}
-          onChange={(e) => {
-            setConfirm(e.target.value);
-            setError(null);
-          }}
-        />
-      </div>
-
-      {error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
+    <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="password">New password</Label>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            required
+            autoFocus
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError(null);
+            }}
+          />
+          <p className="text-xs leading-relaxed text-slate-500">
+            At least 10 characters with upper, lower, and a digit. No spaces.
+            Cannot match your email.
+          </p>
         </div>
-      ) : null}
 
-      <Button
-        type="submit"
-        size="lg"
-        className="h-12 w-full text-base font-bold"
-        disabled={pending || !password || !confirm}
-      >
-        {pending ? "Saving…" : "Save and continue"}
-      </Button>
+        <div className="space-y-1.5">
+          <Label htmlFor="confirm">Confirm new password</Label>
+          <Input
+            id="confirm"
+            type="password"
+            autoComplete="new-password"
+            required
+            value={confirm}
+            onChange={(e) => {
+              setConfirm(e.target.value);
+              setError(null);
+            }}
+          />
+        </div>
+
+        {error ? (
+          <div
+            role="alert"
+            className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
+            {error}
+          </div>
+        ) : null}
+
+        <Button
+          type="submit"
+          size="lg"
+          className="h-12 w-full text-base font-bold shadow-sm transition-all hover:shadow-md"
+          disabled={pending || !password || !confirm}
+        >
+          {pending ? "Saving…" : "Save and continue"}
+        </Button>
+      </form>
 
       <form action={signOutAction}>
         <Button
           type="submit"
           variant="ghost"
-          className="h-10 w-full text-sm text-slate-500"
+          className="h-11 w-full text-sm text-slate-500 hover:text-slate-700"
           disabled={pending}
         >
           Sign out
         </Button>
       </form>
-    </form>
+    </div>
   );
 }

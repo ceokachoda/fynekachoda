@@ -76,7 +76,7 @@ export function TeacherDashboard({ greeting }: { greeting: string }) {
               </p>
               <Link
                 href="/scan"
-                className="mt-4 inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-primary transition hover:bg-white/90"
+                className="mt-4 inline-flex items-center justify-center rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-primary transition hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               >
                 <QrCode className="mr-2 size-4" />
                 Take Attendance
@@ -103,13 +103,13 @@ export function TeacherDashboard({ greeting }: { greeting: string }) {
                   <li key={t.session_id}>
                     <Link
                       href="/scan"
-                      className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+                      className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
                       <div className="w-14">
                         <p className="text-sm font-bold text-slate-900">
                           {fmtTime(t.start)}
                         </p>
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-xs text-slate-400">
                           {fmtTime(t.end)}
                         </p>
                       </div>
@@ -117,7 +117,7 @@ export function TeacherDashboard({ greeting }: { greeting: string }) {
                         <p className="truncate text-sm font-semibold text-slate-800">
                           {t.subject}
                         </p>
-                        <p className="text-[11px] text-slate-500">{t.batch}</p>
+                        <p className="text-xs text-slate-500">{t.batch}</p>
                       </div>
                       {t.status === "live" ? (
                         <Pill tone="error">Live</Pill>
@@ -182,23 +182,23 @@ export function TeacherDashboard({ greeting }: { greeting: string }) {
                   <li key={b.batch_id}>
                     <Link
                       href={`/batch/${b.batch_id}`}
-                      className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+                      className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     >
                       <div className="flex items-center justify-between">
                         <div className="min-w-0 flex-1 pr-3">
-                          <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                          <p className="text-xs font-bold uppercase tracking-wider text-primary">
                             {b.course_code}
                           </p>
                           <p className="mt-1 truncate text-base font-extrabold text-slate-900">
                             {b.batch_name}
                           </p>
-                          <p className="text-[11px] font-medium text-slate-500">
+                          <p className="text-xs font-medium text-slate-500">
                             {b.course_name}
                           </p>
                         </div>
                         <ChevronRight className="size-4 text-slate-300" />
                       </div>
-                      <div className="mt-3 flex items-center gap-4 text-[11px] font-semibold text-slate-700">
+                      <div className="mt-3 flex items-center gap-4 text-xs font-semibold text-slate-700">
                         <span className="flex items-center">
                           <Users className="mr-1.5 size-3.5 text-slate-500" />
                           {b.student_count}{" "}
@@ -241,7 +241,7 @@ function ActionTile({
   return (
     <Link
       href={href}
-      className="flex flex-col items-start rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+      className="flex flex-col items-start rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
     >
       <div className={`mb-3 flex size-10 items-center justify-center rounded-xl ${tone}`}>
         {icon}

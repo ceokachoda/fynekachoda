@@ -24,12 +24,12 @@ const STATUS: Record<
   { wrap: string; letterWrap: string; letterFg: string }
 > = {
   default: {
-    wrap: "border-slate-300 bg-white hover:border-slate-400",
+    wrap: "border-slate-300 bg-white hover:border-slate-400 hover:bg-slate-50",
     letterWrap: "bg-slate-100 text-slate-600",
     letterFg: "text-slate-600",
   },
   selected: {
-    wrap: "border-primary bg-blue-50",
+    wrap: "border-primary bg-blue-50 shadow-sm shadow-blue-200/30",
     letterWrap: "bg-primary text-white",
     letterFg: "text-white",
   },
@@ -67,7 +67,7 @@ export function OptionRadio({
       aria-disabled={disabled}
       disabled={disabled}
       onClick={disabled ? undefined : onClick}
-      className={`flex w-full items-start gap-3 rounded-2xl border-2 p-3 text-left transition disabled:cursor-default ${s.wrap}`}
+      className={`flex w-full items-start gap-3 rounded-2xl border-2 p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:cursor-default ${s.wrap}`}
       data-status={status}
     >
       <span

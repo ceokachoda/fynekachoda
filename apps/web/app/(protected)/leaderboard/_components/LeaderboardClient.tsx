@@ -36,7 +36,7 @@ export function LeaderboardClient() {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <div className="flex size-12 items-center justify-center rounded-2xl bg-amber-100">
+        <div className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-amber-200 ring-1 ring-amber-200/50">
           <Trophy className="size-6 text-amber-600" />
         </div>
         <div className="min-w-0 flex-1">
@@ -49,7 +49,7 @@ export function LeaderboardClient() {
           type="button"
           onClick={() => setCalcOpen(true)}
           aria-label="How rank is calculated"
-          className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200"
+          className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
         >
           <Info className="size-4" />
         </button>
@@ -66,18 +66,18 @@ export function LeaderboardClient() {
       />
 
       {board.data?.me ? (
-        <div className="rounded-2xl bg-blue-900 p-4 text-white">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-blue-200">
+        <div className="rounded-2xl bg-gradient-to-br from-blue-900 to-blue-700 p-4 text-white shadow-md">
+          <p className="text-xs font-bold uppercase tracking-widest text-blue-200">
             Your rank
           </p>
           <div className="mt-2 flex items-end justify-between">
-            <p className="text-3xl font-extrabold">
+            <p className="text-3xl font-extrabold tabular-nums">
               #{board.data.me.rank}{" "}
               <span className="text-base font-normal text-blue-200">
                 / {board.data.total}
               </span>
             </p>
-            <p className="text-2xl font-extrabold">
+            <p className="text-2xl font-extrabold tabular-nums">
               {board.data.me.composite.toFixed(2)}
             </p>
           </div>
@@ -85,27 +85,27 @@ export function LeaderboardClient() {
       ) : null}
 
       {board.isLoading ? (
-        <>
-          <Skeleton className="h-14 w-full rounded-2xl" />
-          <Skeleton className="h-14 w-full rounded-2xl" />
-          <Skeleton className="h-14 w-full rounded-2xl" />
-        </>
+        <div className="space-y-2">
+          <Skeleton className="h-16 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
+          <Skeleton className="h-16 w-full rounded-2xl" />
+        </div>
       ) : board.error ? (
-        <p className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">
+        <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           Couldn&apos;t load the leaderboard.
-        </p>
+        </div>
       ) : (board.data?.rows ?? []).length === 0 ? (
-        <div className="rounded-2xl bg-slate-50 p-6 text-center">
-          <Trophy className="mx-auto mb-2 size-8 text-slate-400" />
-          <p className="text-sm font-semibold text-slate-700">
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 p-8 text-center">
+          <Trophy className="mx-auto mb-3 size-8 text-slate-400" />
+          <p className="text-base font-bold text-slate-900">
             No rankings yet
           </p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             Earn points by attending classes and topping quizzes.
           </p>
         </div>
       ) : (
-        <div>
+        <div className="space-y-2">
           {(board.data?.rows ?? []).map((row) => (
             <RankRow key={row.student_id} row={row} onPress={onRowPress} />
           ))}

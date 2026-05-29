@@ -4,7 +4,6 @@ import {
   Home,
   ListChecks,
   type LucideIcon,
-  Menu as MenuIcon,
   QrCode,
   Trophy,
   User,
@@ -25,7 +24,6 @@ export const STUDENT_NAV: readonly NavItem[] = [
   { label: "Attendance", href: "/attendance", icon: QrCode },
   { label: "Ranks", href: "/leaderboard", icon: Trophy },
   { label: "Profile", href: "/profile", icon: User },
-  { label: "Menu", href: "/menu", icon: MenuIcon },
 ] as const;
 
 export const TEACHER_NAV: readonly NavItem[] = [

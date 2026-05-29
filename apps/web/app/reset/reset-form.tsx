@@ -100,21 +100,25 @@ export function ResetForm() {
 
   if (stage === "waiting") {
     return (
-      <p className="text-sm text-slate-500" role="status">
+      <div className="flex items-center gap-2 text-sm text-slate-500" role="status">
+        <span className="inline-block size-4 animate-spin rounded-full border-2 border-slate-300 border-t-primary" />
         Verifying reset link…
-      </p>
+      </div>
     );
   }
 
   if (stage === "no-session") {
     return (
       <div className="space-y-4">
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div
+          role="alert"
+          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
           This reset link is invalid or has expired. Request a new one.
         </div>
         <Link
           href="/forgot-password"
-          className="inline-block text-xs font-semibold text-primary hover:underline"
+          className="inline-flex rounded text-sm font-semibold text-primary transition-colors hover:text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
         >
           Request a new link →
         </Link>
@@ -138,7 +142,7 @@ export function ResetForm() {
             setError(null);
           }}
         />
-        <p className="text-[11px] text-slate-500">
+        <p className="text-xs leading-relaxed text-slate-500">
           At least 10 characters with upper, lower, and a digit. No spaces. Cannot
           match your email.
         </p>
@@ -160,7 +164,10 @@ export function ResetForm() {
       </div>
 
       {error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div
+          role="alert"
+          className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
           {error}
         </div>
       ) : null}
@@ -168,7 +175,7 @@ export function ResetForm() {
       <Button
         type="submit"
         size="lg"
-        className="h-12 w-full text-base font-bold"
+        className="h-12 w-full text-base font-bold shadow-sm transition-all hover:shadow-md"
         disabled={pending || !password || !confirm}
       >
         {pending ? "Saving…" : "Save and sign in"}

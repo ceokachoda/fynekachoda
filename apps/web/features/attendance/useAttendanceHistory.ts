@@ -8,7 +8,7 @@ export interface AttendanceRow {
   id: string;
   session_id: string;
   status: "present" | "late" | "absent";
-  method: "qr" | "manual" | "bulk";
+  method: "qr" | "manual" | "correction";
   marked_at: string;
   scheduled_start: string | null;
   subject_name: string | null;
@@ -26,7 +26,7 @@ interface RawAttendance {
   id: string;
   session_id: string;
   status: "present" | "late" | "absent";
-  method: "qr" | "manual" | "bulk";
+  method: "qr" | "manual" | "correction";
   marked_at: string;
   sessions: {
     scheduled_start: string;

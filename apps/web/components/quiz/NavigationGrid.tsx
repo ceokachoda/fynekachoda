@@ -17,15 +17,15 @@ interface Props {
 function classFor(status: QuestionStatus): string {
   switch (status) {
     case "current":
-      return "bg-primary text-white border-primary";
+      return "bg-primary text-white border-primary shadow-sm shadow-blue-200/50 ring-2 ring-primary/30";
     case "answered":
-      return "bg-emerald-100 text-emerald-900 border-emerald-400";
+      return "bg-emerald-100 text-emerald-900 border-emerald-400 hover:border-emerald-500";
     case "flagged_answered":
-      return "bg-red-100 text-red-900 border-red-400";
+      return "bg-red-100 text-red-900 border-red-400 hover:border-red-500";
     case "flagged_unanswered":
-      return "bg-amber-100 text-amber-900 border-amber-400";
+      return "bg-amber-100 text-amber-900 border-amber-400 hover:border-amber-500";
     default:
-      return "bg-white text-slate-600 border-slate-300";
+      return "bg-white text-slate-600 border-slate-300 hover:border-slate-400 hover:bg-slate-50";
   }
 }
 
@@ -56,7 +56,7 @@ export function NavigationGrid({
             aria-selected={i === currentIndex}
             onClick={() => onJump(i)}
             data-status={status}
-            className={`flex size-9 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold ${classFor(status)}`}
+            className={`flex size-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 ${classFor(status)}`}
           >
             {i + 1}
           </button>

@@ -44,7 +44,7 @@ export function ProfileMenu({
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "group flex items-center gap-3 rounded-2xl px-2 py-1.5 text-left outline-none transition-colors hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-primary/60",
+          "group flex items-center gap-3 rounded-2xl px-2 py-1.5 text-left outline-none transition-colors hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2",
           variant === "compact" && "p-1",
         )}
         aria-label={`Open profile menu for ${fullName}`}
@@ -57,7 +57,7 @@ export function ProfileMenu({
             <span className="text-sm font-bold text-slate-900 leading-tight">
               {fullName}
             </span>
-            <span className="text-[11px] uppercase tracking-wide text-slate-500">
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               {activeRole}
             </span>
           </span>

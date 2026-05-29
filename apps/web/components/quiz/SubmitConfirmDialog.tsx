@@ -54,7 +54,7 @@ export function SubmitConfirmDialog({
           </DialogDescription>
         </DialogHeader>
         {unansweredIndices.length > 0 ? (
-          <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-800">
             <p className="mb-1 font-bold">
               {unansweredIndices.length} unanswered question
               {unansweredIndices.length === 1 ? "" : "s"}:
@@ -71,6 +71,8 @@ export function SubmitConfirmDialog({
           <Button
             type="button"
             variant="ghost"
+            size="lg"
+            className="h-11"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
           >
@@ -78,7 +80,8 @@ export function SubmitConfirmDialog({
           </Button>
           <Button
             type="button"
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
+            size="lg"
+            className="h-11 bg-emerald-600 font-bold text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md focus-visible:ring-emerald-500/50 disabled:bg-emerald-600/60"
             onClick={onConfirm}
             disabled={isSubmitting}
             data-testid="confirm-submit"

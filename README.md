@@ -4,6 +4,8 @@
 
 This is a **pnpm monorepo** in active development on `main`. Don't open issues here — feature work happens in numbered phases under [`docs/phases/`](docs/phases/README.md).
 
+> 🚀 **Launching to the Play Store?** Follow **[`START-HERE.md`](START-HERE.md)** — the ordered, step-by-step launch playbook (build → test on a phone → Google Play Console → publish). It points to every other doc at the right moment.
+
 ## What's here
 
 ```
@@ -11,6 +13,7 @@ FyneStudyLive/
 ├── CLAUDE.md                    # Hard rules, tech stack, module map — read this FIRST
 ├── apps/
 │   ├── mobile/                  # React Native + Expo (students + teachers, same binary)
+│   ├── web/                     # Next.js 15 PWA (students + teachers — full mobile parity, on Vercel)
 │   ├── admin/                   # Next.js 15 admin panel (on Vercel)
 │   └── functions/               # Supabase Edge Functions (Deno)
 ├── packages/
@@ -30,12 +33,14 @@ FyneStudyLive/
 
 ## Project status
 
-| Phase | Title | Status |
-|---|---|---|
-| 1 | Foundation & Infrastructure | ✅ accepted 2026-05-14 ([ledger](docs/phases/phase-1.md)) |
-| 2 | Identity & Authentication | ✅ accepted 2026-05-15 ([ledger](docs/phases/phase-2.md)) |
-| 3 | Courses, Batches, Curriculum | ⏳ next |
-| 4–12 | …see [`docs/phases/README.md`](docs/phases/README.md) | pending |
+| Phase | Status |
+|---|---|
+| 1–10 | ✅ done — auth, courses/batches, attendance, library, quizzes, exams, mastery/dashboards, live classes, leaderboard |
+| 11 | ⏭️ skipped — parents' WhatsApp report (see [`docs/decisions.md`](docs/decisions.md)) |
+| 12 | 🟡 final polish + **launch** — see [`START-HERE.md`](START-HERE.md) |
+| Web app | 🟢 `apps/web` — Next.js 15 PWA at full mobile parity; code-complete + backend deployed. Deploy guide: [`docs/web-app-deploy.md`](docs/web-app-deploy.md) |
+
+Authoritative live status: [`CLAUDE.md`](CLAUDE.md) → **Status**.
 
 ## Quick start (local development)
 

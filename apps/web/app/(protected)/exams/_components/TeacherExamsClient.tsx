@@ -78,12 +78,12 @@ export function TeacherExamsClient() {
               <li key={e.id}>
                 <Link
                   href={`/exam-builder/${e.id}`}
-                  className="block rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+                  className="block rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                   data-testid={`exam-row-${e.id}`}
                 >
                   <div className="flex items-start">
                     <div className="mr-3 flex size-10 items-center justify-center rounded-xl bg-blue-50">
-                      <FileCheck2 className="size-4 text-primary" />
+                      <FileCheck2 className="size-5 text-primary" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-slate-900">
@@ -102,7 +102,7 @@ export function TeacherExamsClient() {
                 <div className="mt-2 flex gap-2">
                   <Link
                     href={`/exam-results/${e.id}`}
-                    className="flex flex-1 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 py-2 text-xs font-bold text-slate-800 hover:bg-slate-100"
+                    className="flex flex-1 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 py-2 text-xs font-bold text-slate-800 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1"
                   >
                     {released ? (
                       <Unlock className="mr-2 size-3.5" />

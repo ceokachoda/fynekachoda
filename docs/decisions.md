@@ -586,6 +586,11 @@ Format:
   - Impacts: `spec/performance.md`.
   - Status: Locked.
 
+- **D-204 (2026-05-29):** `exam_attempts.question_snapshot` (which pins each question's `correct_option_id` at attempt start, D-052/D-180) is **revoked from `authenticated`/`anon`** at the column level; the answer key is never directly selectable by clients. Discovered during the web Phase-5 security review: RLS filters rows, not columns, and the student self-read policy on `exam_attempts` exposed the frozen answer key mid-exam via a direct PostgREST select. Migration `20260529120000_exam_attempts_hide_snapshot.sql` revokes the column and re-grants the other 13. The only legitimate non-grading reader — the teacher results board (web + mobile) — now reads keys through the new **`exam-answer-keys`** edge fn (teacher-who-owns-exam / batch-teacher / admin scoped, service-role read), mirroring `exam-release-results`'s authorization. Grading/regrade/result fns are unaffected (they already run as service_role). Mirrors the established pattern (students have no read policy on `question_options`, so `is_correct` is never client-readable there).
+  - Why: closes a graded-exam answer-key leak; honours the Phase-5 "no answer-key leak" gate.
+  - Impacts: `supabase/migrations/`, `apps/functions/exam-answer-keys/`, `apps/web/features/teacher/useExamResultsBoard.ts`, `apps/mobile/features/exam/useExamResultsBoard.ts`.
+  - Status: Locked. Applied to prod + deployed 2026-05-29.
+
 ## Out of MVP (deferred / rejected)
 
 - **D-130 (2026-05-14):** **Razorpay payments / fees** — deferred to post-MVP.

@@ -26,13 +26,13 @@ export function QuestionCard({
   const d = difficulty ? DIFFICULTY[difficulty] : null;
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-sm font-semibold text-slate-500">
-          Q{index + 1} / {total}
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-sm font-semibold tabular-nums text-slate-500">
+          Q{index + 1} <span className="text-slate-400">/ {total}</span>
         </p>
         {d ? (
           <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${d.bg} ${d.fg}`}
+            className={`rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${d.bg} ${d.fg}`}
           >
             {d.label}
           </span>
@@ -42,7 +42,7 @@ export function QuestionCard({
         <MathText markdown={prompt_md} />
       </div>
       {prompt_image_url ? (
-        <div className="mt-3 overflow-hidden rounded-xl bg-slate-50">
+        <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={prompt_image_url}

@@ -123,12 +123,12 @@ export function LibraryClient({
             type="button"
             aria-label="Back"
             onClick={breadcrumbBack}
-            className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200"
+            className="flex size-9 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
           >
             <ChevronLeft className="size-4" />
           </button>
         ) : (
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-blue-100">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-blue-200 ring-1 ring-blue-200/50">
             <BookOpen className="size-6 text-primary" />
           </div>
         )}
@@ -168,7 +168,7 @@ export function LibraryClient({
         </>
       ) : view === "subjects" ? (
         subjects.length === 0 ? (
-          <p className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+          <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-500">
             No content available yet.
           </p>
         ) : (
@@ -178,7 +178,7 @@ export function LibraryClient({
                 key={s.id}
                 type="button"
                 onClick={() => setNav(s.id, null, null)}
-                className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 text-left transition hover:border-slate-200"
+                className="flex items-center rounded-2xl border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
               >
                 <div className="mr-3 flex size-12 items-center justify-center rounded-2xl bg-blue-50">
                   <BookOpen className="size-5 text-primary" />
@@ -198,7 +198,7 @@ export function LibraryClient({
         )
       ) : view === "chapters" ? (
         subject!.chapters.length === 0 ? (
-          <p className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+          <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-500">
             No chapters yet.
           </p>
         ) : (
@@ -209,7 +209,7 @@ export function LibraryClient({
                   type="button"
                   onClick={() => setNav(subjectId, c.id, null)}
                   disabled={c.item_count === 0}
-                  className="flex w-full items-center rounded-2xl border border-slate-100 bg-white p-4 text-left transition hover:border-slate-200 disabled:opacity-50"
+                  className="flex w-full items-center rounded-2xl border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:hover:bg-white"
                 >
                   <div className="mr-3 flex size-10 items-center justify-center rounded-2xl bg-blue-50">
                     <BookOpen className="size-4 text-primary" />
@@ -230,7 +230,7 @@ export function LibraryClient({
         )
       ) : view === "topics" ? (
         chapter!.topics.length === 0 ? (
-          <p className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+          <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-500">
             No topics yet.
           </p>
         ) : (
@@ -243,7 +243,7 @@ export function LibraryClient({
                     type="button"
                     onClick={() => setNav(subjectId, chapterId, t.id)}
                     disabled={t.items.length === 0 && !hasQuizzes}
-                    className="flex w-full items-center rounded-2xl border border-slate-100 bg-white p-4 text-left transition hover:border-slate-200 disabled:opacity-50"
+                    className="flex w-full items-center rounded-2xl border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:hover:bg-white"
                   >
                     <div className="mr-3 flex size-10 items-center justify-center rounded-2xl bg-blue-50">
                       <BookOpen className="size-4 text-primary" />
@@ -267,7 +267,7 @@ export function LibraryClient({
       ) : (
         <div className="space-y-2">
           {topic!.items.length === 0 ? (
-            <p className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+            <p className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 px-4 py-6 text-center text-sm text-slate-500">
               No content for this topic yet.
             </p>
           ) : (
@@ -296,7 +296,7 @@ export function LibraryClient({
                   <li key={item.id}>
                     <Link
                       href={href}
-                      className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+                      className="flex items-center rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                     >
                       <div className="mr-3 flex size-10 items-center justify-center rounded-2xl bg-blue-50">
                         {iconForKind(item.kind)}
@@ -331,13 +331,13 @@ export function LibraryClient({
                     <Link
                       href={`/quiz/${q.id}`}
                       data-testid="quiz-link"
-                      className="flex items-center justify-between rounded-xl bg-white px-3 py-2 transition hover:bg-amber-100/60"
+                      className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5 transition-colors hover:bg-amber-100/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-1"
                     >
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-slate-900">
                           {q.title}
                         </p>
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-xs font-medium text-slate-500">
                           {q.duration_min} min · +{q.marks_correct}/{q.marks_wrong}/{q.marks_skip}
                           {q.attempt_count > 0 ? ` · attempted ${q.attempt_count}×` : ""}
                         </p>

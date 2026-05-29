@@ -57,7 +57,7 @@ export function AttendanceHistoryList({ rows }: { rows: AttendanceRow[] }) {
               >
                 {statusLabel(r.status)}
               </p>
-              <p className="mt-0.5 text-[10px] uppercase text-slate-400">
+              <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
                 {r.method}
               </p>
             </div>

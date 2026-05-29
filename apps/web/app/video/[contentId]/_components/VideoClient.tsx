@@ -59,7 +59,7 @@ export function VideoClient({ contentId, fullName }: Props) {
   const playerReady = resumeChoice !== "pending" && !!playback.data;
 
   return (
-    <div className="-mx-4 -mt-4 flex h-[calc(100vh-2rem)] flex-col bg-black text-white sm:-mx-6 sm:-mt-6">
+    <div className="flex h-[100dvh] flex-col bg-black text-white">
       <div className="flex items-center gap-3 px-4 py-3">
         <Link
           href="/library"

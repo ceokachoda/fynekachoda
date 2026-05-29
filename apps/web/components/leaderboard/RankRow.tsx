@@ -15,10 +15,10 @@ export function RankRow({
     <button
       type="button"
       onClick={() => onPress(row.student_id)}
-      className={`mb-2 flex w-full items-center rounded-2xl border px-4 py-3 text-left transition ${
+      className={`flex w-full items-center rounded-2xl border px-4 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 ${
         row.is_me
-          ? "border-blue-200 bg-blue-50"
-          : "border-slate-100 bg-white hover:border-slate-200"
+          ? "border-blue-300 bg-blue-50 shadow-sm shadow-blue-200/30"
+          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
       }`}
     >
       <div className="flex w-9 items-center justify-center">
@@ -27,16 +27,16 @@ export function RankRow({
       <div className="ml-3 min-w-0 flex-1">
         <p
           className={`truncate text-sm font-bold ${
-            row.is_me ? "text-blue-800" : "text-slate-900"
+            row.is_me ? "text-blue-900" : "text-slate-900"
           }`}
         >
           {row.is_me ? "You" : row.full_name}
         </p>
         {phone ? (
-          <p className="mt-0.5 text-[11px] text-slate-400">{phone}</p>
+          <p className="mt-0.5 text-xs font-medium text-slate-500">{phone}</p>
         ) : null}
       </div>
-      <span className="text-sm font-extrabold text-blue-800">
+      <span className="text-sm font-extrabold tabular-nums text-blue-800">
         {row.composite.toFixed(2)}
       </span>
     </button>

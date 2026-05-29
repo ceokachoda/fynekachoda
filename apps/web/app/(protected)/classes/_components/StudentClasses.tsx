@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Calendar, Video, Clock, ChevronRight } from "lucide-react";
+import { Calendar, Video, Clock, ChevronRight, Radio, BookOpen } from "lucide-react";
 import { Segmented } from "@/components/fyne/Segmented";
 import { EmptyState } from "@/components/fyne/EmptyState";
 import { Pill } from "@/components/fyne/Pill";
@@ -74,8 +74,9 @@ export function StudentClasses() {
         ) : seg === "live" ? (
           live.length === 0 ? (
             <EmptyState
+              icon={Radio}
               title="No live class right now"
-              description="When a class starts, it will appear here."
+              description="When a teacher starts a class, you'll see it here."
             />
           ) : (
             <ul className="space-y-2">
@@ -84,14 +85,16 @@ export function StudentClasses() {
                   <Link
                     href={`/live/${s.id}`}
                     data-testid="live-link"
-                    className="flex items-center rounded-2xl border border-red-200 bg-red-50 p-4 transition hover:border-red-300"
+                    className="flex items-center rounded-2xl border border-red-200 bg-red-50 p-4 transition-colors hover:border-red-300 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
                   >
-                    <Video className="mr-3 size-5 text-red-600" />
+                    <div className="mr-3 flex size-10 items-center justify-center rounded-xl bg-red-100">
+                      <Video className="size-5 text-red-600" />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-slate-900">
                         {s.subject_name}
                       </p>
-                      <p className="text-xs text-red-700">
+                      <p className="text-xs font-medium text-red-700">
                         Live now · {formatIstTime(s.scheduled_start)}
                       </p>
                     </div>
@@ -105,6 +108,7 @@ export function StudentClasses() {
         ) : seg === "upcoming" ? (
           upcoming.length === 0 ? (
             <EmptyState
+              icon={Calendar}
               title="No upcoming sessions"
               description="Your schedule for the next 14 days is clear."
             />
@@ -113,9 +117,11 @@ export function StudentClasses() {
               {upcoming.map((s) => (
                 <li
                   key={s.id}
-                  className="flex items-center rounded-2xl border border-slate-100 bg-white p-4"
+                  className="flex items-center rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300"
                 >
-                  <Clock className="mr-3 size-4 text-slate-400" />
+                  <div className="mr-3 flex size-10 items-center justify-center rounded-xl bg-blue-50">
+                    <Clock className="size-5 text-primary" />
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-slate-900">
                       {s.subject_name}
@@ -131,8 +137,9 @@ export function StudentClasses() {
           )
         ) : recorded.length === 0 ? (
           <EmptyState
+            icon={Video}
             title="No recordings yet"
-            description="When a live class ends and the recording is ready, it'll appear here."
+            description="When a live class ends and YouTube finishes processing, the recording will appear here."
           />
         ) : (
           <ul className="space-y-2">
@@ -141,9 +148,11 @@ export function StudentClasses() {
                 <Link
                   href={`/recording/${s.id}`}
                   data-testid="recording-link"
-                  className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+                  className="flex items-center rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                 >
-                  <Video className="mr-3 size-4 text-slate-400" />
+                  <div className="mr-3 flex size-10 items-center justify-center rounded-xl bg-slate-100">
+                    <Video className="size-5 text-slate-500" />
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-slate-900">
                       {s.subject_name}
@@ -168,9 +177,11 @@ export function StudentClasses() {
         {exams.isLoading ? (
           <Skeleton className="h-24 w-full rounded-2xl" />
         ) : (exams.data ?? []).length === 0 ? (
-          <p className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-            No examinations scheduled.
-          </p>
+          <EmptyState
+            icon={BookOpen}
+            title="No examinations scheduled"
+            description="When your teacher schedules a graded exam, it'll appear here."
+          />
         ) : (
           <ul className="space-y-2">
             {(exams.data ?? []).map((e) => {
@@ -184,9 +195,11 @@ export function StudentClasses() {
                   <Link
                     href={`/exam/${e.id}`}
                     data-testid="exam-link"
-                    className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 transition hover:border-slate-200"
+                    className="flex items-center rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
                   >
-                    <Calendar className="mr-3 size-4 text-slate-400" />
+                    <div className="mr-3 flex size-10 items-center justify-center rounded-xl bg-amber-50">
+                      <BookOpen className="size-5 text-amber-600" />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-slate-900">
                         {e.title}

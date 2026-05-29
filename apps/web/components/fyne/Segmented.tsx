@@ -29,7 +29,7 @@ export function Segmented<V extends string>({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "inline-flex w-full items-stretch gap-1 rounded-2xl bg-slate-200/70 p-1.5",
+        "inline-flex w-full items-stretch gap-1 rounded-2xl bg-slate-100 p-1.5",
         className,
       )}
     >
