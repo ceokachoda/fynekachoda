@@ -110,6 +110,10 @@ Token, `sbp_…`).
 
 ## 6. Production smoke test (owner — after first deploy)
 
+> **Easiest test path:** follow **`docs/web-app-test-checklist.md`** — a self-contained,
+> noob-friendly guide (how to run locally + seed test accounts/data + every critical
+> test). The list below is the bare-minimum smoke test.
+
 Open `https://fyne-study-web.vercel.app` on a **phone** and a **laptop** and run, at
 minimum (full plan in `Phases/phase-5-manual-tests.md`):
 

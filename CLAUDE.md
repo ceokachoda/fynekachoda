@@ -171,7 +171,7 @@ Admin issues every account. **No self-signup, ever.**
 ## File entry points
 - Mobile: `apps/mobile/app/_layout.tsx`
 - Admin: `apps/admin/app/layout.tsx`
-- Web (4th surface, students + teachers): `apps/web/app/layout.tsx` · middleware `apps/web/middleware.ts` · deploy guide `docs/web-app-deploy.md`
+- Web (4th surface, students + teachers): `apps/web/app/layout.tsx` · middleware `apps/web/middleware.ts` · deploy guide `docs/web-app-deploy.md` · test guide `docs/web-app-test-checklist.md` (noob, self-contained: localhost + seeds + critical tests) · custom domain `fynestudy.live` (live; CORS + Supabase URLs whitelisted)
 - Edge fns: `apps/functions/*/index.ts`
 - Migrations: `supabase/migrations/`
 - Shared: `packages/shared/`, `packages/supabase-types/`

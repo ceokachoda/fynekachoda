@@ -1,134 +1,194 @@
-# FyneStudy Web — Critical Test Checklist (noob-friendly)
+# FyneStudy Web — Test Guide (start here, noob-friendly)
 
-A **short, critical-path** manual test. Goal: confirm every important feature works,
-on every device. (For the exhaustive click-by-click version, see
-`Phases/phase-5-manual-tests.md`.)
+**This is THE file to test the web app.** Follow it top to bottom. It covers setup
+(running it + getting test accounts/data) **and** every critical feature. No prior
+knowledge needed.
 
-## How to run it
-1. Test on **3 things**: a **laptop (Chrome)**, an **Android phone (Chrome)**, and an
-   **iPhone (Safari)**. Most bugs hide on phones.
-2. For each test: do the steps, check the **Expected**, tick `[x] PASS` or write what
-   broke next to `FAIL`.
-3. Use **two accounts** open in two browsers/devices: one **student**, one **teacher**
-   (so you can test live class + attendance "live" between them).
-4. Where to test:
-   - **Local (your laptop, before hosting):** `http://localhost:3000`
-   - **Live (after Vercel):** `https://fyne-study-web.vercel.app`
-
-> Tip: on the laptop, press **F12 → Console** tab. If something breaks, red errors
-> there tell you what. Keep it open during testing.
+*(Want the exhaustive 1029-line version with a per-browser matrix? That's
+`Phases/phase-5-manual-tests.md`. You don't need it — this file is enough.)*
 
 ---
 
-## 0 · App opens
-- [ ] Open the URL → you land on the **Sign in** page (FyneStudy logo, email + password).
-- [ ] No blank white screen, no red console errors on load.
+# Part 1 — Setup (do this once)
 
-## 1 · Login & logout  *(test on all 3 devices)*
-- [ ] **Student:** sign in with a student email/password → lands on the **Home**
-      dashboard. Bottom tabs (phone) / side rail (laptop): Home · Classes · Library ·
-      Attendance · Ranks · Profile (**6 tabs, no "Menu"**).
-- [ ] **Wrong password** → clear red error, no crash.
-- [ ] **Profile tab → Sign out** → returns to Sign in. Pressing browser Back does
-      **not** get you back into the app.
-- [ ] **Teacher:** sign in with a teacher account → teacher Home (tabs include Scan,
-      Quizzes, Exams, Batch).
-- [ ] **Forgot password:** Sign in → "Forgot password?" → enter email → "check your
-      email" message. Open the email → the reset link opens the app's **Reset** page →
-      set a new password → can log in with it.
+### Where will you test?
+You can test in two places — both use the same backend, so test accounts/data work in
+both:
+- **Laptop:** `http://localhost:3000` (run it yourself, below) **or** the live site.
+- **Phone:** use the **live site** → `https://fyne-study-web.vercel.app` (or
+  `https://fynestudy.live` once your domain is live). *(localhost only works on the
+  laptop running it — don't try localhost on the phone.)*
 
-## 2 · Student dashboard
-- [ ] Home shows: greeting, a **next class / next exam card**, stats (attendance %,
-      streak), today's schedule, weak topics, continue-watching, recent badges.
-- [ ] Numbers look real (not "undefined"/blank). Tapping a section navigates correctly.
-- [ ] **Profile** tab: 3 sub-tabs (Profile / Mastery / Badges). Identity rows show your
-      name, email, batch (read-only). **Change password** opens and works.
+### Step 1 — Open a terminal in the project folder
+Open the project in your terminal (the folder that has `apps/`, `docs/`, etc.).
 
-## 3 · Attendance  *(needs student + teacher together)*
-- [ ] **Student → Attendance:** a **QR code** shows with a countdown ("Refreshes in
-      Ns"). It refreshes about every 25–30s.
-- [ ] **Teacher → Scan:** press **Start camera** → allow camera → point at the
-      student's QR → **green success**, student appears in the roster.
-- [ ] Student's attendance % / history updates (may need a refresh).
-- [ ] **Camera denied** (deny permission): you see a fallback with a **link to the
-      roster** to mark manually — no crash.
+### Step 2 — Create test accounts + sample data (the "seeds")
+The backend is mostly empty, so first we add test students, a teacher, classes,
+quizzes, etc. **Your keys are already set** (`apps/admin/.env.local`). Run these one at a
+time (each takes a few seconds and **prints login emails + passwords at the end —
+copy them into the notepad below**):
 
-## 4 · Library — video & PDF
-- [ ] **Library:** drill Subject → Chapter → Topic → items. **Search** filters the list.
-- [ ] **Open a video:** it plays in the YouTube player. A faint **watermark** (your
-      name/phone) floats over it. Close & reopen → it offers to **Resume** where you left.
-- [ ] **Open a PDF:** it renders. A **tiled diagonal watermark** covers the pages.
-      **Zoom +/−** buttons work. Scroll down, leave, come back → it **resumes on the
-      same page**.
+```
+pnpm seed:dashboard-manual-test --reset     # teacher + 3 students + dashboard/attendance/mastery data
+pnpm seed:content-manual-test               # library: videos + PDFs
+pnpm seed:quiz-manual-test --reset          # a practice quiz
+pnpm seed:exam-manual-test --reset          # a graded exam
+pnpm seed:live-manual-test --reset          # a live class session + chat
+```
 
-## 5 · Quiz (practice)
-- [ ] Start a quiz → intro → **attempt**. Answer questions, use the **number grid** to
-      jump, **flag** a question. Math questions render properly (formulas, not raw `$...$`).
-- [ ] **Refresh the page mid-quiz** → it resumes where you were (answers kept).
-- [ ] Submit → see your **score** → **Review solutions** shows correct answers.
+> Each seed makes its **own** teacher + students and prints their logins — that's
+> normal. When a test below says "use the quiz-seed login," it means the login the
+> `quiz` seed printed. Keep this notepad handy:
 
-## 6 · Exam (graded, locked)
-- [ ] Start an exam → a **countdown timer** runs. The screen is locked (no text-select /
-      right-click menu).
-- [ ] **Server-timer test:** change your device clock forward 10 min → the exam timer
-      **does NOT** jump (server controls time). Set the clock back.
-- [ ] Switch to another browser tab and back → a **"tab switch" warning** appears and a
-      counter goes up.
-- [ ] Submit (or let the timer hit 0 → auto-submits). For an **instant** exam you see
-      the score; for a **manual-release** exam you see a "results locked" card until the
-      teacher releases them.
+```
+DASHBOARD seed  → Teacher: ______________  PW: ______   Student "Streak Star": ______________ PW: ______
+CONTENT seed    → Student: ______________  PW: ______
+QUIZ seed       → Student: ______________  PW: ______
+EXAM seed       → Teacher: ______________  PW: ______   Student: ______________ PW: ______
+LIVE seed       → Teacher: ______________  PW: ______   Student: ______________ PW: ______
+```
 
-## 7 · Live class + chat + raise hand  *(needs teacher + student; YOUR #1 priority)*
-- [ ] **Teacher → Classes → Schedule a live class** (or use a seeded one) → open
-      **Live control** → **Setup**: you get an **RTMP URL** + **Stream key** with
-      **Copy** buttons. (For a real stream, paste them into OBS and start streaming.)
-- [ ] **Student → Classes → Live:** before the teacher goes live, student sees a
-      **lobby/countdown** ("waiting for teacher").
-- [ ] Teacher presses **Go live** → student's screen switches to the **player**.
-- [ ] **Chat:** student & teacher send messages → they appear for both. Sending **6
-      messages very fast** → it's rate-limited (slows you down). 
-- [ ] **Raise hand:** student taps Raise hand → teacher sees it in the queue.
-- [ ] **Moderation:** teacher **deletes** a message and **bans** a student → banned
-      student can no longer chat/raise hand.
-- [ ] **Pin / announcement** message from teacher shows pinned at top.
-- [ ] Teacher **End class** → student sees "class ended".
-- [ ] **Recording:** open a past class under **Recorded** → it plays, with **speed**
-      buttons and the **chat replay** alongside.
+> ⚠️ This adds **test data to your live backend**. That's fine now (no real students
+> yet). Before you onboard real students, tell me and I'll help wipe the test fixtures.
+> If a seed errors, copy the red text to me.
 
-## 8 · Teacher portal (quick pass)
-- [ ] **Content:** upload a **video URL** and a **PDF** (file picker → uploads → appears
-      in library).
-- [ ] **Quiz builder / Exam builder:** create one, **add questions from the bank**,
-      **Publish**. It appears for students.
-- [ ] **Exam results:** open an exam's results → roster + per-question analysis loads
-      (no "answer-keys failed" error). **Release results** / **regrade** work.
-- [ ] **Batch:** open a batch → heatmap, mastery bars, at-risk list load.
+### Step 3 — Run the app on your laptop (localhost)
+In the terminal:
+```
+pnpm --filter @fynestudy/web dev
+```
+Wait for `Ready`, then open **http://localhost:3000** in **Chrome**. *(First time only:
+if it errors about missing modules, run `pnpm install` once, then this command again.)*
+Press `Ctrl + C` in the terminal to stop it later.
 
-## 9 · Responsive & install (all devices)
-- [ ] **Phone (narrow):** bottom tab bar; no content runs off the right edge; buttons
-      are easily tappable; no tiny text.
-- [ ] **Tablet / laptop (wide):** a **left side rail** replaces the bottom tabs; content
-      is centered (not one stretched column); hovering rows highlights them.
-- [ ] **Rotate the phone** / resize the laptop window 320px → 1440px: nothing overlaps or
-      gets cut off.
-- [ ] **Pinch-zoom works** on the phone (we unlocked it for accessibility).
-- [ ] **Install as an app (PWA):**
-   - Android Chrome: menu → "Add to Home screen" / install prompt.
-   - iPhone Safari: Share → "Add to Home Screen".
-   - Laptop Chrome: install icon in the address bar.
-   - Opening the installed icon launches it full-screen and you're still logged in.
+### Step 4 — Open the dev tools (helps report bugs)
+On the laptop, press **F12** → click the **Console** tab. If anything breaks, red text
+here tells us why. Keep it open while testing.
 
-## 10 · Security spot-check (laptop, F12 open)
-- [ ] During a **quiz/exam attempt**, open F12 → **Network** tab → click requests →
-      **none** contain `is_correct` or `correct_option_id` (answers never reach the
-      browser before you submit).
-- [ ] Right-click → **View Page Source** → search for `service_role` → **0 results**.
-- [ ] A logged-in student **cannot** open another student's data, the teacher screens
-      (`/scan`, `/quizzes`), or the admin — they're redirected to Home.
+> **First login note:** a brand-new seeded account may ask you to **set a new password**
+> on first login — do it, then continue. That's expected (and tests that flow).
 
 ---
 
-## Done?
-If every box is `PASS` on all 3 devices, the web app is working correctly. Record any
-`FAIL` with: which step, which device, and the F12 console error — and send it to me to
-fix. Exhaustive version + per-browser matrix: `Phases/phase-5-manual-tests.md`.
+# Part 2 — The tests
+
+For each: do the steps, check the **Expected**, then tick **PASS** or write what broke.
+Do the whole thing on a **laptop**, then repeat the key ones on a **phone** (live URL).
+
+---
+
+## A · Login & logout  *(use any seed's logins)*
+1. Open `/login` → you see the FyneStudy logo + email/password form.
+2. Sign in with a **student** login → lands on **Home**. Bottom bar (phone) / left rail
+   (laptop) shows **6 tabs**: Home · Classes · Library · Attendance · Ranks · Profile
+   (**no "Menu"**).
+3. Type a **wrong password** → clear red error, no crash.
+4. **Profile** tab → scroll down → **Sign out** → back to login. Browser **Back** does
+   not re-enter the app.
+5. Sign in with a **teacher** login → teacher Home (tabs include Scan, Quizzes, Exams,
+   Batch).
+- [ ] PASS / FAIL: __________________________
+
+## B · Student dashboard & profile  *(dashboard seed → "Streak Star" student)*
+1. On Home you see: greeting, a **next class/exam card**, stats (attendance %, **7-day
+   streak**), today's schedule, weak topics, continue-watching, recent badges.
+2. Numbers are real (not blank/"undefined"). Tapping a section navigates.
+3. **Profile** tab → 3 sub-tabs (Profile / Mastery / Badges). Identity rows show name,
+   email, batch (locked). **Change password** opens and works.
+- [ ] PASS / FAIL: __________________________
+
+## C · Attendance  *(needs the teacher + a student from the SAME seed, on 2 screens)*
+> Use two browsers (or laptop + phone). Sign in as the **teacher** on one, the
+> **student** on the other.
+1. **Student → Attendance:** a **QR code** shows with a countdown ("Refreshes in Ns") —
+   it refreshes ~every 25–30s.
+2. **Teacher → Scan → Start camera** → allow camera → point at the student's QR (or hold
+   the student's screen to the teacher's webcam) → **green success**; student appears in
+   the roster.
+3. Student's attendance % / history updates (refresh if needed).
+4. **Camera denied** test: deny camera → you get a fallback **link to the roster** to
+   mark manually — no crash.
+- [ ] PASS / FAIL: __________________________
+
+## D · Library — video & PDF  *(content seed login)*
+1. **Library:** drill **Subject → Chapter → Topic → item**. **Search** filters the list.
+2. **Open a video** → it plays in the YouTube player; a faint **watermark** (your
+   name/phone) drifts over it. Close & reopen → it offers to **Resume**.
+3. **Open a PDF** → it renders with a **tiled diagonal watermark**. **Zoom +/−** works.
+   Scroll down, leave, come back → it **reopens on the same page**.
+- [ ] PASS / FAIL: __________________________
+
+## E · Quiz  *(quiz seed login)*
+1. Start the quiz → intro → **Start Quiz** → answer questions; use the **number grid** to
+   jump; **flag** a question. Math shows as proper formulas (not raw `$...$`).
+2. **Refresh the page mid-quiz** → it resumes where you were (answers kept).
+3. Submit → see your **score** → **Review solutions** shows correct answers.
+- [ ] PASS / FAIL: __________________________
+
+## F · Exam  *(exam seed login)*
+1. Start the exam → a **countdown timer** runs; screen is locked (no text-select /
+   right-click).
+2. **Clock test:** change your device clock **forward 10 min** → the exam timer does
+   **NOT** jump (server controls it). Set the clock back.
+3. Switch to another browser tab and back → a **"tab switch" warning** appears + a
+   counter goes up.
+4. Submit (or let the timer hit 0 → auto-submits). Instant exam → score shows;
+   manual-release exam → a **"results locked"** card until the teacher releases.
+- [ ] PASS / FAIL: __________________________
+
+## G · Live class + chat + raise hand  *(live seed; teacher + student on 2 screens — YOUR #1)*
+1. **Teacher → Classes → open the live class → Live control → Setup:** you get an **RTMP
+   URL** + **Stream key** with **Copy** buttons. *(For a real video, paste them into OBS
+   and start streaming — optional for this test.)*
+2. **Student → Classes → Live:** before the teacher goes live → a **lobby / countdown**.
+3. Teacher presses **Go live** → student's screen switches to the **player**.
+4. **Chat:** student & teacher each send a message → both see them. Send **6 messages
+   fast** → it slows you down (rate-limit).
+5. **Raise hand:** student taps it → teacher sees it in the queue.
+6. **Moderate:** teacher **deletes** a message and **bans** the student → banned student
+   can't chat / raise hand anymore.
+7. Teacher **End class** → student sees "class ended."
+8. **Recording:** open a class under **Recorded** → it plays with **speed** buttons +
+   **chat replay**. *(Only if a recording exists.)*
+- [ ] PASS / FAIL: __________________________
+
+## H · Teacher portal (quick pass)  *(any teacher login)*
+1. **Content** → upload a **video URL** and a **PDF** → it appears in the library.
+2. **Quiz builder / Exam builder** → create one → **Add from bank** → **Publish** → it
+   shows up for students.
+3. **Exam results** → open an exam's results → roster + per-question analysis load (no
+   "answer-keys failed" error). **Release results** / **regrade** work.
+4. **Batch** → open a batch → heatmap, mastery bars, at-risk list load.
+- [ ] PASS / FAIL: __________________________
+
+## I · Works on every device  *(do on phone via the live URL + resize laptop)*
+1. **Phone:** bottom tab bar; nothing runs off the right edge; buttons easy to tap; text
+   readable; **pinch-zoom works**.
+2. **Laptop wide:** a **left side rail** (not bottom tabs); content centered (not one
+   stretched column); rows highlight on hover.
+3. Resize the laptop window narrow → wide (or rotate the phone): nothing overlaps or gets
+   cut off.
+4. **Install as an app:** Android Chrome → "Add to Home screen"; iPhone Safari → Share →
+   "Add to Home Screen"; laptop Chrome → install icon in the address bar. The installed
+   icon opens full-screen and you're still logged in.
+- [ ] PASS / FAIL: __________________________
+
+## J · Security spot-check  *(laptop, F12 open)*
+1. During a **quiz/exam attempt** → F12 → **Network** tab → click a few requests → **none**
+   contain `is_correct` or `correct_option_id` (answers never reach the browser early).
+2. Right-click → **View Page Source** → Ctrl+F `service_role` → **0 results**.
+3. As a **student**, try opening a teacher page by typing `/scan` in the address bar →
+   you're bounced to Home (can't access it).
+- [ ] PASS / FAIL: __________________________
+
+---
+
+# Part 3 — Report back to me
+For anything that **FAILED**, send me:
+1. **Which test** (e.g. "E step 2").
+2. **Which device/browser** (laptop Chrome / Android / iPhone).
+3. **What you saw** vs what you expected.
+4. The **red text in F12 → Console** (laptop), if any.
+
+If every box is **PASS** on laptop + phone, the web app is working correctly and you're
+ready to go live for real users. 🎉
