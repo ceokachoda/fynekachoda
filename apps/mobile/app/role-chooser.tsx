@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 // One-time role chooser for the (rare) student + teacher multi-role.
 // Phase 2: no persistence — shown every cold start. A future polish
-// pass stores the last choice and surfaces a role-switcher in the menu.
+// pass stores the last choice and surfaces a role-switcher on Profile.
 
 export default function RoleChooserScreen() {
   const router = useRouter();

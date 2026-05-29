@@ -63,6 +63,12 @@
         "projectId": "d5d970db-963d-4ac5-bdb7-020cb0d6f542"
       }
     },
-    "owner": "kaustabborah"
+    "owner": "kaustabborah",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d5d970db-963d-4ac5-bdb7-020cb0d6f542"
+    }
   }
 }

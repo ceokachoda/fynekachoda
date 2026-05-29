@@ -19,7 +19,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -38,6 +37,7 @@ import { TimerPill } from "@/components/quiz/TimerPill";
 import { FlagButton } from "@/components/quiz/FlagButton";
 import { SolutionCard } from "@/components/quiz/SolutionCard";
 import { TabSwitchBanner } from "@/components/exam/TabSwitchBanner";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useExamStart } from "@/features/exam/useExamStart";
 import { useExamSubmit } from "@/features/exam/useExamSubmit";
 import { useExamAttemptResult } from "@/features/exam/useExamAttemptResult";
@@ -107,10 +107,14 @@ export default function ExamScreen() {
 
   const [stage, setStage] = useState<Stage>("pre");
   const [now, setNow] = useState<number>(Date.now());
+  // `now` only drives the pre-stage countdown. Gate the 1s tick to the pre
+  // stage so it doesn't re-render the whole exam tree (question card + math
+  // WebView + nav grid) every second during the attempt — a real low-end win.
   useEffect(() => {
+    if (stage !== "pre") return;
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [stage]);
 
   const loadPre = useCallback(async () => {
     if (!examId) return;
@@ -315,11 +319,7 @@ export default function ExamScreen() {
       );
     }
     if (!preInfo) {
-      return (
-        <SafeAreaView className="flex-1 bg-white items-center justify-center" edges={["top"]}>
-          <ActivityIndicator size="large" color="#2563EB" />
-        </SafeAreaView>
-      );
+      return <LoadingScreen />;
     }
     const startsAtMs = new Date(preInfo.starts_at).getTime();
     const endsAtMs = startsAtMs + preInfo.duration_min * 60_000;
@@ -460,11 +460,7 @@ export default function ExamScreen() {
         : null;
     const fallback = lazyResult.data;
     if (!released && !fallback) {
-      return (
-        <SafeAreaView className="flex-1 bg-slate-50 items-center justify-center" edges={["top"]}>
-          <ActivityIndicator size="large" color="#2563EB" />
-        </SafeAreaView>
-      );
+      return <LoadingScreen background="bg-slate-50" />;
     }
     const score = released
       ? released.score
@@ -539,9 +535,7 @@ export default function ExamScreen() {
           <Text className="text-lg font-bold text-blue-900 ml-3 flex-1">Solutions</Text>
         </View>
         {lazyResult.isLoading && !lazyResult.data ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#2563EB" />
-          </View>
+          <LoadingScreen background="bg-transparent" />
         ) : lazyResult.data ? (
           <ScrollView contentContainerStyle={{ padding: 20 }}>
             {lazyResult.data.questions.map((q, i) => (
@@ -559,11 +553,7 @@ export default function ExamScreen() {
 
   // ---- Attempt (default) ----
   if (startState.isLoading && !startState.data) {
-    return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center" edges={["top"]}>
-        <ActivityIndicator size="large" color="#2563EB" />
-      </SafeAreaView>
-    );
+    return <LoadingScreen />;
   }
   if (startState.error && !startState.data) {
     return (
@@ -581,11 +571,7 @@ export default function ExamScreen() {
     );
   }
   if (!startState.data) {
-    return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center" edges={["top"]}>
-        <ActivityIndicator size="large" color="#2563EB" />
-      </SafeAreaView>
-    );
+    return <LoadingScreen />;
   }
   const data = startState.data;
   const totalQ = questions.length;

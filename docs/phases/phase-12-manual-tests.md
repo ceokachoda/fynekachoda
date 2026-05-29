@@ -25,7 +25,7 @@
 ### 0.1 — What you'll run
 
 **Admin panel** (web, in a desktop browser — Chrome recommended):
-- Hosted: the Vercel URL (e.g. `https://admin-kohl-sigma.vercel.app/`), OR
+- Hosted: the Vercel URL (e.g. `https://fyne-study-app-admin.vercel.app/`), OR
 - Local: at the repo root run `pnpm dev:admin`, then open
   `http://localhost:3000`.
 - If the hosted URL shows an old placeholder or errors, fall back to the
@@ -578,8 +578,8 @@ F2c — Forced password change at first login (admin):
 # PART 2 — MOBILE APP (real phone)
 
 > Do the §0.3 clean restart first (Expo Go). The student bottom tab bar has
-> **7 tabs**: Home · Classes · Library · Attendance · Ranks · Profile ·
-> Menu. The teacher bar has **8 tabs**: Home · Scan · Classes · Library ·
+> **6 tabs**: Home · Classes · Library · Attendance · Ranks · Profile.
+> The teacher bar has **8 tabs**: Home · Scan · Classes · Library ·
 > Quizzes · Exams · Batch · Profile.
 
 ## §G — Student full journey
@@ -750,25 +750,16 @@ LIVE exam "Mechanics Live" or the instant "Instant Reveal".)
 ```
 **Report:** `G9 ok — Profile/Mastery/Badges tabs, badge grid earned vs locked, streak modal heatmap`.
 
-### G10. Menu / settings tab
-```
-1. "Menu" tab → a "Settings" screen with grouped rows (General / Security /
-   About) and a red "Log Out" button.
-```
-> NOTE (current build): these Settings rows are display-only placeholders,
-> and this screen's "Log Out" button is NOT wired. The REAL working sign-out
-> for students is the red "Sign out" button on the PROFILE tab (§G11). If
-> you want this Menu "Log Out" to actually sign out before launch, flag it —
-> it's a known gap.
-**Report:** `G10 ok — Settings screen renders (Log Out here is a placeholder)`.
-
-### G11. Log out (the working path)
+### G10. Log out
 ```
 1. Profile tab → scroll down → red "Sign out" button → tap it.
 2. You're returned to the Login screen. Re-opening the app does NOT auto-log
    you back in.
 ```
-**Report:** `G11 ok — Profile → Sign out returns to Login`.
+> The student bar no longer carries a separate "Menu" tab; Profile is the
+> sole settings/sign-out surface (Change password / Contact admin /
+> Sign out).
+**Report:** `G10 ok — Profile → Sign out returns to Login`.
 
 ---
 
@@ -962,7 +953,7 @@ white). Note any contrast bugs.
 ```
 1. Enable the OS "Reduce Motion" accessibility setting.
 2. Re-open the app; trigger an animated surface (e.g. the badge celebration
-   confetti on the dashboard, or the Menu cascade).
+   confetti on the dashboard, or the streak heatmap pulse).
 ```
 **Expected:** animations are minimised/disabled and the app stays usable
 (no motion-sickness-grade movement, nothing gets stuck).

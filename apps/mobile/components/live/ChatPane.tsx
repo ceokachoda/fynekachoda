@@ -117,6 +117,10 @@ export function ChatPane({
       data={data}
       keyExtractor={(m) => m.id}
       contentContainerStyle={{ padding: 16 }}
+      removeClippedSubviews
+      windowSize={11}
+      initialNumToRender={15}
+      maxToRenderPerBatch={12}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}

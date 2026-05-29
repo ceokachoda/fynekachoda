@@ -98,8 +98,7 @@ apps/mobile/
 │   │   ├── library.tsx                 # Subjects → Chapters → Topics
 │   │   ├── attendance.tsx              # QR display + history
 │   │   ├── leaderboard.tsx
-│   │   ├── profile.tsx                 # Stats, badges, streak, settings
-│   │   ├── menu.tsx                    # Logout, support, privacy
+│   │   ├── profile.tsx                 # Stats, badges, streak, settings, sign-out
 │   │   ├── quiz/[id].tsx               # Take a quiz
 │   │   ├── exam/[id].tsx               # Take an exam (locked-down)
 │   │   ├── live/[sessionId].tsx       # Wrapped YT live + chat + raise-hand

@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
 import { Tabs, useRouter } from "expo-router";
 import {
   BookOpen,
@@ -13,6 +12,7 @@ import {
 } from "lucide-react-native";
 import { useSession } from "@/features/auth/useSession";
 import { useRole } from "@/features/auth/useRole";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 function TeacherGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -33,21 +33,15 @@ function TeacherGate({ children }: { children: React.ReactNode }) {
       router.replace("/force-password-change");
       return;
     }
-    if (role.isAdmin && !role.isStudent && !role.isTeacher) {
-      router.replace("/admin-redirect");
-      return;
-    }
     if (!role.isTeacher) {
+      // Wrong group (admin-only or student landed here): bounce to the central
+      // router, which signs admins out and routes students correctly.
       router.replace("/");
     }
   }, [isLoading, session, appUser, role, router]);
 
   if (isLoading || !session || !appUser || !role.isTeacher) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#2563EB" />
-      </View>
-    );
+    return <LoadingScreen />;
   }
   return <>{children}</>;
 }
@@ -60,6 +54,9 @@ export default function TeacherTabsLayout() {
           tabBarActiveTintColor: "#2563EB",
           tabBarInactiveTintColor: "#6B7280",
           headerShown: false,
+          // Freeze off-screen tabs so background timers / realtime re-renders
+          // stop draining the JS thread while on another tab (low-end win).
+          freezeOnBlur: true,
           tabBarStyle: {
             backgroundColor: "#FFFFFF",
             borderTopWidth: 1,

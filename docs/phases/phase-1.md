@@ -572,7 +572,7 @@ Phase 1 closed with PR #1 (commit `ef8c0cf` → merge `bea08b2`) on **2026-05-14
 | 7 | Sentry mobile test event | ⛔ **deferred** | **User decision** — skip paid observability tiers; `lib/crash.ts` is a no-op stub with documented drop-in path. Revisit during the observability pass (likely Phase 11 or Phase 12). |
 | 8 | PostHog `app_open` event | ⛔ **deferred** | **User decision** — same rationale as #7; `lib/analytics.ts` no-op stub. |
 | 9 | `pnpm dev:admin` renders placeholder locally | ✅ pass | Verified on `localhost:3001` (3000 was busy; same outcome) |
-| 10 | Vercel preview public URL | ✅ pass | <https://admin-kohl-sigma.vercel.app/> returns 200 with placeholder |
+| 10 | Vercel preview public URL | ✅ pass | <https://fyne-study-app-admin.vercel.app/> returns 200 with placeholder |
 | 11 | Health edge fn returns expected JSON | ✅ pass | <https://orqwyazvcthgxoadfxfv.supabase.co/functions/v1/health> |
 | 12 | `supabase db push --linked` succeeds | ✅ pass | `schema_migrations` row `20260514115416_init` applied via MCP |
 | 13 | CI passes on a test PR | ✅ pass | PR #1 ran CI to completion; merge gated on green |

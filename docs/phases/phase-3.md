@@ -512,7 +512,7 @@ Recorded so future contributors don't think these were accidents.
 
 ### Carry-overs into Phase 4
 
-- **Vercel admin deployment fix.** `admin-kohl-sigma.vercel.app` currently serves the Phase 1 "Coming online…" placeholder build because Phase 2's `app/page.tsx` deletion (commit `ac7031c`) was never picked up. The Phase 3 PR is the first push that will redeploy Vercel with the full Phase 2 + Phase 3 admin surface. Manual click-through verification on Vercel becomes possible once that PR merges.
+- **Vercel admin deployment fix.** `fyne-study-app-admin.vercel.app` currently serves the Phase 1 "Coming online…" placeholder build because Phase 2's `app/page.tsx` deletion (commit `ac7031c`) was never picked up. The Phase 3 PR is the first push that will redeploy Vercel with the full Phase 2 + Phase 3 admin surface. Manual click-through verification on Vercel becomes possible once that PR merges.
 - **Admin "Reset MFA on another admin" UI** — depends on the Phase 12 admin-management page. The recovery-code self-service path already handles the common case; this entry covers the "admin lost authenticator AND lost recovery codes" edge case.
 - **Android cold-start measurement** on a Redmi 8A class device (Phase 2 §14 AC #19) — still deferred pending hardware.
 - **Sentry + PostHog wiring** (Phase 1 deferred) — drop-in points are `apps/mobile/lib/crash.ts` and `apps/mobile/lib/analytics.ts`.

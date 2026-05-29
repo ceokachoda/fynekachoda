@@ -3,13 +3,7 @@
 // the offline-scores entry screen.
 
 import { useCallback } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import {
@@ -21,6 +15,7 @@ import {
   Unlock,
 } from "lucide-react-native";
 import { useTeacherExams } from "@/features/exam/useTeacherExams";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 function fmtIstDateTime(iso: string): string {
   return new Date(iso).toLocaleString("en-IN", {
@@ -69,9 +64,7 @@ export default function TeacherExamsScreen() {
       </View>
 
       {isLoading && rows.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563EB" />
-        </View>
+        <LoadingScreen />
       ) : error ? (
         <View className="m-6">
           <Text className="text-red-600 mb-3">{error}</Text>

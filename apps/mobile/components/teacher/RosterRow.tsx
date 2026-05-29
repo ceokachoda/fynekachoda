@@ -34,7 +34,7 @@ export function RosterRow({
     <Pressable
       onLongPress={onLongPress}
       delayLongPress={500}
-      className="mx-6 mt-2 bg-white rounded-2xl border border-slate-100 p-4 flex-row items-center shadow-sm shadow-slate-200/50"
+      className="mx-6 mt-2 bg-white rounded-2xl border border-slate-100 p-4 flex-row items-center"
     >
       <View className="w-10 h-10 bg-slate-100 rounded-full items-center justify-center mr-3">
         <Text className="text-xs font-bold text-slate-700">{initials}</Text>

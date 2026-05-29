@@ -4,7 +4,7 @@
 // max_score, then enters per-student score for the batch roster. Save All
 // calls `offline-score-upsert` with the entries array.
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -82,6 +82,22 @@ export default function OfflineScoresScreen() {
   const selectedSubject = subjects.subjects.find((s) => s.id === subjectId) ?? null;
 
   const maxScoreNum = Number.parseFloat(maxScore);
+  const maxLabelNum = Number(maxScore) || 0;
+
+  // Map of previously-saved scores so each row's "Previous" lookup is O(1)
+  // instead of an O(n) .find() per row (was O(n²) across the roster).
+  const existingByStudent = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of ofs.existing) m.set(e.student_id, e.score);
+    return m;
+  }, [ofs.existing]);
+
+  // Stable handler so each memoized ScoreRow keeps the same prop identity —
+  // typing a score then re-renders only that one row, not the whole roster.
+  const handleScoreChange = useCallback((studentId: string, text: string) => {
+    setScores((p) => ({ ...p, [studentId]: text }));
+  }, []);
+
   const canSave =
     selectedBatch !== null &&
     testName.trim().length >= 1 &&
@@ -240,39 +256,21 @@ export default function OfflineScoresScreen() {
             )}
           </View>
         }
-        renderItem={({ item }) => {
-          const existing = ofs.existing.find((e) => e.student_id === item.student_id);
-          return (
-            <View className="bg-white rounded-2xl p-3 border border-slate-200 mb-2">
-              <View className="flex-row items-center">
-                <View className="w-9 h-9 rounded-full bg-blue-100 items-center justify-center mr-3">
-                  <Text className="text-blue-700 font-bold">
-                    {item.full_name.slice(0, 1).toUpperCase()}
-                  </Text>
-                </View>
-                <Text className="flex-1 text-slate-900 font-semibold" numberOfLines={1}>
-                  {item.full_name}
-                </Text>
-                <TextInput
-                  value={scores[item.student_id] ?? ""}
-                  onChangeText={(t) =>
-                    setScores((p) => ({ ...p, [item.student_id]: t }))
-                  }
-                  placeholder="—"
-                  keyboardType="numeric"
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 w-20 text-right"
-                  placeholderTextColor="#94a3b8"
-                />
-                <Text className="text-slate-400 ml-1">/ {Number(maxScore) || 0}</Text>
-              </View>
-              {existing ? (
-                <Text className="text-xs text-emerald-600 mt-1 ml-12">
-                  Previous: {existing.score}
-                </Text>
-              ) : null}
-            </View>
-          );
-        }}
+        renderItem={({ item }) => (
+          <ScoreRow
+            studentId={item.student_id}
+            fullName={item.full_name}
+            value={scores[item.student_id] ?? ""}
+            previous={existingByStudent.get(item.student_id) ?? null}
+            maxLabel={maxLabelNum}
+            onChange={handleScoreChange}
+          />
+        )}
+        extraData={{ scores, maxLabelNum }}
+        removeClippedSubviews
+        windowSize={7}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
         ListEmptyComponent={
           selectedBatch && !ofs.isLoading ? (
             <Text className="text-slate-500 italic text-center mt-4">
@@ -343,6 +341,53 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </View>
   );
 }
+
+// Memoized roster row. With a stable `onChange` and per-row `value`, typing a
+// score re-renders only the edited row instead of the entire FlatList.
+const ScoreRow = memo(function ScoreRow({
+  studentId,
+  fullName,
+  value,
+  previous,
+  maxLabel,
+  onChange,
+}: {
+  studentId: string;
+  fullName: string;
+  value: string;
+  previous: number | null;
+  maxLabel: number;
+  onChange: (studentId: string, text: string) => void;
+}) {
+  return (
+    <View className="bg-white rounded-2xl p-3 border border-slate-200 mb-2">
+      <View className="flex-row items-center">
+        <View className="w-9 h-9 rounded-full bg-blue-100 items-center justify-center mr-3">
+          <Text className="text-blue-700 font-bold">
+            {fullName.slice(0, 1).toUpperCase()}
+          </Text>
+        </View>
+        <Text className="flex-1 text-slate-900 font-semibold" numberOfLines={1}>
+          {fullName}
+        </Text>
+        <TextInput
+          value={value}
+          onChangeText={(t) => onChange(studentId, t)}
+          placeholder="—"
+          keyboardType="numeric"
+          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 w-20 text-right"
+          placeholderTextColor="#94a3b8"
+        />
+        <Text className="text-slate-400 ml-1">/ {maxLabel}</Text>
+      </View>
+      {previous !== null ? (
+        <Text className="text-xs text-emerald-600 mt-1 ml-12">
+          Previous: {previous}
+        </Text>
+      ) : null}
+    </View>
+  );
+});
 
 function PickerModal({
   title,

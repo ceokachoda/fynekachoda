@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -19,6 +18,7 @@ import { useContentItem } from "@/features/library/useContentItem";
 import { useVideoProgress } from "@/features/library/useVideoProgress";
 import { useVideoOrientation } from "@/features/live/useVideoOrientation";
 import { fetchPlaybackSign } from "@/lib/yt-player";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 function fmt(s: number): string {
   if (!isFinite(s) || s <= 0) return "0:00";
@@ -87,11 +87,7 @@ export default function VideoScreen() {
   }, [navigation]);
 
   if (itemLoading || signing) {
-    return (
-      <SafeAreaView className="flex-1 bg-slate-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563EB" />
-      </SafeAreaView>
-    );
+    return <LoadingScreen background="bg-slate-50" />;
   }
   if (itemErr || !item) {
     return (

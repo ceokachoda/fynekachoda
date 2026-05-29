@@ -1,15 +1,10 @@
 import { useCallback } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { ChevronRight, FilePlus2, ListChecks } from "lucide-react-native";
 import { useTeacherQuizzes } from "@/features/quiz/useTeacherQuizzes";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function TeacherQuizzesScreen() {
   const router = useRouter();
@@ -36,9 +31,7 @@ export default function TeacherQuizzesScreen() {
       </View>
 
       {isLoading && rows.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563EB" />
-        </View>
+        <LoadingScreen />
       ) : error ? (
         <View className="m-6">
           <Text className="text-red-600 mb-3">{error}</Text>

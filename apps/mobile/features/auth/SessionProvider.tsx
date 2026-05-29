@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from "react";
@@ -89,19 +90,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, [init, loadProfile]);
 
+  // Memoize the context value so a change to any single field doesn't hand
+  // consumers a brand-new object identity for the unrelated fields, and so the
+  // provider never re-renders the whole app tree with a fresh literal.
+  const value = useMemo<SessionState>(
+    () => ({
+      session,
+      user: session?.user ?? null,
+      appUser,
+      roles,
+      isLoading,
+      refresh: init,
+    }),
+    [session, appUser, roles, isLoading, init],
+  );
+
   return (
-    <SessionContext.Provider
-      value={{
-        session,
-        user: session?.user ?? null,
-        appUser,
-        roles,
-        isLoading,
-        refresh: init,
-      }}
-    >
-      {children}
-    </SessionContext.Provider>
+    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
   );
 }
 

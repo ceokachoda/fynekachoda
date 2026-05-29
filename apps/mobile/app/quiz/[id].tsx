@@ -13,7 +13,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Modal,
   Pressable,
@@ -35,6 +34,7 @@ import { useQuizSubmit } from "@/features/quiz/useQuizSubmit";
 import { useQuizAttemptResult } from "@/features/quiz/useQuizAttemptResult";
 import { useQuizAutoSave } from "@/features/quiz/useQuizAutoSave";
 import type { QuizSubmitResponse, SavedAnswer } from "@/features/quiz/types";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 type Stage = "intro" | "attempt" | "result" | "solution";
 
@@ -166,11 +166,7 @@ export default function QuizScreen() {
     );
   }
   if (startState.isLoading && !startState.data) {
-    return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center" edges={["top"]}>
-        <ActivityIndicator size="large" color="#2563EB" />
-      </SafeAreaView>
-    );
+    return <LoadingScreen />;
   }
   if (startState.error && !startState.data) {
     return (
@@ -299,9 +295,7 @@ export default function QuizScreen() {
           <Text className="text-lg font-bold text-blue-900 ml-3 flex-1">Solutions</Text>
         </View>
         {resultLazy.isLoading && !payload ? (
-          <View className="flex-1 items-center justify-center">
-            <ActivityIndicator size="large" color="#2563EB" />
-          </View>
+          <LoadingScreen background="bg-transparent" />
         ) : payload ? (
           <ScrollView contentContainerStyle={{ padding: 20 }}>
             {payload.questions.map((q, i) => (

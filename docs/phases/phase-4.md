@@ -565,7 +565,7 @@ Items deferred or carried over, with the reason and the unblock condition.
 3. **§E1 — cold start ≤ 3 s on Redmi 8A class.** Carry-over from Phase 2 AC #19 and Phase 3 §14. Unblock: Redmi 8A class device. Sanity on iPhone 12+ is sub-1 s.
 4. **§E2 / §E3 / §E4 — perf sanity on iPhone.** User-deferred to Phase 5 ("not the end to test §E").
 5. **`docs/perf-baselines/phase-4.md` scan p95 latency.** Same hardware blocker as §E1.
-6. **Vercel admin deployment fix.** `admin-kohl-sigma.vercel.app` still serves the Phase 1 placeholder. The consolidated Phase 2 + 3 + 4 PR will be the first push that redeploys Vercel with the full admin surface. Manual click-through verification on Vercel becomes possible once that PR merges.
+6. **Vercel admin deployment fix.** `fyne-study-app-admin.vercel.app` still serves the Phase 1 placeholder. The consolidated Phase 2 + 3 + 4 PR will be the first push that redeploys Vercel with the full admin surface. Manual click-through verification on Vercel becomes possible once that PR merges.
 7. **Sentry + PostHog wiring.** Phase 1 deferred; drop-in points at `apps/mobile/lib/crash.ts` and `apps/mobile/lib/analytics.ts`.
 8. **Android cold-start measurement.** Phase 1 / 2 / 3 carry-over; same hardware blocker.
 9. **`auth_leaked_password_protection` Supabase advisor WARN.** Phase 1 backlog. Enable via Supabase Auth settings UI when ready.

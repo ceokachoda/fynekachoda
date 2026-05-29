@@ -25,6 +25,7 @@ import {
   type RosterStudent,
 } from "@/features/attendance/useRoster";
 import { RosterRow } from "@/components/teacher/RosterRow";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useSession } from "@/features/auth/useSession";
 import { useRole } from "@/features/auth/useRole";
 
@@ -236,8 +237,8 @@ export default function RosterScreen(): React.ReactElement {
     return (
       <>
         <Stack.Screen options={{ headerShown: false }} />
-        <SafeAreaView className="flex-1 bg-slate-50 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563EB" />
+        <SafeAreaView className="flex-1 bg-slate-50">
+          <LoadingScreen />
         </SafeAreaView>
       </>
     );
@@ -272,6 +273,11 @@ export default function RosterScreen(): React.ReactElement {
           />
         )}
         contentContainerStyle={{ paddingBottom: 32 }}
+        extraData={pendingId}
+        removeClippedSubviews
+        windowSize={9}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Platform,
   Pressable,
   Text,
@@ -17,6 +16,7 @@ import { useSession } from "@/features/auth/useSession";
 import { createSignedPdfUrl, pdfJsViewerHtml } from "@/lib/pdf";
 import { PdfWatermark } from "@/components/live/PdfWatermark";
 import { formatWatermark } from "@/lib/watermark";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function PdfScreen() {
   // D-061: in-app reader only — block OS-level screenshots on Android.
@@ -88,11 +88,7 @@ export default function PdfScreen() {
   };
 
   if (itemLoading || progressLoading) {
-    return (
-      <SafeAreaView className="flex-1 bg-slate-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#fff" />
-      </SafeAreaView>
-    );
+    return <LoadingScreen background="bg-slate-900" dotColor="#FFFFFF" />;
   }
   if (itemErr || !item || !item.file_path) {
     return (
@@ -156,9 +152,7 @@ export default function PdfScreen() {
             setSupportMultipleWindows={false}
           />
         ) : (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-            <ActivityIndicator size="large" color="#fff" />
-          </View>
+          <LoadingScreen background="bg-transparent" dotColor="#FFFFFF" />
         )}
         <PdfWatermark text={watermark} />
       </View>

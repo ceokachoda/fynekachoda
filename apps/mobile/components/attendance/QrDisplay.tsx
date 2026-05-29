@@ -1,7 +1,27 @@
+import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { RefreshCw, CheckCircle2, AlertCircle } from "lucide-react-native";
 import { useQrToken } from "@/features/attendance/useQrToken";
+
+// Isolated 1s countdown leaf. Only this tiny Text re-renders each second; the
+// parent QrDisplay card and the <QRCode> SVG stay mounted/stable between the
+// 25s token refreshes — no per-second SVG re-render on low-end devices.
+function QrCountdown({ exp }: { exp: number }): React.ReactElement {
+  const [secondsLeft, setSecondsLeft] = useState(() =>
+    Math.max(0, exp - Math.floor(Date.now() / 1000)),
+  );
+  useEffect(() => {
+    setSecondsLeft(Math.max(0, exp - Math.floor(Date.now() / 1000)));
+    const t = setInterval(() => {
+      setSecondsLeft(Math.max(0, exp - Math.floor(Date.now() / 1000)));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [exp]);
+  return (
+    <Text className="text-slate-500 text-xs mt-4">Refreshes in {secondsLeft}s</Text>
+  );
+}
 
 interface Props {
   sessionId: string;
@@ -33,9 +53,7 @@ export function QrDisplay({ sessionId, sessionLabel }: Props): React.ReactElemen
               backgroundColor="#ffffff"
             />
           </View>
-          <Text className="text-slate-500 text-xs mt-4">
-            Refreshes in {state.secondsLeft}s
-          </Text>
+          <QrCountdown exp={state.exp} />
         </>
       ) : state.code === "already_marked" ? (
         <View className="w-[200px] items-center justify-center py-6">

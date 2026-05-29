@@ -8,7 +8,38 @@
 >
 > **Estimated time:** ~3 hours on Chrome desktop for the full Track 4A + 4B sweep, plus ~30 minutes for the §G OBS real-stream dry-run on a second device.
 >
-> **🟢 Phase 4 is code-complete (Track 4A + 4B both built).** Every section §0–§P below is LIVE. iOS Safari + Android Chrome rows in §N.3 + §N.4 remain `N/A — Phase 5` (need HTTPS).
+> **🟢 Phase 4 is code-complete (Track 4A + 4B both built) — plus a UI/UX polish pass on 2026-05-29.** Every section §0–§P below is LIVE. iOS Safari + Android Chrome rows in §N.3 + §N.4 remain `N/A — Phase 5` (need HTTPS).
+>
+> **Polish pass (2026-05-29) — what changed visually before this QA run:**
+> - Forms across the app now use 40px-tall inputs (was 32px) for proper mobile touch targets — every Sign-in / Force-pw / Forgot-pw / Reset field is taller.
+> - Bottom-tab labels are 12px (was 11px) — easier to read on small phones.
+> - Empty states have a slightly darker dashed border so they're visible against white backgrounds.
+> - Live class header: animated red dot next to the LIVE badge; bottom border for hierarchy. Live-class & recording **error states** are now centered cards with a proper "Back to Classes" CTA (not a grey "Go back" link).
+> - Recording **Speed pills** use the primary color when active + focus rings; "Chat replay" header upgraded.
+> - "Up next" dashboard card now uses a subtle blue gradient + ring on the icon + focus ring on its CTA.
+> - Dashboard stat tiles get a 0.5px lift on hover + tabular-nums for the values.
+> - Today's schedule & Student Classes rows now have hover/focus rings + colored 10×10 icon chips per row + EmptyStates with subject-appropriate icons.
+> - Teacher Pending list "All caught up" panel is now an emerald-tinted card.
+> - Webcam Scan picker chevron rotates 180° when open.
+> - Live-control header shows a pulsing red dot + "Live now" copy; pinned banner gets a Pin icon + tighter spacing.
+> - Login page: subtle gradient background + slightly larger "Forgot password?" tap target.
+>
+> **Second polish pass (2026-05-29, same day) — additional cosmetic + accessibility upgrades across Phases 1-4:**
+> - **All auth pages** (`/login`, `/forgot-password`, `/reset`, `/force-password-change`, `/role-chooser`, `/admin-redirect`, `/suspended`, `/not-found`, `/error`) now share the same subtle gradient background + `shadow-md` cards + h-12 primary CTAs. Suspended + Error pages have lifted icon medallions.
+> - **Profile** — gradient avatar tile + ring; identity rows have bigger 40px icon chips + uppercase text-xs labels; primary action buttons are h-11 with a Lock-icon disclaimer above.
+> - **Leaderboard** — gradient amber Trophy header; "Your rank" hero is now a gradient blue card with tabular-nums; empty state uses EmptyState pattern instead of plain panel.
+> - **Attendance** — QR display gets `shadow-md` + pulsing green dot beside the countdown; "No class window" empty state is a dashed-border card with bigger Calendar icon; eligible session pills have focus rings.
+> - **Library** — every subject/chapter/topic/item row has hover background + focus ring + slate-200 border baseline; practice-quiz strip rows get keyboard-focus rings.
+> - **Menu (Settings)** — every row gets a focus-visible ring + size-10 icon chip; section groups get shadow-sm.
+> - **Quiz attempt** — NavigationGrid bumped from 36px to 40px per WCAG; active question shows ring-2 + shadow; TimerPill pulses red when ≤60s remain; OptionRadio gets focus rings + hover backgrounds + selected shadow.
+> - **Exam attempt** — TabSwitchBanner gets better icon alignment; Submit dialog buttons are h-11 with shadow-sm.
+> - **Teacher Classes** — FAB cluster bumped from size-12 to size-14 with colored shadow-xl rings; class rows show red-tinted Radio medallion when live; action chips have focus rings.
+> - **Teacher Quizzes + Exams** — list rows get shadow-sm + hover backgrounds + focus rings; result-chip transitions to the right color when released.
+> - **Teacher Batches** — list rows shadow-sm + focus rings; tabular student counts.
+> - **Weak topics + Mastery + Continue strips** — emerald-tinted "All topics looking strong" empty state; arrow-suffixed CTAs; progress bars use transition-all; tabular percentages.
+> - **At-risk students** — emerald-tinted empty state when nobody's at risk; tabular composite score with ring around the red avatar chip.
+>
+> **None of the changes alter feature behavior — they are pure visual + accessibility polish.** All 196 unit tests still pass; typecheck + lint + 36-route build are green; no service-role-key leaked to the static bundle; backend wiring re-verified (no service-role refs in app code, no `console.log` in shipped code, all privileged writes go through `invokeEdgeFn`).
 
 ---
 

@@ -54,7 +54,7 @@ This means: a student can only use the app after you have (1) created at least o
 
 Open a web browser (Google Chrome, Microsoft Edge, Safari, or Firefox) on a laptop or desktop computer and go to your institute's admin address.
 
-- **Current address:** `https://admin-kohl-sigma.vercel.app/`
+- **Current address:** `https://fyne-study-app-admin.vercel.app/`
 - **Future custom address (once set up):** `admin.fynestudy.in`
 
 > Tip: Bookmark the page so you don't have to type it each time.

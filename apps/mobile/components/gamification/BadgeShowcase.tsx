@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { Lock } from "lucide-react-native";
-import { BadgeIcon } from "./BadgeIcon";
+import { BadgeGlyph } from "./BadgeGlyph";
 import {
   type BadgeCollectionItem,
   useBadgesCollection,
@@ -54,7 +54,7 @@ export const BadgeShowcase = memo(function BadgeShowcase() {
             accessibilityLabel={`${b.name}, ${b.earned ? "earned" : "locked"}`}
           >
             <View>
-              <BadgeIcon uri={b.iconUrl} size={72} locked={!b.earned} />
+              <BadgeGlyph code={b.code} size={72} locked={!b.earned} />
               {!b.earned ? (
                 <View className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-slate-200 items-center justify-center border-2 border-white">
                   <Lock size={12} color="#64748b" />

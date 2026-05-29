@@ -12,7 +12,7 @@
 
 ## Step 1 — Set the environment variables (you do this in the Vercel dashboard)
 
-1. Go to **https://vercel.com** → log in → open the project that serves your admin panel (the one behind `https://admin-kohl-sigma.vercel.app/`, or whatever your admin URL is).
+1. Go to **https://vercel.com** → log in → open the project that serves your admin panel (the one behind `https://fyne-study-app-admin.vercel.app/`, or whatever your admin URL is).
 2. **Settings → Environment Variables.**
 3. Add these two (tick **Production**, **Preview**, and **Development** for each):
 

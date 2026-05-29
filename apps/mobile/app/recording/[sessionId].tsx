@@ -7,7 +7,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   type GestureResponderEvent,
   Pressable,
   Text,
@@ -26,6 +25,7 @@ import { useLiveSession } from "@/features/live/useLiveSession";
 import { usePlaybackSign } from "@/features/live/usePlaybackSign";
 import { useChatChannel } from "@/features/chat/useChatChannel";
 import { useVideoOrientation } from "@/features/live/useVideoOrientation";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 const SPEEDS = [1, 1.5, 2] as const;
 
@@ -116,11 +116,7 @@ export default function RecordingScreen() {
   }
 
   if (isLoading || sign.isLoading) {
-    return (
-      <SafeAreaView className="flex-1 bg-slate-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563EB" />
-      </SafeAreaView>
-    );
+    return <LoadingScreen background="bg-slate-50" />;
   }
 
   if (!sign.signed) {

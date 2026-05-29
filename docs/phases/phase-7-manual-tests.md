@@ -57,7 +57,7 @@ Password   FyneStudy01     (or your Phase 2 password)
 TOTP       (your enrolled secret)
 ```
 
-Admin URL: <https://admin-kohl-sigma.vercel.app/>
+Admin URL: <https://fyne-study-app-admin.vercel.app/>
 
 If Vercel still shows the Phase 1 placeholder, fall back to local dev:
 

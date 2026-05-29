@@ -41,7 +41,7 @@ Keep that email handy — you'll need it in section 2.
 
 ### How do I install the app?
 
-The bottom navigation bar (the row of icons at the bottom of the screen) is your main way to move around the app. You'll see **7 tabs**:
+The bottom navigation bar (the row of icons at the bottom of the screen) is your main way to move around the app. You'll see **6 tabs**:
 
 | Tab | Icon | What it's for |
 |---|---|---|
@@ -50,8 +50,7 @@ The bottom navigation bar (the row of icons at the bottom of the screen) is your
 | **Library** | open book | Study videos, PDF notes, and topic quizzes |
 | **Attendance** | QR code | Show your QR to get marked present |
 | **Ranks** | trophy | The batch leaderboard |
-| **Profile** | person | Your details, mastery, and badges |
-| **Menu** | three lines | Settings and Log Out |
+| **Profile** | person | Your details, mastery, badges, settings, and Sign out |
 
 To get the app on your phone, ask your institute which option applies to you:
 
@@ -483,24 +482,13 @@ If you haven't taken anything yet it says *"No mastery data yet"* — finish a q
 
 ## 6. Settings & account
 
-### The Menu tab
+### Where settings live
 
-Tap the **Menu** tab (three-lines icon) to open **Settings**. It has grouped rows:
-
-- **General** — Account Information, Notifications, Language, Display Theme
-- **Security** — Privacy Settings, Connected Devices
-- **About** — Help & Support, Terms & Policies
-
-> Many of these rows are placeholders for now and will say *"This setting will be available in a future update"* when tapped. Tapping **Account Information** reminds you to view your details on the **Profile** tab. The important action here is **Log Out** at the bottom.
+The **Profile** tab (person icon) is your one-stop place for everything account-related — it shows your details, mastery, and badges, and it's where you'll find the **Change password**, **Contact admin**, and **Sign out** actions.
 
 ### Logging out
 
-You can log out in **two places**:
-
-1. **Menu tab** → scroll to the bottom → tap the red **Log Out** button.
-2. **Profile tab** → scroll to the bottom → tap the red **Sign out** button.
-
-Either one signs you out and returns you to the **Sign in** screen. You'll need your email and password to get back in, so make sure you remember the password you chose.
+Open the **Profile** tab → scroll to the bottom → tap the red **Sign out** button. You'll be returned to the **Sign in** screen. You'll need your email and password to get back in, so make sure you remember the password you chose.
 
 ### What you can and can't change yourself
 

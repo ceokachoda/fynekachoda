@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
@@ -76,6 +76,15 @@ function SectionHeader({ title }: { title: string }) {
 export default function StudentHomeScreen() {
   const { appUser } = useSession();
   const { data, isLoading, error, reload } = useStudentDashboard();
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Manual pull-to-refresh owns its own spinner so background reloads (realtime
+  // attendance pings, on-focus refetch) don't flip the pull spinner mid-scroll.
+  const onPullRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await reload();
+    setRefreshing(false);
+  }, [reload]);
 
   useAttendanceRealtime(reload);
   useFocusEffect(
@@ -94,7 +103,7 @@ export default function StudentHomeScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={() => void reload()} tintColor="#2563EB" />
+          <RefreshControl refreshing={refreshing} onRefresh={onPullRefresh} tintColor="#2563EB" />
         }
       >
         <View className="flex-row items-center justify-between px-6 pt-4 pb-2">

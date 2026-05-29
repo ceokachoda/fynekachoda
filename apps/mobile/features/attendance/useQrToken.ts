@@ -9,7 +9,7 @@ import {
 export type QrTokenState =
   | { kind: "idle" }
   | { kind: "loading" }
-  | { kind: "token"; payload_b64: string; exp: number; secondsLeft: number }
+  | { kind: "token"; payload_b64: string; exp: number }
   | {
       kind: "error";
       code:
@@ -24,7 +24,6 @@ export type QrTokenState =
     };
 
 const REFRESH_INTERVAL_MS = 25_000;
-const COUNTDOWN_TICK_MS = 1_000;
 
 export function useQrToken(sessionId: string | null): {
   state: QrTokenState;
@@ -33,7 +32,6 @@ export function useQrToken(sessionId: string | null): {
   const [state, setState] = useState<QrTokenState>({ kind: "idle" });
   const stopped = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tokenRef = useRef<{ payload_b64: string; exp: number } | null>(null);
 
   const fetchOnce = useCallback(async () => {
@@ -126,12 +124,10 @@ export function useQrToken(sessionId: string | null): {
         return;
       }
       tokenRef.current = { payload_b64: body.payload_b64, exp: body.exp };
-      const secondsLeft = Math.max(0, body.exp - Math.floor(Date.now() / 1000));
       setState({
         kind: "token",
         payload_b64: body.payload_b64,
         exp: body.exp,
-        secondsLeft,
       });
     } catch (err) {
       if (stopped.current) return;
@@ -169,22 +165,13 @@ export function useQrToken(sessionId: string | null): {
     intervalRef.current = setInterval(() => {
       if (!stopped.current) void fetchOnce();
     }, REFRESH_INTERVAL_MS);
-    tickRef.current = setInterval(() => {
-      const tok = tokenRef.current;
-      if (!tok) return;
-      const secondsLeft = Math.max(0, tok.exp - Math.floor(Date.now() / 1000));
-      setState((prev) =>
-        prev.kind === "token"
-          ? { ...prev, secondsLeft }
-          : prev,
-      );
-    }, COUNTDOWN_TICK_MS);
+    // The per-second countdown lives in <QrCountdown> (a tiny leaf in QrDisplay)
+    // so the QR matrix + card never re-render on the tick — only the seconds
+    // text does. This keeps the SVG fully stable between 25s refreshes.
     return () => {
       stopped.current = true;
       if (intervalRef.current) clearInterval(intervalRef.current);
-      if (tickRef.current) clearInterval(tickRef.current);
       intervalRef.current = null;
-      tickRef.current = null;
       tokenRef.current = null;
     };
   }, [sessionId, fetchOnce]);

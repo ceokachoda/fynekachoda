@@ -5,7 +5,6 @@
 
 import { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   Modal,
@@ -33,6 +32,7 @@ import {
   type QuestionAnalysisRow,
   useExamResultsBoard,
 } from "@/features/exam/useExamResultsBoard";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 type RegradeAction = "change_correct" | "mark_no_correct" | "mark_all_correct";
 
@@ -168,8 +168,8 @@ export default function ExamResultsScreen() {
   }
   if (board.isLoading && !board.exam) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center" edges={["top"]}>
-        <ActivityIndicator size="large" color="#2563EB" />
+      <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+        <LoadingScreen />
       </SafeAreaView>
     );
   }

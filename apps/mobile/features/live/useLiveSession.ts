@@ -98,14 +98,18 @@ export function useLiveSession(
     void load();
   }, [load]);
 
+  // Depend on the status string, not the whole `session` object — each load()
+  // returns a fresh object, which would otherwise tear down and re-arm the
+  // interval every tick. Re-arms only when the class actually changes state.
+  const status = session?.status;
   useEffect(() => {
-    if (!pollWhileNotLive || !session) return;
-    if (session.status === "live" || session.status === "ended") return;
+    if (!pollWhileNotLive || !status) return;
+    if (status === "live" || status === "ended") return;
     const t = setInterval(() => {
       void load();
     }, 10_000);
     return () => clearInterval(t);
-  }, [pollWhileNotLive, session, load]);
+  }, [pollWhileNotLive, status, load]);
 
   return { session, isLoading, error, reload: load };
 }

@@ -1,19 +1,23 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { useSession } from "@/features/auth/useSession";
 import { useRole } from "@/features/auth/useRole";
+import { signOut } from "@/features/auth/auth";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 // Splash / router. Reads the session and routes to:
-//   - /login                 — when not signed in (incl. force-fallback on stuck load)
+//   - /login                 — when not signed in
+//   - /account-issue         — signed in but the profile never loaded (a flaky
+//                              connection or a broken account); offers Retry +
+//                              Sign out. NEVER the old "Admin account" card.
 //   - /suspended             — when signed in but app_users.is_active is false
 //   - /force-password-change — when must_change_password is true
 //   - /(student)             — student role
 //   - /(teacher)             — teacher role
 //   - /role-chooser          — when both student + teacher (multi-role)
-//   - /admin-redirect        — when any admin role (we don't host admin here),
-//                              also used as the "no usable role" trapdoor so a
-//                              misconfigured account doesn't infinite-bounce.
+//   - login (after sign-out)  — admin-only accounts: the mobile app is for
+//                              students & teachers; admins use the web panel, so
+//                              we sign them out and return to login.
 
 const LOAD_TIMEOUT_MS = 10_000;
 
@@ -22,6 +26,7 @@ export default function SplashRouter() {
   const { isLoading, session, appUser } = useSession();
   const role = useRole();
   const [timedOut, setTimedOut] = useState(false);
+  const signingOut = useRef(false);
 
   // "Resolving" = we don't yet know the final auth destination. This includes
   // the post-sign-in window where the session is already set but SessionProvider
@@ -48,10 +53,11 @@ export default function SplashRouter() {
       return;
     }
     if (!appUser) {
-      // Signed in but no profile row resolved (even after the timeout): a
-      // broken/no-profile account. Route to the admin-redirect trapdoor (it
-      // offers Sign out) — never /login, which login.tsx would bounce back.
-      router.replace("/admin-redirect");
+      // Signed in but no profile row resolved (even after the timeout): almost
+      // always a weak connection, occasionally a broken account. Send to the
+      // neutral retry screen — never the admin card, which made a student on a
+      // flaky network think something was deeply wrong.
+      router.replace("/account-issue");
       return;
     }
     if (!appUser.is_active) {
@@ -74,15 +80,17 @@ export default function SplashRouter() {
       router.replace("/(teacher)");
       return;
     }
-    // Admin-only OR no usable role: both lead here. admin-redirect screen
-    // tells the user to use the web panel and offers Sign out, breaking the
-    // bounce loop that would otherwise happen for a no-role account.
-    router.replace("/admin-redirect");
+
+    // Admin-only (or any account with no student/teacher role): the mobile app
+    // is for students & teachers only. Sign out and return to login so the
+    // confusing "Admin account" card never appears. Guarded so the effect only
+    // triggers sign-out once; the resulting session change re-runs this and
+    // lands on /login via the !session branch above.
+    if (!signingOut.current) {
+      signingOut.current = true;
+      void signOut().finally(() => router.replace("/login"));
+    }
   }, [resolving, timedOut, session, appUser, role, router]);
 
-  return (
-    <View className="flex-1 items-center justify-center bg-white">
-      <ActivityIndicator size="large" color="#2563EB" />
-    </View>
-  );
+  return <LoadingScreen />;
 }

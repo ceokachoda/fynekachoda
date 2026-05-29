@@ -13,6 +13,7 @@ import { ChevronDown, FileText, PlayCircle, StickyNote } from "lucide-react-nati
 import * as DocumentPicker from "expo-document-picker";
 import { supabase } from "@/lib/supabase";
 import { useTeacherCurriculum } from "@/features/library/useTeacherCurriculum";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 type Kind = "video" | "pdf" | "note";
 type Scope = "batch" | "suggest";
@@ -296,8 +297,8 @@ export default function TeacherContentUpload() {
 
   if (curriculumLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563EB" />
+      <SafeAreaView className="flex-1 bg-slate-50">
+        <LoadingScreen />
       </SafeAreaView>
     );
   }

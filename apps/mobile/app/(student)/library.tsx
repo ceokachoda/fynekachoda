@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   Pressable,
   ScrollView,
@@ -22,6 +21,7 @@ import {
 import { useLibraryTree } from "@/features/library/useLibraryTree";
 import { useStudentQuizDiscovery } from "@/features/quiz/useQuizDiscovery";
 import { ListChecks } from "lucide-react-native";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 type LibraryView = "subjects" | "chapters" | "topics" | "items";
 
@@ -117,9 +117,7 @@ export default function LibraryScreen() {
       ) : null}
 
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#2563EB" />
-        </View>
+        <LoadingScreen background="bg-transparent" />
       ) : error ? (
         <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingTop: 24 }}>
           <Text className="text-red-600 mb-3">{error}</Text>

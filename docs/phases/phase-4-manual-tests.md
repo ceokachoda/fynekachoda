@@ -56,7 +56,7 @@ Password   (the one you set in Phase 2 — see your Bitwarden / 1Password)
 TOTP       (your enrolled secret)
 ```
 
-Admin panel URL: <https://admin-kohl-sigma.vercel.app/>
+Admin panel URL: <https://fyne-study-app-admin.vercel.app/>
 (If Vercel is still on the Phase 1 placeholder, run admin locally with
 `pnpm --filter @fynestudy/admin dev` and use <http://localhost:3000/>.)
 

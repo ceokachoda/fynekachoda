@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Flame, X } from "lucide-react-native";
 import { useStreak } from "@/features/dashboard/useStreak";
 import { useBadgesCollection } from "@/features/gamification/useBadgesCollection";
-import { BadgeIcon } from "@/components/gamification/BadgeIcon";
+import { BadgeGlyph } from "@/components/gamification/BadgeGlyph";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Last n IST calendar dates as YYYY-MM-DD, oldest first, ending today.
@@ -102,7 +102,7 @@ function StreakModal() {
             <View className="flex-row flex-wrap">
               {streakBadges.map((b) => (
                 <View key={b.code} className="items-center mr-4 mb-2" style={{ width: 64 }}>
-                  <BadgeIcon uri={b.iconUrl} size={48} />
+                  <BadgeGlyph code={b.code} size={48} />
                   <Text numberOfLines={2} className="text-[10px] font-semibold text-slate-700 text-center mt-1">
                     {b.name}
                   </Text>

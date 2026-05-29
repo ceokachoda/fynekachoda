@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { invokeEdgeFn } from "@/lib/edge-fn";
 import { useSession } from "@/features/auth/useSession";
 import {
   isNetworkError,
@@ -43,10 +42,12 @@ export function useBadgesCollection(): State {
     setIsLoading(true);
     setError(null);
     try {
-      const [catRes, earnRes, signRes] = await Promise.all([
+      // Icons render as lightweight coloured glyphs (BadgeGlyph), so we no
+      // longer fetch signed SVG URLs here — saves a network round-trip + an
+      // edge-fn cold start every time the Badges grid / streak modal opens.
+      const [catRes, earnRes] = await Promise.all([
         withTimeout(supabase.from("badges").select("id, code, name, description, icon_path").order("sort_order")),
         withTimeout(supabase.from("badge_earnings").select("badge_id, earned_at").eq("student_id", studentId)),
-        invokeEdgeFn<{ icons: Record<string, string> }>("badge-icon-sign", {}),
       ]);
       if (catRes.error) {
         setError(catRes.error.message);
@@ -56,7 +57,6 @@ export function useBadgesCollection(): State {
       for (const e of (earnRes.data ?? []) as { badge_id: string; earned_at: string }[]) {
         earnedMap.set(e.badge_id, e.earned_at);
       }
-      const icons = signRes.body?.icons ?? {};
       const list = ((catRes.data ?? []) as {
         id: string;
         code: string;
@@ -68,7 +68,7 @@ export function useBadgesCollection(): State {
         name: b.name,
         description: b.description,
         icon_path: b.icon_path,
-        iconUrl: icons[b.code] ?? null,
+        iconUrl: null,
         earned: earnedMap.has(b.id),
         earned_at: earnedMap.get(b.id) ?? null,
       }));

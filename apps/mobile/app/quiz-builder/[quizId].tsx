@@ -36,6 +36,7 @@ import { useSession } from "@/features/auth/useSession";
 import { useTeacherCurriculum } from "@/features/library/useTeacherCurriculum";
 import { useQuizBuilder } from "@/features/quiz/useTeacherQuizBuilder";
 import { useQuestionBank } from "@/features/quiz/useQuestionBank";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 type Picker = "course" | "subject" | "chapter" | "topic" | "batch" | null;
 
@@ -323,8 +324,8 @@ export default function QuizBuilderScreen() {
 
   if (builder.isLoading && !builder.quiz) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#2563EB" />
+      <SafeAreaView className="flex-1 bg-slate-50">
+        <LoadingScreen />
       </SafeAreaView>
     );
   }

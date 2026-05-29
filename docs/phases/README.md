@@ -77,7 +77,7 @@ BEFORE WRITING ANY CODE, read these files in order:
 6. docs/spec/admin-panel.md + docs/spec/student-dashboard.md + docs/spec/teacher-panel.md — the parts that describe course/batch surfaces.
 
 USER CONTEXT (from memory; treat as durable):
-- User is new to coding. Every "verify this" you ask of them must be click-by-click with exact URLs, exact button names, exact expected screen text. NOT "log into the admin panel" — INSTEAD "open Chrome, go to https://admin-kohl-sigma.vercel.app/login, type owner@fynestudy.example.com in Email, type FyneStudy01 in Password (no exclamation), tap Sign in, enter your 2FA code from your authenticator app, tap Verify".
+- User is new to coding. Every "verify this" you ask of them must be click-by-click with exact URLs, exact button names, exact expected screen text. NOT "log into the admin panel" — INSTEAD "open Chrome, go to https://fyne-study-app-admin.vercel.app/login, type owner@fynestudy.example.com in Email, type FyneStudy01 in Password (no exclamation), tap Sign in, enter your 2FA code from your authenticator app, tap Verify".
 - User invites deep Q&A on specs but trusts you to drive implementation. "Choose what's best" is genuine — pick aggressively, summarize defaults in a table.
 - Demo owner is owner@fynestudy.example.com / FyneStudy01 (already TOTP-enrolled). Memory file project_demo-owner.md has full credentials including the existing CP5/CP8 smoke students.
 

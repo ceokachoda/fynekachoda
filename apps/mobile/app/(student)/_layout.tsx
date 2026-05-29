@@ -1,9 +1,9 @@
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
 import { Tabs, useRouter } from "expo-router";
-import { Home, Video, BookOpen, QrCode, Trophy, User, Menu as MenuIcon } from "lucide-react-native";
+import { Home, Video, BookOpen, QrCode, Trophy, User } from "lucide-react-native";
 import { useSession } from "@/features/auth/useSession";
 import { useRole } from "@/features/auth/useRole";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 function StudentGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -24,21 +24,15 @@ function StudentGate({ children }: { children: React.ReactNode }) {
       router.replace("/force-password-change");
       return;
     }
-    if (role.isAdmin && !role.isStudent && !role.isTeacher) {
-      router.replace("/admin-redirect");
-      return;
-    }
     if (!role.isStudent) {
+      // Wrong group (admin-only or teacher landed here): bounce to the central
+      // router, which signs admins out and routes teachers correctly.
       router.replace("/");
     }
   }, [isLoading, session, appUser, role, router]);
 
   if (isLoading || !session || !appUser || !role.isStudent) {
-    return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#2563EB" />
-      </View>
-    );
+    return <LoadingScreen />;
   }
   return <>{children}</>;
 }
@@ -51,6 +45,10 @@ export default function StudentTabsLayout() {
           tabBarActiveTintColor: "#2563EB",
           tabBarInactiveTintColor: "#6B7280",
           headerShown: false,
+          // Freeze off-screen tabs so background timers, polls and realtime
+          // re-renders (e.g. the attendance QR tick) stop draining the JS thread
+          // while the user is on another tab — a real win on 2GB devices.
+          freezeOnBlur: true,
           tabBarStyle: {
             backgroundColor: "#FFFFFF",
             borderTopWidth: 1,
@@ -98,13 +96,6 @@ export default function StudentTabsLayout() {
           options={{
             title: "Profile",
             tabBarIcon: ({ color }) => <User size={24} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="menu"
-          options={{
-            title: "Menu",
-            tabBarIcon: ({ color }) => <MenuIcon size={24} color={color} />,
           }}
         />
       </Tabs>

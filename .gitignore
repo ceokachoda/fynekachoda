@@ -17,6 +17,10 @@ expo-env.d.ts
 .env.local
 .env.*.local
 
+# local credentials / private notes — NEVER commit
+*.local.md
+START-HERE.md
+
 # ide
 .vscode/
 .idea/

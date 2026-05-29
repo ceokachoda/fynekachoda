@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Animated,
   StyleSheet,
   Text,
@@ -20,6 +19,7 @@ import {
   Camera as CameraIcon,
 } from "lucide-react-native";
 import { ScannerOverlay } from "@/components/teacher/ScannerOverlay";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { useCameraPermission } from "@/features/attendance/useCameraPermission";
 import { useScanVerify, type VerifyResult } from "@/features/attendance/useScanVerify";
 import {
@@ -162,8 +162,8 @@ export default function TeacherScanScreen(): React.ReactElement {
 
   if (camera.isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-slate-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#60a5fa" />
+      <SafeAreaView className="flex-1 bg-slate-900">
+        <LoadingScreen background="bg-slate-900" dotColor="#FFFFFF" />
       </SafeAreaView>
     );
   }
@@ -178,9 +178,13 @@ export default function TeacherScanScreen(): React.ReactElement {
         style={StyleSheet.absoluteFill}
         facing="back"
         barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-        onBarcodeScanned={({ data }) => {
-          void handleBarcode(data);
-        }}
+        onBarcodeScanned={
+          busy
+            ? undefined
+            : ({ data }) => {
+                void handleBarcode(data);
+              }
+        }
       />
       <View className="flex-1">
           <View className="px-5 pt-3 pb-2">

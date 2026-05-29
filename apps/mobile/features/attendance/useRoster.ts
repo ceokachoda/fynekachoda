@@ -168,6 +168,16 @@ export function useRoster(sessionId: string | null): State {
 
   useEffect(() => {
     if (!sessionId) return;
+    // Coalesce bursts of attendance changes (many students scanned in quick
+    // succession) into one reload after a short quiet window, so the roster
+    // doesn't re-query + re-sort + replace the whole list on every single event.
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    const scheduleReload = () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        void load();
+      }, 600);
+    };
     const channel = supabase
       .channel(`teacher-roster-${sessionId}`)
       .on(
@@ -179,12 +189,13 @@ export function useRoster(sessionId: string | null): State {
           filter: `session_id=eq.${sessionId}`,
         },
         () => {
-          void load();
+          scheduleReload();
         },
       )
       .subscribe();
     channelRef.current = channel;
     return () => {
+      if (debounce) clearTimeout(debounce);
       supabase.removeChannel(channel);
       channelRef.current = null;
     };

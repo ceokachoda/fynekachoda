@@ -547,7 +547,7 @@ Phase 2 closed on **2026-05-15** with all checkpoints (CP1–CP9) verified mecha
 | # | Acceptance Criterion | Result | Evidence |
 |---|---|---|---|
 | 1 | Owner-bootstrap script creates the first owner; second run says "Already exists" and exits 0 | ✅ pass | CP4. `scripts/bootstrap-owner.ts` is idempotent (lookup by email). Demo owner `owner@fynestudy.example.com` (app_users.id `12159494…`) created 2026-05-14. |
-| 2 | Owner logs into admin at Vercel preview URL with email + password | ✅ pass | CP6. <https://admin-kohl-sigma.vercel.app/login>; user verified visually. |
+| 2 | Owner logs into admin at Vercel preview URL with email + password | ✅ pass | CP6. <https://fyne-study-app-admin.vercel.app/login>; user verified visually. |
 | 3 | Owner is forced to enroll TOTP on first login. Recovery codes displayed once | 🟡 **partial** | TOTP enrollment IS enforced via middleware → `/2fa/enroll` redirect on first login. **Recovery codes were not implemented** — Supabase TOTP doesn't generate them by default and we deferred a custom implementation. Owner is instructed to keep their authenticator app intact; a future "Admin: reset MFA" owner-only flow (per phase-2.md §8) will provide the recovery path. |
 | 4 | Owner logs out, logs back in, prompted for TOTP, succeeds | ✅ pass | CP6 user verification on 2026-05-15. |
 | 5 | Owner creates a test student via `/students/new`. Modal shows credentials | ✅ pass | CP7 + manually re-verified during CP8 Part C (created `manualtest-may15@…`). |

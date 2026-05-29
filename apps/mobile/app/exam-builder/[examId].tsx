@@ -10,7 +10,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   Modal,
@@ -38,6 +37,7 @@ import { useSession } from "@/features/auth/useSession";
 import { useTeacherBatches } from "@/features/exam/useTeacherBatches";
 import { useExamBuilder } from "@/features/exam/useTeacherExamBuilder";
 import { useQuestionBank } from "@/features/quiz/useQuestionBank";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 type Picker = "batch" | "duration" | "release" | "date" | null;
 
@@ -275,8 +275,8 @@ export default function ExamBuilderScreen() {
 
   if (builder.isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center" edges={["top"]}>
-        <ActivityIndicator size="large" color="#2563EB" />
+      <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+        <LoadingScreen />
       </SafeAreaView>
     );
   }

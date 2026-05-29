@@ -408,7 +408,7 @@ Exams:
   Exam 3    "Scheduled Tomorrow"  STARTS +24h      manual release  5 Qs  60 min  ${exam3Id}
 
 Owner-admin URL (for /exams + /offline-scores):
-  https://admin-kohl-sigma.vercel.app/ (or pnpm dev:admin → localhost:3000)
+  https://fyne-study-app-admin.vercel.app/ (or pnpm dev:admin → localhost:3000)
 
 All four accounts already have must_change_password=false. Re-run with
 \`pnpm seed:exam-manual-test --reset\` to wipe prior p7-* users + P7_TEST_*

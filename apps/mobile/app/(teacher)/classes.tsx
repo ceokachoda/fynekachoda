@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   RefreshControl,
-  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -69,8 +69,14 @@ export default function TeacherClassesScreen(): React.ReactElement {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
-      <ScrollView
+      <FlatList
+        data={list}
+        keyExtractor={(s) => s.id}
         contentContainerStyle={{ paddingBottom: 80 }}
+        removeClippedSubviews
+        windowSize={9}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
         refreshControl={
           <RefreshControl
             refreshing={isLoading}
@@ -78,119 +84,119 @@ export default function TeacherClassesScreen(): React.ReactElement {
             tintColor="#2563EB"
           />
         }
-      >
-        <View className="px-6 pt-2 pb-3">
-          <Text className="text-sm font-medium text-slate-500">Classes</Text>
-          <Text className="text-2xl font-extrabold text-slate-900 mt-0.5">
-            Your schedule
-          </Text>
-        </View>
-
-        <View className="px-6 mb-2 flex-row bg-white rounded-2xl border border-slate-100 p-1 mx-6">
-          {(Object.keys(BUCKET_LABELS) as SessionBucket[]).map((b) => (
-            <TouchableOpacity
-              key={b}
-              onPress={() => setBucket(b)}
-              className={`flex-1 rounded-xl py-2 items-center ${
-                bucket === b ? "bg-blue-600" : ""
-              }`}
-              activeOpacity={0.85}
-            >
-              <Text
-                className={`text-xs font-bold ${
-                  bucket === b ? "text-white" : "text-slate-600"
-                }`}
-              >
-                {BUCKET_LABELS[b]}
-                <Text
-                  className={`${
-                    bucket === b ? "text-white/80" : "text-slate-400"
-                  } font-medium`}
-                >
-                  {"  "}
-                  {buckets[b].length}
-                </Text>
+        ListHeaderComponent={
+          <View>
+            <View className="px-6 pt-2 pb-3">
+              <Text className="text-sm font-medium text-slate-500">Classes</Text>
+              <Text className="text-2xl font-extrabold text-slate-900 mt-0.5">
+                Your schedule
               </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+            </View>
 
-        {error ? (
-          <View className="mx-6 mt-3 rounded-2xl bg-red-50 border border-red-100 p-4">
-            <Text className="text-sm font-medium text-red-700">{error}</Text>
-          </View>
-        ) : null}
+            <View className="px-6 mb-2 flex-row bg-white rounded-2xl border border-slate-100 p-1 mx-6">
+              {(Object.keys(BUCKET_LABELS) as SessionBucket[]).map((b) => (
+                <TouchableOpacity
+                  key={b}
+                  onPress={() => setBucket(b)}
+                  className={`flex-1 rounded-xl py-2 items-center ${
+                    bucket === b ? "bg-blue-600" : ""
+                  }`}
+                  activeOpacity={0.85}
+                >
+                  <Text
+                    className={`text-xs font-bold ${
+                      bucket === b ? "text-white" : "text-slate-600"
+                    }`}
+                  >
+                    {BUCKET_LABELS[b]}
+                    <Text
+                      className={`${
+                        bucket === b ? "text-white/80" : "text-slate-400"
+                      } font-medium`}
+                    >
+                      {"  "}
+                      {buckets[b].length}
+                    </Text>
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
-        {isLoading && list.length === 0 ? (
-          <View className="px-6 py-10 items-center">
-            <ActivityIndicator size="small" color="#2563EB" />
+            {error ? (
+              <View className="mx-6 mt-3 rounded-2xl bg-red-50 border border-red-100 p-4">
+                <Text className="text-sm font-medium text-red-700">{error}</Text>
+              </View>
+            ) : null}
           </View>
-        ) : list.length === 0 ? (
-          <View
-            style={{
-              marginHorizontal: 24,
-              marginTop: 16,
-              backgroundColor: "#ffffff",
-              borderRadius: 24,
-              padding: 24,
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: "#f1f5f9",
-            }}
-          >
-            <Sparkles size={28} color="#94a3b8" />
-            <Text
-              style={{
-                marginTop: 12,
-                fontSize: 16,
-                fontWeight: "700",
-                color: "#0f172a",
-                textAlign: "center",
-              }}
-            >
-              {bucket === "today"
-                ? "No classes scheduled today"
-                : bucket === "upcoming"
-                  ? "Nothing on the calendar yet"
-                  : "No recent classes"}
-            </Text>
-            <Text
-              style={{
-                marginTop: 4,
-                fontSize: 12,
-                color: "#64748b",
-                textAlign: "center",
-                lineHeight: 16,
-              }}
-            >
-              {bucket === "past"
-                ? "Past classes from the last 30 days will appear here."
-                : "Tap + to create an ad-hoc class."}
-            </Text>
-          </View>
-        ) : (
-          <View className="mt-2">
-            {list.map((s) => (
-              <ClassRow
-                key={s.id}
-                session={s}
-                onScan={() =>
-                  router.push({
-                    pathname: "/(teacher)/scan",
-                  })
-                }
-                onRoster={() =>
-                  router.push({
-                    pathname: "/roster/[sessionId]",
-                    params: { sessionId: s.id },
-                  })
-                }
-                onLiveControl={() => router.push(`/live-control/${s.id}` as never)}
-              />
-            ))}
-          </View>
+        }
+        renderItem={({ item: s }) => (
+          <ClassRow
+            session={s}
+            onScan={() =>
+              router.push({
+                pathname: "/(teacher)/scan",
+              })
+            }
+            onRoster={() =>
+              router.push({
+                pathname: "/roster/[sessionId]",
+                params: { sessionId: s.id },
+              })
+            }
+            onLiveControl={() => router.push(`/live-control/${s.id}` as never)}
+          />
         )}
-      </ScrollView>
+        ListEmptyComponent={
+          isLoading ? (
+            <View className="px-6 py-10 items-center">
+              <ActivityIndicator size="small" color="#2563EB" />
+            </View>
+          ) : (
+            <View
+              style={{
+                marginHorizontal: 24,
+                marginTop: 16,
+                backgroundColor: "#ffffff",
+                borderRadius: 24,
+                padding: 24,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: "#f1f5f9",
+              }}
+            >
+              <Sparkles size={28} color="#94a3b8" />
+              <Text
+                style={{
+                  marginTop: 12,
+                  fontSize: 16,
+                  fontWeight: "700",
+                  color: "#0f172a",
+                  textAlign: "center",
+                }}
+              >
+                {bucket === "today"
+                  ? "No classes scheduled today"
+                  : bucket === "upcoming"
+                    ? "Nothing on the calendar yet"
+                    : "No recent classes"}
+              </Text>
+              <Text
+                style={{
+                  marginTop: 4,
+                  fontSize: 12,
+                  color: "#64748b",
+                  textAlign: "center",
+                  lineHeight: 16,
+                }}
+              >
+                {bucket === "past"
+                  ? "Past classes from the last 30 days will appear here."
+                  : "Tap + to create an ad-hoc class."}
+              </Text>
+            </View>
+          )
+        }
+      />
 
       <TouchableOpacity
         onPress={() => setShowSchedule(true)}
@@ -250,7 +256,7 @@ function ClassRow({
   const pill = statusPill(session);
   const [bg, text] = pill.classes.split(" ");
   return (
-    <View className="mx-6 mt-3 bg-white rounded-3xl border border-slate-100 p-4 shadow-sm shadow-slate-200/50">
+    <View className="mx-6 mt-3 bg-white rounded-3xl border border-slate-100 p-4">
       <View className="flex-row items-start">
         <View className="w-10 h-10 rounded-2xl bg-blue-50 items-center justify-center mr-3">
           {session.is_live_class ? (

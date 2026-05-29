@@ -1,5 +1,7 @@
 # FyneStudy — Google Play Store Publishing Guide
 
+> 👉 **New here? Start with [`../START-HERE.md`](../START-HERE.md)** for the big-picture ordered checklist — this file is the detailed click-by-click that it points into (the §-numbers in START-HERE refer here).
+>
 > Click-by-click guide to ship **FyneStudy** to Android via Google Play. Written for a solo developer new to coding. Follow it top to bottom.
 >
 > **Verify-in-console note:** Google changes the Play Console UI often. Where a button or page name might have moved, this guide says **(verify in console)**. The *policies* below were confirmed for 2026 (see citations at the end); the *exact wording on screen* may differ slightly.
@@ -220,6 +222,12 @@ Questions about your account or your data? Contact your institute's office.
 > Edit the institute-specific wording before publishing, but keep the **"no public sign-up / institute issues accounts"** sentence — it pre-empts a reviewer (and a confused parent) trying to register and failing.
 
 ### 4.2 Graphics (exact sizes)
+
+> ✅ **Already generated for you** — in the **`store-assets/`** folder (project root):
+> - `icon-512.png` — your app logo at 512×512 (the Play **app icon**).
+> - `feature-graphic-1024x500.png` — a branded **feature graphic** banner.
+>
+> Upload these two files directly. You still need to add **screenshots** (§4.3). Swap in custom art later if you want.
 
 Prepare these as **PNG** (or JPG where noted). Play rejects wrong dimensions.
 
