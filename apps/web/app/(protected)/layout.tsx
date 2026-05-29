@@ -17,9 +17,28 @@ export default async function ProtectedLayout({
   const isMultiRole =
     session.roles.includes("student") && session.roles.includes("teacher");
 
+  // Hydrate the client SessionProvider with the profile the server already
+  // resolved. Without this the client re-fetches session → app_users →
+  // user_roles over three sequential round-trips before any query that depends
+  // on appUser.id (e.g. the student dashboard) can even start — which is why the
+  // home screen showed only the greeting and felt sluggish. phone/dob are filled
+  // in by the client's background refresh; nothing on first paint needs them.
+  const initialSession = {
+    appUser: {
+      id: session.app_user_id,
+      full_name: session.full_name,
+      email: session.email,
+      phone: null,
+      dob: null,
+      is_active: session.is_active,
+      must_change_password: session.must_change_password,
+    },
+    roles: session.roles,
+  };
+
   return (
     <QueryProvider>
-      <SessionProvider>
+      <SessionProvider initial={initialSession}>
         <AppShell
           fullName={session.full_name}
           email={session.email}

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { SideRail } from "./SideRail";
 import { TopBar } from "./TopBar";
 import { BottomTabs } from "./BottomTabs";
+import { RouteProgress } from "./RouteProgress";
 import type { ActiveRole } from "@/lib/auth";
 
 interface AppShellProps {
@@ -29,6 +30,7 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <div className="flex min-h-svh bg-muted/40">
+      <RouteProgress />
       <SideRail
         activeRole={activeRole}
         fullName={fullName}

@@ -64,16 +64,17 @@ export function SessionProvider({ children, initial }: SessionProviderProps) {
         setRoles([]);
         return;
       }
-      const { data: au } = await supabase
+      const { data: au, error } = await supabase
         .from("app_users")
         .select("id, full_name, email, phone, dob, is_active, must_change_password")
         .eq("auth_user_id", s.user.id)
         .maybeSingle();
-      if (!au) {
-        setAppUser(null);
-        setRoles([]);
-        return;
-      }
+      // A transient RLS / not-ready hiccup must NOT blank a profile we already
+      // have (e.g. one hydrated from the server). The server already validated
+      // this user in loadWebSession, so keep the current value and let a later
+      // auth event refresh it. Only an explicit sign-out (s === null, above)
+      // clears the profile.
+      if (error || !au) return;
       const { data: roleRows } = await supabase
         .from("user_roles")
         .select("role")
@@ -88,7 +89,8 @@ export function SessionProvider({ children, initial }: SessionProviderProps) {
   );
 
   const init = useCallback(async () => {
-    setIsLoading(true);
+    // Don't flip back to a loading state when we were hydrated from the server —
+    // the UI is already populated and this is just a background confirmation.
     const { data } = await supabase.auth.getSession();
     setSession(data.session);
     await loadProfile(data.session);

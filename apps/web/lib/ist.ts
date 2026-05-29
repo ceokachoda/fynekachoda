@@ -58,6 +58,21 @@ export function lastNIstDates(n: number): string[] {
   return out;
 }
 
+export function formatIstWeekdayDate(d: Date = new Date()): string {
+  const ist = toIst(d);
+  const weekdays = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${weekdays[ist.getUTCDay()]}, ${ist.getUTCDate()} ${months[ist.getUTCMonth()]}`;
+}
+
 export function greetingForIst(d: Date = new Date()): string {
   const h = toIst(d).getUTCHours();
   if (h >= 5 && h < 12) return "Good morning";

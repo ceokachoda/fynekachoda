@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   greeting: string;
+  dateLabel: string;
 }
 
 function DashboardSkeleton() {
@@ -32,7 +33,7 @@ function DashboardSkeleton() {
   );
 }
 
-export function StudentDashboard({ greeting }: Props) {
+export function StudentDashboard({ greeting, dateLabel }: Props) {
   const { appUser } = useSession();
   const dash = useStudentDashboard();
   const unseen = useUnseenBadges();
@@ -59,8 +60,13 @@ export function StudentDashboard({ greeting }: Props) {
 
   return (
     <div className="space-y-6" data-testid="student-dashboard">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-extrabold text-slate-900">{greeting}</h1>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-extrabold tracking-tight text-slate-900">
+            {greeting}
+          </h1>
+          <p className="mt-0.5 text-sm font-medium text-slate-500">{dateLabel}</p>
+        </div>
         {data?.streak ? (
           <StreakFlame
             currentDays={data.streak.current_days}
@@ -69,9 +75,7 @@ export function StudentDashboard({ greeting }: Props) {
         ) : null}
       </div>
 
-      {dash.isLoading ? (
-        <DashboardSkeleton />
-      ) : dash.error ? (
+      {dash.error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           Couldn&apos;t load your dashboard.{" "}
           <button
@@ -117,7 +121,9 @@ export function StudentDashboard({ greeting }: Props) {
             </section>
           </div>
         </div>
-      ) : null}
+      ) : (
+        <DashboardSkeleton />
+      )}
 
       <StreakModal open={streakOpen} onOpenChange={setStreakOpen} />
 
