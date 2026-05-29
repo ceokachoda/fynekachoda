@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { forcePasswordChangeAction, type ChangeState } from "./actions";
 
 const initial: ChangeState = {};
@@ -19,10 +19,9 @@ export function ForcePasswordChangeForm() {
         <label htmlFor="password" className="text-sm font-medium text-slate-700">
           New password
         </label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="new-password"
           minLength={10}
           required
@@ -41,10 +40,9 @@ export function ForcePasswordChangeForm() {
         <label htmlFor="confirm" className="text-sm font-medium text-slate-700">
           Confirm new password
         </label>
-        <Input
+        <PasswordInput
           id="confirm"
           name="confirm"
-          type="password"
           autoComplete="new-password"
           required
         />

@@ -15,6 +15,7 @@ import {
 import { Link, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, G, Path, Rect } from "react-native-svg";
+import { Eye, EyeOff } from "lucide-react-native";
 import { FyneStudyLogo } from "@/components/FyneStudyLogo";
 import { signInWithPassword } from "@/features/auth/auth";
 import { LoginSchema } from "@/features/auth/schemas";
@@ -129,6 +130,7 @@ export default function LoginScreen() {
   const { session } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -297,24 +299,43 @@ export default function LoginScreen() {
                 </FloatingLabelInput>
 
                 <FloatingLabelInput label="Password">
-                  <TextInput
-                    {...NO_SCALE}
-                    style={{ fontSize: rs(16), padding: 0 }}
-                    className="text-slate-900 font-semibold"
-                    placeholder="••••••••••"
-                    placeholderTextColor="#cbd5e1"
-                    value={password}
-                    onChangeText={(v) => {
-                      setPassword(v);
-                      setError(null);
-                    }}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoComplete="current-password"
-                    returnKeyType="done"
-                    onSubmitEditing={handleSignIn}
-                    editable={!pending}
-                  />
+                  <View className="flex-row items-center">
+                    <TextInput
+                      {...NO_SCALE}
+                      style={{ fontSize: rs(16), padding: 0, flex: 1 }}
+                      className="text-slate-900 font-semibold"
+                      placeholder="••••••••••"
+                      placeholderTextColor="#cbd5e1"
+                      value={password}
+                      onChangeText={(v) => {
+                        setPassword(v);
+                        setError(null);
+                      }}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoComplete="current-password"
+                      returnKeyType="done"
+                      onSubmitEditing={handleSignIn}
+                      editable={!pending}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword((v) => !v)}
+                      disabled={pending}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      style={{ marginLeft: rs(10) }}
+                    >
+                      {showPassword ? (
+                        <EyeOff size={rs(20)} color="#94a3b8" />
+                      ) : (
+                        <Eye size={rs(20)} color="#94a3b8" />
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 </FloatingLabelInput>
 
                 {error ? (

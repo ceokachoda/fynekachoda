@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { loginAction, type LoginState } from "./actions";
 
 const initial: LoginState = {};
@@ -35,10 +36,9 @@ export function LoginForm({ next }: { next?: string }) {
         <label htmlFor="password" className="text-sm font-medium text-slate-700">
           Password
         </label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
           required
           aria-invalid={state.fieldErrors?.password ? "true" : undefined}

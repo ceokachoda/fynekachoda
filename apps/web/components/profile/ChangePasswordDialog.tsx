@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -81,9 +81,8 @@ export function ChangePasswordDialog({
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
             <Label htmlFor="new-pw">New password</Label>
-            <Input
+            <PasswordInput
               id="new-pw"
-              type="password"
               autoComplete="new-password"
               {...form.register("password")}
               data-testid="new-password-input"
@@ -96,9 +95,8 @@ export function ChangePasswordDialog({
           </div>
           <div>
             <Label htmlFor="confirm-pw">Confirm new password</Label>
-            <Input
+            <PasswordInput
               id="confirm-pw"
-              type="password"
               autoComplete="new-password"
               {...form.register("confirm")}
               data-testid="confirm-password-input"

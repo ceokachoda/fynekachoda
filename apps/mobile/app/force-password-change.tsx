@@ -3,7 +3,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -12,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "@/features/auth/useSession";
 import { changeOwnPassword, signOut } from "@/features/auth/auth";
 import { makeNewPasswordSchema } from "@/features/auth/schemas";
+import { PasswordInput } from "@/components/PasswordInput";
 
 export default function ForcePasswordChangeScreen() {
   const router = useRouter();
@@ -93,17 +93,14 @@ export default function ForcePasswordChangeScreen() {
               <Text className="text-xs font-semibold text-slate-700 mb-1">
                 New password
               </Text>
-              <TextInput
+              <PasswordInput
                 value={password}
                 onChangeText={(v) => {
                   setPassword(v);
                   setError(null);
                 }}
-                secureTextEntry
-                autoCapitalize="none"
                 autoComplete="new-password"
                 editable={!pending}
-                className="h-12 rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-900"
               />
               <Text className="mt-1 text-[11px] text-slate-500">
                 At least 10 characters, including upper, lower, and a digit. No
@@ -115,17 +112,14 @@ export default function ForcePasswordChangeScreen() {
               <Text className="text-xs font-semibold text-slate-700 mb-1">
                 Confirm new password
               </Text>
-              <TextInput
+              <PasswordInput
                 value={confirm}
                 onChangeText={(v) => {
                   setConfirm(v);
                   setError(null);
                 }}
-                secureTextEntry
-                autoCapitalize="none"
                 autoComplete="new-password"
                 editable={!pending}
-                className="h-12 rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-900"
               />
             </View>
 

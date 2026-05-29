@@ -3,7 +3,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -12,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useSession } from "@/features/auth/useSession";
 import { setPasswordAfterReset } from "@/features/auth/auth";
 import { makeNewPasswordSchema } from "@/features/auth/schemas";
+import { PasswordInput } from "@/components/PasswordInput";
 
 // Deep-link target: fynestudy://reset
 // The session is set by Supabase's onAuthStateChange handler firing
@@ -81,33 +81,27 @@ export default function ResetScreen() {
             <Text className="text-xs font-semibold text-slate-700 mb-1">
               New password
             </Text>
-            <TextInput
+            <PasswordInput
               value={password}
               onChangeText={(v) => {
                 setPassword(v);
                 setError(null);
               }}
-              secureTextEntry
-              autoCapitalize="none"
               autoComplete="new-password"
               editable={!pending}
-              className="h-12 rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-900"
             />
 
             <Text className="mt-4 text-xs font-semibold text-slate-700 mb-1">
               Confirm new password
             </Text>
-            <TextInput
+            <PasswordInput
               value={confirm}
               onChangeText={(v) => {
                 setConfirm(v);
                 setError(null);
               }}
-              secureTextEntry
-              autoCapitalize="none"
               autoComplete="new-password"
               editable={!pending}
-              className="h-12 rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-900"
             />
 
             {error ? (
