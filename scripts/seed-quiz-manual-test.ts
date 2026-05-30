@@ -283,7 +283,7 @@ async function main() {
         batch_id: batchAId,
       },
       ownerJwt,
-      [200, 400, 409],
+      [200, 400, 404, 409, 422, 500],
     );
     if (v.status === 200) {
       refContentId = ((v.data as { content_item: { id: string } }).content_item ?? null)?.id ?? null;

@@ -2,9 +2,10 @@
 
 > A friendly, step-by-step manual for the people who **run** the institute: the owner and the office/operations staff. No coding knowledge needed. Read it top-to-bottom the first time; after that, jump to the **Common tasks cheat-sheet** at the end.
 
-**Companion guides** (for the people you create accounts for):
-- Teachers use the mobile app — see [`./teacher-guide.md`](./teacher-guide.md).
-- Students use the mobile app — see [`./student-guide.md`](./student-guide.md).
+**Companion guides:**
+- 📋 **Quick playbook** — the step-by-step recipes for common tasks (new student, new batch, new teacher, a teacher leaves…): [`./admin-workflow.md`](./admin-workflow.md).
+- Teachers use the mobile app **or** the web app — see [`./teacher-guide.md`](./teacher-guide.md).
+- Students use the mobile app **or** the web app — see [`./student-guide.md`](./student-guide.md).
 - Publishing the mobile app to the Play Store — see [`../play-store-upload-guide.md`](../play-store-upload-guide.md).
 
 ---
@@ -55,8 +56,11 @@ This means: a student can only use the app after you have (1) created at least o
 Open a web browser (Google Chrome, Microsoft Edge, Safari, or Firefox) on a laptop or desktop computer and go to your institute's admin address.
 
 - **Current address:** `https://fyne-study-app-admin.vercel.app/`
-- **Future custom address (once set up):** `admin.fynestudy.in`
+- **Future custom address (optional):** if you later point a subdomain at it (e.g. `admin.fynestudy.live`), bookmark that instead.
 
+> ⚠️ **Don't confuse it with the student/teacher web app.** `https://fynestudy.live` is the **students &
+> teachers** web app — *not* the admin panel. As an admin you always use the **admin** address above.
+>
 > Tip: Bookmark the page so you don't have to type it each time.
 
 You'll land on the **Sign in** screen titled "FyneStudy Admin". Underneath the form it reminds you: *"Admin accounts are issued by the institute owner. No self-signup."*

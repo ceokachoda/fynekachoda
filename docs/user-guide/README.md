@@ -4,9 +4,29 @@ This folder is the complete, plain-English manual for everyone who uses FyneStud
 
 | You are… | You use… | Read this |
 |---|---|---|
-| Institute owner / office admin | The **web admin panel** (in a browser) | **[admin-guide.md](./admin-guide.md)** |
-| Teacher | The **mobile app** | **[teacher-guide.md](./teacher-guide.md)** |
-| Student (or a parent) | The **mobile app** | **[student-guide.md](./student-guide.md)** |
+| Institute owner / office admin | The **web admin panel** (in a browser) | **[admin-guide.md](./admin-guide.md)** + the **[admin-workflow.md](./admin-workflow.md)** playbook |
+| Teacher | The **mobile app** *or* the **web app** | **[teacher-guide.md](./teacher-guide.md)** |
+| Student (or a parent) | The **mobile app** *or* the **web app** | **[student-guide.md](./student-guide.md)** |
+
+> **Admins:** [admin-guide.md](./admin-guide.md) is the full *reference* (every screen & button);
+> [admin-workflow.md](./admin-workflow.md) is the *playbook* (the exact steps for "a new student joined",
+> "we're starting a batch", "a teacher left", etc.).
+
+---
+
+## Two ways to use FyneStudy: the app or the web
+
+Students and teachers can use **either** of these — same login, same features, your choice:
+
+- 📱 **Mobile app** (Android / iPhone) — install it and sign in.
+- 🌐 **Web app** at **`https://fynestudy.live`** — open it in any browser; no install needed. On a phone it
+  looks just like the app (bottom tabs); on a laptop the tabs become a left side-rail. You can even
+  **"Add to Home screen" / Install** it so it opens like an app.
+
+Everything in the Teacher/Student guides applies to **both** — where a step says "tap", on the web you "click".
+*(If your institute is still rolling out the web version, they'll share the link when it's ready.)*
+
+The **admin panel** is always a website (a computer browser); it is **not** the same as the student/teacher web app.
 
 ---
 

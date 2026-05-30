@@ -1,18 +1,22 @@
 # FyneStudy — Privacy Policy
 
-> **Before you publish:** replace every `{{PLACEHOLDER}}` below with a real value, then host this file at a public URL (see `docs/play-store-upload-guide.md §8`). The Play Console will reject the app without a working privacy-policy URL.
+> **Hosted version:** this policy is published publicly at `https://<your-admin-domain>/privacy`
+> (rendered by `apps/admin/app/privacy/page.tsx`). That URL is what you paste into Play Console.
+> **To change the institute name, contact email, address, or dates**, edit the `INSTITUTE` block at
+> the top of that page **and** the matching values below, then redeploy. Current values are sensible
+> defaults — replace them with the institute's real legal name / public contact before launch.
 
 - **App:** FyneStudy (Android package `com.fynestudy.app`)
-- **Operated by:** {{INSTITUTE_LEGAL_NAME}} (the coaching institute, "we", "us", "the Institute")
-- **Contact email:** {{INSTITUTE_CONTACT_EMAIL}}
-- **Effective date:** {{EFFECTIVE_DATE — e.g. 1 June 2026}}
-- **Last updated:** {{LAST_UPDATED_DATE}}
+- **Operated by:** FyneStudy (the coaching institute, "we", "us", "the Institute")
+- **Contact email:** kaustab.borah44@gmail.com
+- **Effective date:** 30 May 2026
+- **Last updated:** 30 May 2026
 
 ---
 
 ## 1. Who this policy is for
 
-FyneStudy is a private app for students and teachers of {{INSTITUTE_LEGAL_NAME}}, a coaching institute preparing students for the JEE, NEET, and CUET examinations. **The app is not open to the public and has no self-signup.** Accounts are created and issued only by the Institute's administrators. You can use FyneStudy only if the Institute has enrolled you.
+FyneStudy is a private app for students and teachers of FyneStudy, a coaching institute preparing students for the JEE, NEET, and CUET examinations. **The app is not open to the public and has no self-signup.** Accounts are created and issued only by the Institute's administrators. You can use FyneStudy only if the Institute has enrolled you.
 
 Because our students include minors (people under 18, and some under 13), this policy explains in plain language what we collect, why, and how a parent or guardian can ask us to delete it. See §8 for the children-and-minors section.
 
@@ -121,11 +125,11 @@ FyneStudy is used by minors. We treat children's data with extra care:
 - We do **not** show advertising to anyone, and we do not use children's data for advertising or for building advertising profiles.
 - A parent or guardian may review, correct, or request deletion of their child's data at any time by contacting the Institute (§9).
 
-This app is designed to meet Google Play's Families policy expectations for an app whose audience includes children. If you are a parent or guardian and have any concern about your child's data, contact us at {{INSTITUTE_CONTACT_EMAIL}}.
+This app is designed to meet Google Play's Families policy expectations for an app whose audience includes children. If you are a parent or guardian and have any concern about your child's data, contact us at kaustab.borah44@gmail.com.
 
 ## 9. Your rights and how to request access, correction, or deletion
 
-Because the Institute issues and manages all accounts, **requests are handled by the Institute, not inside the app.** To review, correct, export, or delete your (or your child's) personal data, email **{{INSTITUTE_CONTACT_EMAIL}}** from the address on file, or contact the Institute office at {{INSTITUTE_PHONE_OR_ADDRESS}}.
+Because the Institute issues and manages all accounts, **requests are handled by the Institute, not inside the app.** To review, correct, export, or delete your (or your child's) personal data, email **kaustab.borah44@gmail.com** from the address on file.
 
 Students and teachers cannot self-edit identity fields (name, email, phone, date of birth, batch, course, parent phone) in the app by design; ask the Institute to change them. We will respond to verified requests within a reasonable time and in line with applicable law.
 
@@ -135,6 +139,5 @@ If we change this policy, we will update the "Last updated" date above and, for 
 
 ## 11. Contact us
 
-**{{INSTITUTE_LEGAL_NAME}}**
-Email: {{INSTITUTE_CONTACT_EMAIL}}
-{{INSTITUTE_PHONE_OR_ADDRESS}}
+**FyneStudy**
+Email: kaustab.borah44@gmail.com

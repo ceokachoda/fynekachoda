@@ -62,6 +62,19 @@ To get the app on your phone, ask your institute which option applies to you:
 
 The app works fully on **both iPhone and Android**. It is built to run smoothly even on older, low-cost Android phones.
 
+### Prefer a browser? Use the web version
+
+You don't have to install anything — FyneStudy also runs as a **website** at **`https://fynestudy.live`**.
+Sign in with the **same** email and password. It has all the same features as the app:
+
+- On a **phone browser** it looks just like the app (same bottom tabs).
+- On a **laptop** the tabs move to a **left side-rail** and content is centred.
+- You can **install it like an app**: in your browser's menu choose **Add to Home screen** (phone) or the
+  **install** icon in the address bar (laptop). Then it opens full-screen like a normal app.
+
+Everywhere this guide says **tap**, on the web you simply **click** — every step is otherwise identical.
+*(If your institute is still setting up the web version, they'll share the link when it's ready.)*
+
 > **Camera permission:** When you scan a QR (you only do this if you're a teacher) the app asks for camera access. As a student you mainly **show** your QR, so you usually won't need the camera — but it's safe to allow it if asked.
 
 ---

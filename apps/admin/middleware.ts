@@ -7,6 +7,9 @@ const PUBLIC_PATH_PREFIXES = [
   "/forgot-password",
   "/forbidden",
   "/api/health",
+  // Public privacy policy — Google Play requires a publicly reachable,
+  // non-login-gated URL (a login wall here is a top app-rejection cause).
+  "/privacy",
 ];
 
 // Routes that an in-progress (not-yet-fully-authenticated) admin can land on

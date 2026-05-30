@@ -37,6 +37,17 @@ You **cannot change** your own name, email, phone, or which batches you teach fr
 
 The app works on both **iPhone and Android**. When you first open it, you'll see the **Welcome / Sign in to FyneStudy** screen.
 
+### Or use it in a browser (web version)
+
+You can also run FyneStudy as a **website** at **`https://fynestudy.live`** — same login, all the same teacher
+tools (scan attendance, classes, library, quizzes, exams, batch analytics, live control). On a **laptop** the
+tabs appear as a **left side-rail**; on a **phone browser** it mirrors the app. You can **install it** from the
+browser menu (**Add to Home screen** / the address-bar **install** icon) to open it full-screen like an app.
+
+Wherever this guide says **tap**, on the web you **click** — the steps are otherwise the same. A laptop browser
+is especially handy for **building quizzes/exams** and **running a live class** (your OBS laptop and the control
+panel on one screen). *(If your institute is still rolling out the web version, they'll share the link.)*
+
 ---
 
 ## 2. Getting started
