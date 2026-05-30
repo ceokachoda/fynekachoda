@@ -14,6 +14,9 @@ export function useStudentDashboard() {
     queryKey: ["student-dashboard", studentId],
     enabled: !!studentId,
     staleTime: 30_000,
+    // Poll while visible so the "Up next" card flips to a live class shortly
+    // after a teacher goes live (sessions aren't in the realtime publication).
+    refetchInterval: 30_000,
     queryFn: async () => {
       const supabase = createSupabaseBrowserClient();
       const { data, error } = await supabase.rpc("student_dashboard", {

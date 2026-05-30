@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Calendar, Video, Clock, ChevronRight, Radio, BookOpen } from "lucide-react";
 import { Segmented } from "@/components/fyne/Segmented";
@@ -35,13 +35,30 @@ export function StudentClasses() {
   const schedule = useStudentSchedule();
   const exams = useStudentExams();
   const [seg, setSeg] = useState<Segment>("upcoming");
+  const [userPicked, setUserPicked] = useState(false);
 
   const sessions = schedule.data ?? [];
   const live = sessions.filter((s) => s.status === "live");
-  const upcoming = sessions.filter((s) => s.bucket === "upcoming");
+  // A live class belongs only in the Live tab, never under Upcoming (even if its
+  // scheduled_start is still in the future when the teacher goes live early).
+  const upcoming = sessions.filter(
+    (s) => s.bucket === "upcoming" && s.status !== "live",
+  );
   const recorded = sessions
     .filter((s) => s.status === "ended" && s.is_live_class && !!s.yt_video_id)
     .reverse();
+
+  // Jump straight to the Live tab when a class is live, unless the student has
+  // already picked a tab themselves.
+  const liveCount = live.length;
+  useEffect(() => {
+    if (!userPicked && liveCount > 0) setSeg("live");
+  }, [liveCount, userPicked]);
+
+  function pickSegment(next: Segment) {
+    setUserPicked(true);
+    setSeg(next);
+  }
 
   return (
     <div className="space-y-6">
@@ -59,7 +76,7 @@ export function StudentClasses() {
 
       <Segmented<Segment>
         value={seg}
-        onChange={setSeg}
+        onChange={pickSegment}
         options={[
           { value: "live", label: `Live${live.length ? ` (${live.length})` : ""}` },
           { value: "upcoming", label: `Upcoming${upcoming.length ? ` (${upcoming.length})` : ""}` },

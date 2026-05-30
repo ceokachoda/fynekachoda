@@ -17,9 +17,9 @@ function specFor(card: NextCardType): Spec {
     return {
       icon: <PlayCircle className="size-6 text-white" />,
       title: card.subject ?? "Live class",
-      subtitle: "A live class is happening now. Join from Classes.",
-      cta: "Open Classes",
-      href: "/classes",
+      subtitle: "A live class is happening now. Tap to join.",
+      cta: "Join live class",
+      href: `/live/${card.session_id}`,
     };
   }
   if (card.type === "exam" && card.exam_id) {

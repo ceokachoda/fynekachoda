@@ -39,6 +39,10 @@ export function useStudentSchedule() {
     queryKey: ["student-schedule", studentId, batch?.batch_id],
     enabled: !!studentId && !!batch?.batch_id,
     staleTime: 30_000,
+    // `sessions` is not in the realtime publication, so poll while the tab is
+    // visible (paused in the background) — this is what makes a class the
+    // teacher just started appear without the student manually refreshing.
+    refetchInterval: 15_000,
     queryFn: async () => {
       const supabase = createSupabaseBrowserClient();
       const now = Date.now();
