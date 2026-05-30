@@ -101,10 +101,20 @@ export function SessionProvider({ children, initial }: SessionProviderProps) {
     let active = true;
     init();
     const { data: sub } = supabase.auth.onAuthStateChange(
-      async (_event: AuthChangeEvent, s: Session | null) => {
+      (_event: AuthChangeEvent, s: Session | null) => {
         if (!active) return;
         setSession(s);
-        await loadProfile(s);
+        // NEVER await a Supabase call inside this callback. It fires while the
+        // gotrue auth lock (navigator.locks, browser-only) is held; a nested
+        // client query re-enters that non-reentrant lock and DEADLOCKS — after
+        // which every client query (the dashboard RPC, schedule, my-batch, …)
+        // hangs forever and the UI is stuck on skeletons. Defer the profile
+        // load outside the callback so the lock is released first. (Supabase
+        // documents this exact footgun; Node has no navigator.locks, which is
+        // why it only reproduces in the browser.)
+        setTimeout(() => {
+          if (active) void loadProfile(s);
+        }, 0);
       },
     );
     return () => {
