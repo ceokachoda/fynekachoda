@@ -1,9 +1,13 @@
 "use client";
 
+import { memo } from "react";
 import { RankBadge } from "./RankBadge";
 import type { LeaderRow } from "@/features/leaderboard/useLeaderboard";
 
-export function RankRow({
+// Memoized: opening the public-card dialog (or any leaderboard-level state
+// change) must not re-render every row. With a stable `onPress` (useCallback in
+// the parent), a row only re-renders when its own `row` data actually changes.
+export const RankRow = memo(function RankRow({
   row,
   onPress,
 }: {
@@ -41,4 +45,4 @@ export function RankRow({
       </span>
     </button>
   );
-}
+});

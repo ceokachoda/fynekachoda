@@ -12,7 +12,7 @@
 //   result    — score breakdown + Review Solutions / Retake.
 //   solution  — per-question SolutionCard (allowed: is_correct + explanation).
 
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
@@ -133,6 +133,13 @@ function QuizClientInner({ quizId }: Props) {
 
   const attemptId = startState.data?.attempt_id ?? null;
   const autoSave = useQuizAutoSave({ attemptId });
+
+  // Stable so NavigationGrid's memoized cells don't all re-render on every
+  // answer change. dispatch from useReducer is referentially stable.
+  const handleJump = useCallback(
+    (i: number) => dispatch({ type: "set-index", index: i }),
+    [],
+  );
 
   // Hydrate local answers state from saved_answers when the start payload
   // arrives (supports refresh-mid-attempt resume).
@@ -515,7 +522,7 @@ function QuizClientInner({ quizId }: Props) {
         total={totalQ}
         currentIndex={state.currentIndex}
         statuses={statuses}
-        onJump={(i) => dispatch({ type: "set-index", index: i })}
+        onJump={handleJump}
       />
       <div className="sticky bottom-0 flex items-center justify-between gap-2 border-t border-slate-200 bg-white px-5 py-3">
         <Button

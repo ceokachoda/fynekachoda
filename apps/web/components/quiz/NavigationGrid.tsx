@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 export type QuestionStatus =
   | "current"
   | "answered"
@@ -29,15 +31,43 @@ function classFor(status: QuestionStatus): string {
   }
 }
 
+// One navigator cell, memoized on primitive props. With a stable `onJump`
+// (useCallback in the parent, dispatch-backed), changing one question's status
+// only re-renders that single cell instead of all N buttons — meaningful on a
+// long exam on a low-end device. DOM + data-status + onClick semantics are
+// identical to the previous inline-button version.
+const NavCell = memo(function NavCell({
+  index,
+  status,
+  isCurrent,
+  onJump,
+}: {
+  index: number;
+  status: QuestionStatus;
+  isCurrent: boolean;
+  onJump: (index: number) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-label={`Go to question ${index + 1}`}
+      aria-selected={isCurrent}
+      onClick={() => onJump(index)}
+      data-status={status}
+      className={`flex size-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 ${classFor(status)}`}
+    >
+      {index + 1}
+    </button>
+  );
+});
+
 export function NavigationGrid({
   total,
   currentIndex,
   statuses,
   onJump,
 }: Props) {
-  // Map each cell to its computed status, then pre-classes so the snapshot
-  // makes the navigationGridState unit test trivial. Mirrors the mobile
-  // colourFor map verbatim.
   return (
     <div
       className="flex gap-2 overflow-x-auto px-4 py-3"
@@ -45,21 +75,18 @@ export function NavigationGrid({
       aria-label="Question navigator"
     >
       {Array.from({ length: total }, (_, i) => {
-        const status: QuestionStatus =
-          i === currentIndex ? "current" : statuses[i] ?? "unanswered";
+        const isCurrent = i === currentIndex;
+        const status: QuestionStatus = isCurrent
+          ? "current"
+          : statuses[i] ?? "unanswered";
         return (
-          <button
+          <NavCell
             key={i}
-            type="button"
-            role="tab"
-            aria-label={`Go to question ${i + 1}`}
-            aria-selected={i === currentIndex}
-            onClick={() => onJump(i)}
-            data-status={status}
-            className={`flex size-10 shrink-0 items-center justify-center rounded-full border-2 text-sm font-bold tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-1 ${classFor(status)}`}
-          >
-            {i + 1}
-          </button>
+            index={i}
+            status={status}
+            isCurrent={isCurrent}
+            onJump={onJump}
+          />
         );
       })}
     </div>

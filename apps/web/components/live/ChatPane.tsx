@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/features/chat/useChatChannel";
 
@@ -26,7 +26,15 @@ interface MessageBubbleProps {
   onModerate?: () => void;
 }
 
-export function MessageBubble({ msg, isOwn, onModerate }: MessageBubbleProps) {
+// Memoized: a live class re-renders the whole pane on every incoming message
+// and the per-second player tick. With a stable `msg` (keyed by id) an existing
+// bubble never re-runs its initials()/Date formatting again — only the newly
+// added bubble renders.
+export const MessageBubble = memo(function MessageBubble({
+  msg,
+  isOwn,
+  onModerate,
+}: MessageBubbleProps) {
   const isStaff = msg.author_role === "teacher" || msg.author_role === "admin";
   const moderate = onModerate
     ? (
@@ -82,7 +90,7 @@ export function MessageBubble({ msg, isOwn, onModerate }: MessageBubbleProps) {
       </div>
     </div>
   );
-}
+});
 
 interface ChatPaneProps {
   messages: ChatMessage[];
@@ -100,7 +108,10 @@ export function ChatPane({
   emptyHint,
 }: ChatPaneProps) {
   const listRef = useRef<HTMLDivElement>(null);
-  const data = messages.filter((m) => m.kind === "chat" && !m.is_deleted);
+  const data = useMemo(
+    () => messages.filter((m) => m.kind === "chat" && !m.is_deleted),
+    [messages],
+  );
 
   useEffect(() => {
     if (data.length === 0) return;

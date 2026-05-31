@@ -166,6 +166,13 @@ function ExamClientInner({ examId }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const autoSubmittedRef = useRef(false);
 
+  // Stable so NavigationGrid's memoized cells don't all re-render on every
+  // answer change. dispatch from useReducer is referentially stable.
+  const handleJump = useCallback(
+    (i: number) => dispatch({ type: "set-index", index: i }),
+    [],
+  );
+
   // D-181: re-open routing. As soon as preInfo arrives, decide where to land.
   // The decision is one-way (only ever moves AWAY from "pre"); the user can
   // navigate back to result via the X→library bounce if needed.
@@ -775,7 +782,7 @@ function ExamClientInner({ examId }: Props) {
         total={totalQ}
         currentIndex={state.currentIndex}
         statuses={statuses}
-        onJump={(i) => dispatch({ type: "set-index", index: i })}
+        onJump={handleJump}
       />
       <div className="sticky bottom-0 flex items-center justify-between gap-2 border-t border-slate-200 bg-white px-5 py-3">
         <Button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Trophy, Info } from "lucide-react";
 import { Segmented } from "@/components/fyne/Segmented";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,14 +24,14 @@ export function LeaderboardClient() {
   const [cardLoading, setCardLoading] = useState(false);
   const [card, setCard] = useState<PublicCard | null>(null);
 
-  const onRowPress = async (id: string) => {
+  const onRowPress = useCallback(async (id: string) => {
     setCardOpen(true);
     setCard(null);
     setCardLoading(true);
     const c = await fetchStudentCard(id);
     setCardLoading(false);
     setCard(c);
-  };
+  }, []);
 
   return (
     <div className="space-y-5">

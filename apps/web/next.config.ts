@@ -40,6 +40,13 @@ const nextConfig: NextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
   },
+  // Rewrite barrel imports (`import { Dialog } from "radix-ui"`) into direct
+  // sub-module imports so only the primitives actually used land in each route
+  // chunk. lucide-react is in Next's default list already; listing it is a
+  // harmless no-op kept for clarity.
+  experimental: {
+    optimizePackageImports: ["radix-ui", "lucide-react"],
+  },
   async headers() {
     return [
       {
