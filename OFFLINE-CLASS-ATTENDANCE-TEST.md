@@ -1,5 +1,10 @@
 # Offline-Class Scheduling + Attendance — Manual Test Plan
 
+> **🟢 DEPLOYED & LIVE (2026-06-01).** Backend: migration applied to prod
+> (`fynestudy-dev`, ledger `20260601014957`) + `session-create-ad-hoc` edge fn at
+> v4. Web + admin shipped via `main` (`da5a048`) → Vercel. Advisors: 0 ERROR.
+> This plan is the on-device QA pass to run against production.
+
 > Click-by-click verification for the **named offline class + date/time scheduling**
 > feature (decision **D-205**), plus a full re-check that the **whole attendance
 > section** (QR + manual, web + mobile + admin) still works end-to-end.

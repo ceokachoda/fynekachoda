@@ -3,8 +3,11 @@
 **Date:** 2026-06-01
 **Scope:** Visual / UX redesign of `apps/admin` only. **No logic, data, routes, or page layout changed** — so every existing feature must still behave exactly as before. This checklist is about how things *look* and that nothing *broke*.
 
+> **🟢 SHIPPED & LIVE in production (2026-06-01)** — pushed via `main` (commit `978c4e8`) → Vercel. Confirmed: `fyne-study-app-admin.vercel.app` serves the new `/brand/fyne-mark.png`. Verify the latest deploy is green in the Vercel dashboard, then run this checklist against either local or production.
+
 **Local URL:** http://localhost:3000  (dev server is running)
-**Sign-in:** http://localhost:3000/login
+**Production:** https://fyne-study-app-admin.vercel.app
+**Sign-in:** /login
 
 > **Before you start:** open the site, then press **Ctrl + Shift + R** (hard refresh) once. This clears old cached styles so you see the new design, not a stale copy.
 >

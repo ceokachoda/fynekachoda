@@ -43,6 +43,8 @@ Custom domain `fynestudy.live` is live (CORS + Supabase Auth URLs whitelisted). 
 ## Launch
 🚀 `START-HERE.md` (root) → `docs/play-store-upload-guide.md` → `docs/vercel-admin-deploy.md` / `docs/web-app-deploy.md`. Owner+reviewer logins in `CREDENTIALS.local.md` (git-ignored). YouTube channel switch is backend-only (no app update). ✅ Accepted: P1–5, 7, 9, 10. ⚠ P6 & P8 still 🟡 (manual QA in flight).
 
+**Shipped 2026-06-01 (LIVE on `main`):** (1) **D-205** named offline-class scheduling + attendance across mobile+web+admin+backend — migration applied (ledger `20260601014957`) + `session-create-ad-hoc` v4 deployed; (2) **`apps/admin` professional UI/UX redesign** (brand theme, responsive, loading motion — design-only). Both on `main` (`da5a048`), Vercel auto-deployed; advisors 0 ERROR. On-device QA: `OFFLINE-CLASS-ATTENDANCE-TEST.md`, `ADMIN-UI-REDESIGN-MANUAL-TEST.md`.
+
 ## Deploying to Vercel (admin + web) — the verified way
 Both Vercel projects live in this one repo and **auto-deploy on every push to `main`** (no Vercel CLI, no dashboard click needed). Each builds only its own Root Directory.
 
