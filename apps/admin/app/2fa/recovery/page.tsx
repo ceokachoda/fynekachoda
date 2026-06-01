@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthShell } from "@/components/auth-shell";
 import { RecoveryForm } from "./recovery-form";
 
 export const metadata = {
@@ -7,26 +8,21 @@ export const metadata = {
 
 export default function RecoveryPage() {
   return (
-    <main className="grid min-h-screen place-items-center bg-slate-50 px-4">
-      <div className="w-full max-w-md space-y-6">
-        <header className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold text-slate-900">
-            Use a recovery code
-          </h1>
-          <p className="text-sm text-slate-500">
-            Each code works once. After you use one, 2FA will be reset and
-            you&apos;ll be prompted to enroll a new authenticator.
-          </p>
-        </header>
-        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <RecoveryForm />
-        </div>
+    <AuthShell
+      title="Use a recovery code"
+      description="Each code works once. After you use one, 2FA will be reset and you'll be prompted to enroll a new authenticator."
+      footer={
         <p className="text-center text-sm">
-          <Link href="/2fa/verify" className="text-slate-600 underline-offset-2 hover:underline">
+          <Link
+            href="/2fa/verify"
+            className="text-slate-600 underline-offset-2 hover:underline"
+          >
             Back to authenticator code
           </Link>
         </p>
-      </div>
-    </main>
+      }
+    >
+      <RecoveryForm />
+    </AuthShell>
   );
 }

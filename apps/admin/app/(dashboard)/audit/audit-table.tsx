@@ -98,7 +98,7 @@ export function AuditTable({
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
             <tr>
@@ -163,7 +163,7 @@ export function AuditTable({
           </DialogHeader>
           {selected ? (
             <div className="max-h-[70vh] space-y-4 overflow-auto pr-1">
-              <dl className="grid grid-cols-2 gap-2 text-xs">
+              <dl className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-2">
                 <Meta label="Actor" value={actorName(selected)} />
                 <Meta label="Role" value={selected.actor_role ?? "—"} />
                 <Meta label="When" value={fmt(selected.occurred_at)} />

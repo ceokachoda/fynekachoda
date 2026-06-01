@@ -75,7 +75,7 @@ export function NewBatchButton({ courses }: { courses: CourseOption[] }) {
               ) : null}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <label htmlFor="starts_on" className="text-sm font-medium text-slate-700">Starts on</label>
                 <Input id="starts_on" name="starts_on" type="date" required />

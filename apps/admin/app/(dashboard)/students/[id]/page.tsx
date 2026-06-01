@@ -105,9 +105,9 @@ export default async function StudentDetailPage({
         >
           ← Back to students
         </Link>
-        <div className="mt-2 flex items-start justify-between gap-4">
+        <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
               {student.full_name}
             </h1>
             <p className="text-sm text-slate-500">{student.email}</p>
@@ -290,7 +290,7 @@ async function AuditTab({ studentId }: { studentId: string }) {
     );
   }
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
       <table className="w-full text-sm">
         <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
           <tr>

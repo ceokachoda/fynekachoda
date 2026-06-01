@@ -246,7 +246,7 @@ export function ImportClient({ batches }: { batches: Batch[] }) {
         </div>
 
         {report.failed.length > 0 ? (
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
             <p className="border-b border-slate-100 px-4 py-3 text-sm font-medium text-slate-700">
               Failed rows
             </p>
@@ -351,7 +351,7 @@ export function ImportClient({ batches }: { batches: Batch[] }) {
             ) : null}
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                 <tr>

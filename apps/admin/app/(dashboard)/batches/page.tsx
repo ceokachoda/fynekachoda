@@ -66,9 +66,11 @@ export default async function BatchesPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Batches</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            Batches
+          </h1>
           <p className="text-sm text-slate-500">
             {batches.length} total · {activeCount} active
           </p>
@@ -81,7 +83,7 @@ export default async function BatchesPage() {
           No batches yet.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>

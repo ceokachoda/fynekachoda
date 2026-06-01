@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
+import { AuthShell } from "@/components/auth-shell";
 import { VerifyForm } from "./verify-form";
 
 export const metadata = {
@@ -20,19 +21,10 @@ export default async function VerifyPage() {
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-slate-50 px-4">
-      <div className="w-full max-w-md space-y-6">
-        <header className="space-y-1 text-center">
-          <h1 className="text-2xl font-semibold text-slate-900">
-            Confirm it&apos;s you
-          </h1>
-          <p className="text-sm text-slate-500">
-            Enter the 6-digit code from your authenticator app.
-          </p>
-        </header>
-        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <VerifyForm factorId={factor.id} />
-        </div>
+    <AuthShell
+      title="Confirm it's you"
+      description="Enter the 6-digit code from your authenticator app."
+      footer={
         <p className="text-center text-sm">
           <Link
             href="/2fa/recovery"
@@ -41,7 +33,9 @@ export default async function VerifyPage() {
             Lost your authenticator? Use a recovery code
           </Link>
         </p>
-      </div>
-    </main>
+      }
+    >
+      <VerifyForm factorId={factor.id} />
+    </AuthShell>
   );
 }

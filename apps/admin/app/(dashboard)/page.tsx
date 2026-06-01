@@ -113,7 +113,9 @@ export default async function OverviewPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Overview</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          Overview
+        </h1>
         <p className="text-sm text-slate-500">
           A live snapshot of your institute.
         </p>
@@ -131,10 +133,13 @@ export default async function OverviewPage() {
         ))}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.03]">
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="text-sm font-semibold text-slate-900">Recent activity</h2>
-          <Link href="/audit" className="text-xs font-medium text-blue-600 hover:underline">
+          <Link
+            href="/audit"
+            className="text-xs font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline"
+          >
             View audit log →
           </Link>
         </div>
@@ -145,7 +150,10 @@ export default async function OverviewPage() {
         ) : (
           <ul className="divide-y divide-slate-100">
             {activity.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-4 px-6 py-3">
+              <li
+                key={a.id}
+                className="flex items-center justify-between gap-4 px-6 py-3 transition-colors hover:bg-slate-50/80"
+              >
                 <div className="min-w-0">
                   <p className="truncate text-sm text-slate-700">
                     <span className="font-medium text-slate-900">
@@ -155,7 +163,7 @@ export default async function OverviewPage() {
                     <span className="text-slate-400"> · {a.entity_table}</span>
                   </p>
                 </div>
-                <time className="shrink-0 text-xs text-slate-400">
+                <time className="shrink-0 text-xs tabular-nums text-slate-400">
                   {fmtTime(a.occurred_at)}
                 </time>
               </li>
@@ -183,12 +191,16 @@ function StatCard({
   return (
     <Link
       href={href}
-      className="group rounded-xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-sm"
+      className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-900/[0.02] transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg hover:shadow-slate-900/[0.06]"
     >
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
         {label}
       </p>
-      <p className={`mt-2 text-3xl font-semibold ${accent}`}>{value}</p>
+      <p
+        className={`mt-2 text-3xl font-semibold tabular-nums tracking-tight ${accent}`}
+      >
+        {value}
+      </p>
       <p className="mt-1 text-xs text-slate-400">{hint}</p>
     </Link>
   );

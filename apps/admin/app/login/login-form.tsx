@@ -15,7 +15,7 @@ export function LoginForm({ next }: { next?: string }) {
     <form action={formAction} className="space-y-4">
       {next ? <input type="hidden" name="next" value={next} /> : null}
 
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <label htmlFor="email" className="text-sm font-medium text-slate-700">
           Email
         </label>
@@ -25,6 +25,7 @@ export function LoginForm({ next }: { next?: string }) {
           type="email"
           autoComplete="email"
           required
+          className="h-11"
           aria-invalid={state.fieldErrors?.email ? "true" : undefined}
         />
         {state.fieldErrors?.email ? (
@@ -32,7 +33,7 @@ export function LoginForm({ next }: { next?: string }) {
         ) : null}
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <label htmlFor="password" className="text-sm font-medium text-slate-700">
           Password
         </label>
@@ -41,6 +42,7 @@ export function LoginForm({ next }: { next?: string }) {
           name="password"
           autoComplete="current-password"
           required
+          className="h-11"
           aria-invalid={state.fieldErrors?.password ? "true" : undefined}
         />
         {state.fieldErrors?.password ? (
@@ -54,7 +56,7 @@ export function LoginForm({ next }: { next?: string }) {
         </div>
       ) : null}
 
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="h-11 w-full text-sm" disabled={pending}>
         {pending ? "Signing in…" : "Sign in"}
       </Button>
     </form>

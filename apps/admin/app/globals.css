@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,38 +49,41 @@
 }
 
 :root {
+  /* Cool, slate-tinted neutrals (hue 264) harmonise the shadcn tokens with the
+     hand-authored slate-* pages; brand royal-blue (the FyneStudy shield) drives
+     primary / focus. */
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: oklch(0.21 0.028 264);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.21 0.028 264);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.21 0.028 264);
+  --primary: oklch(0.488 0.243 264.376);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.967 0.006 264);
+  --secondary-foreground: oklch(0.24 0.03 264);
+  --muted: oklch(0.967 0.006 264);
+  --muted-foreground: oklch(0.552 0.026 264);
+  --accent: oklch(0.962 0.012 264);
+  --accent-foreground: oklch(0.42 0.16 264);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --border: oklch(0.922 0.006 264);
+  --input: oklch(0.922 0.006 264);
+  --ring: oklch(0.55 0.2 264);
+  --chart-1: oklch(0.62 0.19 264);
+  --chart-2: oklch(0.55 0.21 264);
+  --chart-3: oklch(0.488 0.243 264.376);
+  --chart-4: oklch(0.42 0.2 270);
+  --chart-5: oklch(0.35 0.16 272);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar: oklch(0.99 0.004 264);
+  --sidebar-foreground: oklch(0.21 0.028 264);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.962 0.012 264);
+  --sidebar-accent-foreground: oklch(0.42 0.16 264);
+  --sidebar-border: oklch(0.922 0.006 264);
+  --sidebar-ring: oklch(0.55 0.2 264);
 }
 
 .dark {
@@ -90,18 +93,18 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --primary: oklch(0.62 0.21 264);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.269 0.012 264);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --muted: oklch(0.269 0.012 264);
+  --muted-foreground: oklch(0.708 0.02 264);
+  --accent: oklch(0.31 0.03 264);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.62 0.21 264);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -123,8 +126,108 @@
   }
   body {
     @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
   }
   html {
     @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    /* Reserve the scrollbar track so content doesn't shift between
+       short and long pages. */
+    scrollbar-gutter: stable;
   }
+  ::selection {
+    background-color: color-mix(in oklch, var(--primary) 18%, transparent);
+  }
+
+  /* Professional, low-footprint scrollbars (Firefox + WebKit/Blink). */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--foreground) 22%, transparent)
+      transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in oklch, var(--foreground) 20%, transparent);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklch, var(--foreground) 34%, transparent);
+  }
+}
+
+/* Honour reduced-motion: cut transitions/animations and snap scrolling.
+   Also lightens the load on low-end hardware. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Loading & navigation motion ─────────────────────────────────────────
+   Skeleton shimmer + a fade-in-up that re-runs on every route change so a
+   page's content visibly "flows in" instead of snapping. */
+
+@keyframes fs-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes fs-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fs-fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Shimmering placeholder bar (the stacked-bar skeleton look). */
+.fs-skeleton {
+  border-radius: 0.5rem;
+  background: linear-gradient(90deg, #e8edf3 25%, #f4f7fb 50%, #e8edf3 75%);
+  background-size: 200% 100%;
+  animation: fs-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Content reveal on every navigation (wired up via the route template). */
+.fs-page-enter {
+  animation: fs-page-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+/* Anti-flash: a skeleton screen stays invisible for a beat, so quick loads
+   never flash a placeholder — it only fades in if the load actually lingers. */
+.fs-skeleton-screen {
+  opacity: 0;
+  animation: fs-fade-in 0.25s ease 0.18s forwards;
 }
