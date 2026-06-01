@@ -46,6 +46,7 @@ import { useSession } from "@/features/auth/useSession";
 import { useLiveSession } from "@/features/live/useLiveSession";
 import { usePlaybackSign } from "@/features/live/usePlaybackSign";
 import { useChatChannel, type ChatMessage } from "@/features/chat/useChatChannel";
+import { sessionDisplayName } from "@/lib/session-name";
 import { useRaiseHand } from "@/features/live/useRaiseHand";
 import { useSessionBans } from "@/features/live/useSessionBans";
 import { invokeEdgeFn } from "@/lib/edge-fn";
@@ -237,7 +238,7 @@ export default function LiveControlScreen() {
         </Pressable>
         <View className="flex-1">
           <Text className="text-base font-bold text-slate-900" numberOfLines={1}>
-            {session?.subject_name ?? "Live class"}
+            {session ? sessionDisplayName(session.title, session.subject_name) : "Live class"}
           </Text>
           <Text className="text-[11px] text-slate-500">
             {isLive ? "● Live now" : ended ? "Ended" : "Setup"}

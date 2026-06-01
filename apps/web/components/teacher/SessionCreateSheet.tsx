@@ -2,8 +2,9 @@
 
 // Phase 4 Track 4B — combined Schedule-Live / Ad-hoc bottom sheet. Wraps
 // session-create-ad-hoc; the parent decides which mode based on the FAB
-// pressed. Default batch picks the teacher's first assigned batch
-// (Phase-10 carry-over).
+// pressed. Teachers name the class and pick a date + start time (so an offline
+// class can be scheduled ahead, not just "now"). Default batch picks the
+// teacher's first assigned batch (Phase-10 carry-over).
 
 import { useEffect, useMemo, useState } from "react";
 import { CalendarPlus, ChevronDown, Radio } from "lucide-react";
@@ -17,8 +18,15 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useCreateAdHocSession } from "@/features/teacher/mutations";
+import {
+  addMinutesToIso,
+  defaultScheduleFields,
+  istDateTimeToIso,
+  istTodayYmd,
+} from "@/features/teacher/session-schedule";
 import type { AssignedBatch } from "@/features/teacher/useAssignedBatches";
 
 interface SessionCreateSheetProps {
@@ -30,18 +38,16 @@ interface SessionCreateSheetProps {
 }
 
 const DURATION_OPTIONS_MIN = [30, 45, 60, 90] as const;
+const TITLE_MAX = 120;
 
-function nextRoundedQuarter(): Date {
-  const fifteenMin = 15 * 60 * 1000;
-  return new Date(Math.ceil(Date.now() / fifteenMin) * fifteenMin);
-}
-
-function formatTimeIst(d: Date): string {
-  return d.toLocaleTimeString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function formatRangeIst(startIso: string, endIso: string): string {
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  return `${fmt(startIso)} — ${fmt(endIso)}`;
 }
 
 export function SessionCreateSheet({
@@ -52,19 +58,13 @@ export function SessionCreateSheet({
   onCreated,
 }: SessionCreateSheetProps) {
   const create = useCreateAdHocSession();
+  const [title, setTitle] = useState("");
   const [pickedBatchId, setPickedBatchId] = useState<string | null>(null);
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
   const [durationMin, setDurationMin] = useState<number>(60);
   const [showBatchPicker, setShowBatchPicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Recompute the start time each time the sheet opens so the "next 15-min
-  // mark" is current; `open` is intentional in the dep array.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const start = useMemo(() => nextRoundedQuarter(), [open]);
-  const end = useMemo(
-    () => new Date(start.getTime() + durationMin * 60 * 1000),
-    [start, durationMin],
-  );
 
   // Fall back to the first batch so the teacher always has a default selected.
   const selectedBatchId = pickedBatchId ?? batches[0]?.batch_id ?? null;
@@ -72,24 +72,52 @@ export function SessionCreateSheet({
 
   useEffect(() => {
     if (open) {
+      const { date: d, time: t } = defaultScheduleFields();
+      setTitle("");
+      setDate(d);
+      setTime(t);
+      setDurationMin(60);
       setError(null);
       setPickedBatchId(null);
       setShowBatchPicker(false);
     }
   }, [open]);
 
+  const range = useMemo(() => {
+    if (!date || !time) return null;
+    try {
+      const startIso = istDateTimeToIso(date, time);
+      if (Number.isNaN(new Date(startIso).getTime())) return null;
+      const endIso = addMinutesToIso(startIso, durationMin);
+      return { startIso, endIso };
+    } catch {
+      return null;
+    }
+  }, [date, time, durationMin]);
+
+  const isLive = mode === "live";
+
   const submit = async () => {
+    if (!title.trim()) {
+      setError("Give the class a name.");
+      return;
+    }
     if (!selectedBatchId) {
       setError("Pick a batch first.");
+      return;
+    }
+    if (!range) {
+      setError("Pick a valid date and start time.");
       return;
     }
     setError(null);
     try {
       const res = await create.mutateAsync({
         batch_id: selectedBatchId,
-        scheduled_start: start.toISOString(),
-        scheduled_end: end.toISOString(),
-        is_live_class: mode === "live",
+        title: title.trim(),
+        scheduled_start: range.startIso,
+        scheduled_end: range.endIso,
+        is_live_class: isLive,
       });
       onCreated(res.session_id);
       onOpenChange(false);
@@ -98,11 +126,9 @@ export function SessionCreateSheet({
     }
   };
 
-  const isLive = mode === "live";
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[85svh] overflow-y-auto pb-6">
+      <SheetContent side="bottom" className="max-h-[90svh] overflow-y-auto pb-6">
         <SheetHeader>
           <div className="flex items-center gap-2">
             {isLive ? (
@@ -111,17 +137,36 @@ export function SessionCreateSheet({
               <CalendarPlus className="size-5 text-primary" />
             )}
             <SheetTitle>
-              {isLive ? "Schedule live class" : "New ad-hoc class"}
+              {isLive ? "Schedule live class" : "New offline class"}
             </SheetTitle>
           </div>
           <SheetDescription>
             {isLive
               ? "Streams over YouTube. You'll get your OBS stream key on the next screen."
-              : "One-off session in one of your assigned batches."}
+              : "One-off session in one of your assigned batches — take attendance by QR or mark students manually."}
           </SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 px-4">
+          <div>
+            <label
+              htmlFor="class-name"
+              className="mb-1.5 block text-[11px] font-bold uppercase text-slate-500"
+            >
+              Class name
+            </label>
+            <Input
+              id="class-name"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={TITLE_MAX}
+              placeholder={
+                isLive ? "e.g. Physics — Live doubt class" : "e.g. Chemistry — Mole concept revision"
+              }
+              autoComplete="off"
+            />
+          </div>
+
           <div>
             <p className="mb-1.5 text-[11px] font-bold uppercase text-slate-500">
               Batch
@@ -162,6 +207,38 @@ export function SessionCreateSheet({
             ) : null}
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label
+                htmlFor="class-date"
+                className="mb-1.5 block text-[11px] font-bold uppercase text-slate-500"
+              >
+                Date
+              </label>
+              <Input
+                id="class-date"
+                type="date"
+                value={date}
+                min={istTodayYmd()}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="class-time"
+                className="mb-1.5 block text-[11px] font-bold uppercase text-slate-500"
+              >
+                Start time
+              </label>
+              <Input
+                id="class-time"
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+              />
+            </div>
+          </div>
+
           <div>
             <p className="mb-1.5 text-[11px] font-bold uppercase text-slate-500">
               Duration
@@ -186,17 +263,18 @@ export function SessionCreateSheet({
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-[11px] font-bold uppercase text-slate-500">Starts</p>
+            <p className="text-[11px] font-bold uppercase text-slate-500">Class window</p>
             <p className="mt-0.5 text-sm font-bold text-slate-900">
-              {formatTimeIst(start)} — {formatTimeIst(end)} (IST)
+              {range ? `${formatRangeIst(range.startIso, range.endIso)} (IST)` : "Pick a date and time"}
             </p>
             <p className="mt-1 text-[11px] text-slate-400">
-              Starts at the next 15-minute mark.{" "}
-              {isLive ? "You control when students can join." : "Adjust duration above."}
+              {isLive
+                ? "You control when students can join. QR + manual attendance open 15 min before start."
+                : "Students can be scanned (or marked manually) from 15 min before start."}
             </p>
           </div>
 
-          {error ? <p className="text-xs text-destructive">{error}</p> : null}
+          {error ? <p className="text-xs text-destructive" role="alert">{error}</p> : null}
         </div>
 
         <SheetFooter>
@@ -205,7 +283,7 @@ export function SessionCreateSheet({
           </SheetClose>
           <Button
             onClick={submit}
-            disabled={create.isPending}
+            disabled={create.isPending || !title.trim() || !range}
             variant={isLive ? "destructive" : "default"}
           >
             {create.isPending

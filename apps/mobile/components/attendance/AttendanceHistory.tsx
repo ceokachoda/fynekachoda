@@ -1,6 +1,7 @@
 import { View, Text } from "react-native";
 import { CheckCircle2, Clock, XCircle } from "lucide-react-native";
 import type { AttendanceRow } from "@/features/attendance/useAttendanceHistory";
+import { sessionDisplayName } from "@/lib/session-name";
 
 interface Props {
   rows: AttendanceRow[];
@@ -72,7 +73,7 @@ export function AttendanceHistory({ rows }: Props): React.ReactElement {
           <View className="mr-3">{statusIcon(r.status)}</View>
           <View className="flex-1">
             <Text className="font-semibold text-slate-900 text-sm">
-              {r.subject_name ?? "Class"}
+              {sessionDisplayName(r.title, r.subject_name)}
             </Text>
             <Text className="text-xs text-slate-500 mt-0.5">
               {formatDayLabel(r.scheduled_start, r.marked_at)} ·{" "}

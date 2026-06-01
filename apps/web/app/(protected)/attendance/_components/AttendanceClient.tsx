@@ -11,6 +11,7 @@ import { useTodaySessions } from "@/features/attendance/useTodaySessions";
 import { useAttendanceHistory } from "@/features/attendance/useAttendanceHistory";
 import { useAttendanceRealtime } from "@/features/attendance/useAttendanceRealtime";
 import { formatIstTime } from "@/lib/ist";
+import { sessionDisplayName } from "@/lib/session-name";
 
 export function AttendanceClient() {
   const today = useTodaySessions();
@@ -30,7 +31,9 @@ export function AttendanceClient() {
   );
   const activeSessionId = selectedSessionId ?? eligible[0]?.id ?? null;
   const activeSession = sessions.find((s) => s.id === activeSessionId) ?? null;
-  const sessionLabel = activeSession?.subject_name ?? "Today's class";
+  const sessionLabel = activeSession
+    ? sessionDisplayName(activeSession.title, activeSession.subject_name)
+    : "Today's class";
 
   return (
     <div className="space-y-6">
@@ -60,7 +63,7 @@ export function AttendanceClient() {
                       : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
-                  {s.subject_name}
+                  {sessionDisplayName(s.title, s.subject_name)}
                 </button>
               ))}
             </div>
@@ -95,7 +98,7 @@ export function AttendanceClient() {
                 <Clock className="mr-3 size-4 text-slate-400" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-slate-900">
-                    {s.subject_name}
+                    {sessionDisplayName(s.title, s.subject_name)}
                   </p>
                   <p className="text-xs text-slate-500">
                     {formatIstTime(s.scheduled_start)} – {formatIstTime(s.scheduled_end)}

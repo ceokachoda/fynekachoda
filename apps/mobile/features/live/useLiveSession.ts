@@ -14,6 +14,7 @@ export interface LiveSessionRow {
   id: string;
   batch_id: string;
   subject_name: string | null;
+  title: string | null;
   status: "scheduled" | "live" | "ended" | "cancelled";
   is_live_class: boolean;
   yt_video_id: string | null;
@@ -33,6 +34,7 @@ interface RawRow {
   scheduled_end: string;
   started_at: string | null;
   ended_at: string | null;
+  title: string | null;
   subjects: { name: string } | null;
 }
 
@@ -60,7 +62,7 @@ export function useLiveSession(
         supabase
           .from("sessions")
           .select(
-            "id, batch_id, status, is_live_class, yt_video_id, scheduled_start, scheduled_end, started_at, ended_at, subject_id, subjects(name)",
+            "id, batch_id, status, is_live_class, yt_video_id, scheduled_start, scheduled_end, started_at, ended_at, subject_id, title, subjects(name)",
           )
           .eq("id", sessionId)
           .maybeSingle(),
@@ -79,6 +81,7 @@ export function useLiveSession(
         id: r.id,
         batch_id: r.batch_id,
         subject_name: r.subjects?.name ?? null,
+        title: r.title ?? null,
         status: r.status,
         is_live_class: r.is_live_class,
         yt_video_id: r.yt_video_id,

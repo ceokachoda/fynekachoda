@@ -19,6 +19,7 @@ import { RaiseHandButton } from "@/components/live/RaiseHandButton";
 import { PinnedBanner } from "@/components/live/PinnedBanner";
 import type { ActiveRole } from "@/lib/auth";
 import { formatWatermark } from "@/lib/watermark";
+import { sessionDisplayName } from "@/lib/session-name";
 
 interface LiveClientProps {
   sessionId: string;
@@ -50,7 +51,9 @@ function LiveInner({ sessionId, fullName, activeRole }: LiveClientProps) {
     isLoading: signLoading,
     refetch: refetchSign,
   } = useLivePlaybackSign(sessionId, "live", !!isLive);
-  const chat = useChatChannel(sessionId);
+  // Track presence so the teacher's live-control sees an accurate viewer count
+  // (track-only: this screen never re-renders on join/leave — W-11 perf).
+  const chat = useChatChannel(sessionId, { trackPresence: true });
   const hand = useRaiseHand(sessionId);
   const { isBanned } = useSessionState(sessionId);
 
@@ -116,7 +119,7 @@ function LiveInner({ sessionId, fullName, activeRole }: LiveClientProps) {
     return (
       <div className="flex min-h-svh flex-col bg-slate-50">
         <Header
-          subject={session?.subject_name ?? "Live class"}
+          subject={session ? sessionDisplayName(session.title, session.subject_name) : "Live class"}
           isLive={false}
         />
         <div className="flex flex-1 items-center justify-center px-8">
@@ -154,7 +157,7 @@ function LiveInner({ sessionId, fullName, activeRole }: LiveClientProps) {
   return (
     <div className="flex min-h-svh flex-col bg-slate-50">
       <Header
-        subject={session?.subject_name ?? "Live class"}
+        subject={session ? sessionDisplayName(session.title, session.subject_name) : "Live class"}
         isLive={!!isLive}
       />
 
@@ -182,7 +185,7 @@ function LiveInner({ sessionId, fullName, activeRole }: LiveClientProps) {
                 scheduledStart={
                   session?.scheduled_start ?? new Date().toISOString()
                 }
-                subjectName={session?.subject_name}
+                subjectName={session ? sessionDisplayName(session.title, session.subject_name) : undefined}
               />
             </div>
           )}

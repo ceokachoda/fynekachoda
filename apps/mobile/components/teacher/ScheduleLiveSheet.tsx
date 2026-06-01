@@ -1,24 +1,26 @@
 // Phase 9 CP8 — schedule a live class. Creates a live-class session (reusing the
 // audited session-create-ad-hoc edge fn with is_live_class=true); the parent
 // then routes to live-control, where the YouTube broadcast is created and the
-// stream key is shown.
+// stream key is shown. Teachers name the class + pick a start date/time.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { ChevronDown, Radio, X } from "lucide-react-native";
+import { ChevronDown, Clock, Radio, X } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import {
   isNetworkError,
   NETWORK_ERROR_MESSAGE,
   withTimeout,
 } from "@/features/auth/network-errors";
+import { ClassDateTimePicker, round15 } from "@/components/teacher/ClassDateTimePicker";
 import type { AssignedBatch } from "@/features/org/useAssignedBatches";
 
 interface Props {
@@ -34,10 +36,21 @@ interface CreateResponse {
 }
 
 const DURATION_OPTIONS_MIN = [30, 45, 60, 90];
+const TITLE_MAX = 120;
 
-function nextRoundedQuarter(): Date {
-  const fifteenMin = 15 * 60 * 1000;
-  return new Date(Math.ceil(Date.now() / fifteenMin) * fifteenMin);
+function formatStart(d: Date): string {
+  const day = d.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  });
+  const time = d.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${day} · ${time}`;
 }
 
 function formatTimeIst(d: Date): string {
@@ -54,19 +67,31 @@ export function ScheduleLiveSheet({
   batches,
   onCreated,
 }: Props): React.ReactElement {
+  const [title, setTitle] = useState("");
   const [pickedBatchId, setPickedBatchId] = useState<string | null>(null);
   // `batches` arrives async (useAssignedBatches), so initialising state from
   // batches[0] once misses the first batch. Fall back to the first batch until
   // the teacher explicitly picks one, so the pre-selected UX always holds.
   const selectedBatchId = pickedBatchId ?? batches[0]?.batch_id ?? null;
   const setSelectedBatchId = setPickedBatchId;
+  const [start, setStart] = useState<Date>(() => round15(new Date()));
   const [durationMin, setDurationMin] = useState<number>(60);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBatchPicker, setShowBatchPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const start = useMemo(() => nextRoundedQuarter(), [visible]);
+  useEffect(() => {
+    if (visible) {
+      setTitle("");
+      setStart(round15(new Date()));
+      setDurationMin(60);
+      setError(null);
+      setShowBatchPicker(false);
+      setShowDatePicker(false);
+    }
+  }, [visible]);
+
   const end = useMemo(
     () => new Date(start.getTime() + durationMin * 60 * 1000),
     [start, durationMin],
@@ -77,10 +102,15 @@ export function ScheduleLiveSheet({
     setError(null);
     setSubmitting(false);
     setShowBatchPicker(false);
+    setShowDatePicker(false);
     onClose();
   };
 
   const handleSubmit = async () => {
+    if (!title.trim()) {
+      setError("Give the class a name.");
+      return;
+    }
     if (!selectedBatchId) {
       setError("Pick a batch first.");
       return;
@@ -92,6 +122,7 @@ export function ScheduleLiveSheet({
         supabase.functions.invoke<CreateResponse>("session-create-ad-hoc", {
           body: {
             batch_id: selectedBatchId,
+            title: title.trim(),
             scheduled_start: start.toISOString(),
             scheduled_end: end.toISOString(),
             is_live_class: true,
@@ -144,6 +175,18 @@ export function ScheduleLiveSheet({
           </Text>
 
           <Text className="text-[11px] font-bold uppercase text-slate-500 mb-1.5">
+            Class name
+          </Text>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            maxLength={TITLE_MAX}
+            placeholder="e.g. Physics — Live doubt class"
+            placeholderTextColor="#94a3b8"
+            className="border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 bg-white mb-4"
+          />
+
+          <Text className="text-[11px] font-bold uppercase text-slate-500 mb-1.5">
             Batch
           </Text>
           <TouchableOpacity
@@ -182,6 +225,19 @@ export function ScheduleLiveSheet({
           ) : null}
 
           <Text className="text-[11px] font-bold uppercase text-slate-500 mt-4 mb-1.5">
+            Starts
+          </Text>
+          <TouchableOpacity
+            onPress={() => setShowDatePicker(true)}
+            className="border border-slate-200 rounded-2xl px-4 py-3 flex-row items-center justify-between bg-slate-50"
+          >
+            <Text className="text-sm font-semibold text-slate-900">
+              {formatStart(start)}
+            </Text>
+            <Clock size={16} color="#64748b" />
+          </TouchableOpacity>
+
+          <Text className="text-[11px] font-bold uppercase text-slate-500 mt-4 mb-1.5">
             Duration
           </Text>
           <View className="flex-row">
@@ -205,12 +261,12 @@ export function ScheduleLiveSheet({
           </View>
 
           <View className="mt-4 bg-slate-50 rounded-2xl p-4">
-            <Text className="text-[11px] uppercase font-bold text-slate-500">Starts</Text>
+            <Text className="text-[11px] uppercase font-bold text-slate-500">Class window</Text>
             <Text className="text-sm font-bold text-slate-900 mt-0.5">
               {formatTimeIst(start)} — {formatTimeIst(end)} (IST)
             </Text>
             <Text className="text-[11px] text-slate-400 mt-1">
-              Starts at the next 15-minute mark. You control when students can join.
+              You control when students can join.
             </Text>
           </View>
 
@@ -218,9 +274,9 @@ export function ScheduleLiveSheet({
 
           <TouchableOpacity
             onPress={handleSubmit}
-            disabled={submitting || !selectedBatchId}
+            disabled={submitting || !selectedBatchId || !title.trim()}
             className={`mt-5 rounded-2xl py-3.5 items-center justify-center ${
-              submitting || !selectedBatchId ? "bg-slate-300" : "bg-red-600"
+              submitting || !selectedBatchId || !title.trim() ? "bg-slate-300" : "bg-red-600"
             }`}
             activeOpacity={0.85}
           >
@@ -232,6 +288,16 @@ export function ScheduleLiveSheet({
           </TouchableOpacity>
         </View>
       </View>
+
+      <ClassDateTimePicker
+        visible={showDatePicker}
+        startsAt={start.toISOString()}
+        onClose={() => setShowDatePicker(false)}
+        onChange={(iso) => {
+          setStart(new Date(iso));
+          setShowDatePicker(false);
+        }}
+      />
     </Modal>
   );
 }

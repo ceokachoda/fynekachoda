@@ -38,6 +38,7 @@ import { QueryProvider } from "@/lib/query";
 import { SessionProvider, useSession } from "@/features/auth/SessionProvider";
 import { useLiveSession } from "@/features/live/useLiveSession";
 import { useLivePlaybackSign } from "@/features/live/useLivePlaybackSign";
+import { sessionDisplayName } from "@/lib/session-name";
 import {
   useChatChannel,
   type ChatMessage,
@@ -241,7 +242,7 @@ function LiveControlInner({ sessionId, fullName }: Props) {
         </Button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-bold text-slate-900">
-            {session?.subject_name ?? "Live class"}
+            {session ? sessionDisplayName(session.title, session.subject_name) : "Live class"}
           </p>
           <p className="flex items-center text-xs text-slate-500">
             {isLive ? (

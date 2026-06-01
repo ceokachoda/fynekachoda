@@ -13,6 +13,7 @@ export interface TodaySession {
   scheduled_start: string;
   scheduled_end: string;
   subject_name: string | null;
+  title: string | null;
   is_ad_hoc: boolean;
   attendance_status: "present" | "late" | "absent" | null;
   window: "before" | "open" | "closed";
@@ -81,7 +82,7 @@ export function useTodaySessions(): State {
         supabase
           .from("sessions")
           .select(
-            "id, scheduled_start, scheduled_end, is_ad_hoc, subject_id, subjects(name)",
+            "id, scheduled_start, scheduled_end, is_ad_hoc, subject_id, title, subjects(name)",
           )
           .eq("batch_id", myBatch.batch_id)
           .gte("scheduled_start", startIso)
@@ -98,6 +99,7 @@ export function useTodaySessions(): State {
         scheduled_start: string;
         scheduled_end: string;
         is_ad_hoc: boolean;
+        title: string | null;
         subjects: { name: string } | null;
       }>;
 
@@ -133,6 +135,7 @@ export function useTodaySessions(): State {
         scheduled_start: s.scheduled_start,
         scheduled_end: s.scheduled_end,
         subject_name: s.subjects?.name ?? null,
+        title: s.title ?? null,
         is_ad_hoc: s.is_ad_hoc,
         attendance_status: attBySession.get(s.id) ?? null,
         window: classifyWindow(s.scheduled_start, s.scheduled_end),

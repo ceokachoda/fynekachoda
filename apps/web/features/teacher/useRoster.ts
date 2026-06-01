@@ -25,6 +25,7 @@ export interface RosterSessionMeta {
   batch_id: string;
   batch_name: string;
   subject_name: string | null;
+  title: string | null;
   scheduled_start: string;
   scheduled_end: string;
   is_ad_hoc: boolean;
@@ -35,6 +36,7 @@ interface RawSessionRow {
   batch_id: string;
   scheduled_start: string;
   scheduled_end: string;
+  title: string | null;
   is_ad_hoc: boolean;
   subjects: { name: string } | null;
   batches: { name: string } | null;
@@ -73,7 +75,7 @@ export function useRoster(sessionId: string | null) {
       const sessionRes = await supabase
         .from("sessions")
         .select(
-          "id, batch_id, scheduled_start, scheduled_end, is_ad_hoc, subjects(name), batches(name)",
+          "id, batch_id, scheduled_start, scheduled_end, title, is_ad_hoc, subjects(name), batches(name)",
         )
         .eq("id", sessionId)
         .maybeSingle();
@@ -93,6 +95,7 @@ export function useRoster(sessionId: string | null) {
         batch_id: s.batch_id,
         batch_name: s.batches?.name ?? "—",
         subject_name: s.subjects?.name ?? null,
+        title: s.title ?? null,
         scheduled_start: s.scheduled_start,
         scheduled_end: s.scheduled_end,
         is_ad_hoc: s.is_ad_hoc,

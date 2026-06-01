@@ -49,10 +49,16 @@ export interface ChatChannel {
 
 export function useChatChannel(
   sessionId: string | undefined,
-  opts?: { presence?: boolean },
+  opts?: { presence?: boolean; trackPresence?: boolean },
 ): ChatChannel {
   const { appUser } = useSession();
+  // `presence` = track self AND subscribe to sync to maintain a live viewer
+  // count (teacher live-control). `trackPresence` = register self in presence
+  // so the teacher counts this viewer, WITHOUT subscribing to sync — students
+  // track-only so their own screen never re-renders on each join/leave (keeps
+  // the low-end live screen calm). (`presence` implies tracking.)
   const presence = opts?.presence ?? false;
+  const trackPresence = presence || (opts?.trackPresence ?? false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -125,13 +131,17 @@ export function useChatChannel(
       );
     if (presence) {
       channel.on("presence", { event: "sync" }, () => {
-        setPresenceCount(Object.keys(channel.presenceState()).length);
+        // Count viewers EXCLUDING self (the teacher) so the live-control pill
+        // reads as "students watching", not students + me.
+        const keys = Object.keys(channel.presenceState());
+        const others = appUser?.id ? keys.filter((k) => k !== appUser.id) : keys;
+        setPresenceCount(others.length);
       });
     }
     let subscribedBefore = false;
     channel.subscribe((status) => {
       if (status === "SUBSCRIBED") {
-        if (presence && appUser?.id) {
+        if (trackPresence && appUser?.id) {
           void channel.track({ uid: appUser.id, at: Date.now() });
         }
         // Realtime does NOT replay INSERTs missed while disconnected, so on a
@@ -144,7 +154,7 @@ export function useChatChannel(
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [sessionId, appUser?.id, presence, load]);
+  }, [sessionId, appUser?.id, presence, trackPresence, load]);
 
   const post = useCallback(
     async (body: string, kind: "chat" | "announcement" = "chat") => {

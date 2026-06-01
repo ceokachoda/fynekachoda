@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useStudentSchedule } from "@/features/dashboard/useStudentSchedule";
 import { useStudentExams } from "@/features/exams/useStudentExams";
 import { formatIstDay, formatIstTime } from "@/lib/ist";
+import { sessionDisplayName } from "@/lib/session-name";
 import type { ExamStatus } from "@/features/exams/useStudentExams";
 
 type Segment = "live" | "upcoming" | "recorded";
@@ -109,7 +110,7 @@ export function StudentClasses() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-slate-900">
-                        {s.subject_name}
+                        {sessionDisplayName(s.title, s.subject_name)}
                       </p>
                       <p className="text-xs font-medium text-red-700">
                         Live now · {formatIstTime(s.scheduled_start)}
@@ -141,7 +142,7 @@ export function StudentClasses() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-slate-900">
-                      {s.subject_name}
+                      {sessionDisplayName(s.title, s.subject_name)}
                     </p>
                     <p className="text-xs text-slate-500">
                       {formatIstDay(s.scheduled_start)} ·{" "}
@@ -172,7 +173,7 @@ export function StudentClasses() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-slate-900">
-                      {s.subject_name}
+                      {sessionDisplayName(s.title, s.subject_name)}
                     </p>
                     <p className="text-xs text-slate-500">
                       {formatIstDay(s.scheduled_start)} · recording available

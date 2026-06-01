@@ -27,6 +27,7 @@ import {
   pickNearestSession,
   type TeacherSession,
 } from "@/features/attendance/useTeacherSessions";
+import { sessionDisplayName } from "@/lib/session-name";
 
 const TOAST_VISIBLE_MS = 1800;
 
@@ -45,7 +46,7 @@ function formatTime(iso: string): string {
 }
 
 function sessionLabel(s: TeacherSession): string {
-  const subj = s.subject_name ?? "Class";
+  const subj = sessionDisplayName(s.title, s.subject_name);
   return `${subj} · ${formatTime(s.scheduled_start)} · ${s.batch_name}`;
 }
 
@@ -231,7 +232,7 @@ export default function TeacherScanScreen(): React.ReactElement {
                         className="text-white text-sm font-semibold"
                         numberOfLines={1}
                       >
-                        {s.subject_name ?? "Class"} ·{" "}
+                        {sessionDisplayName(s.title, s.subject_name)} ·{" "}
                         {formatTime(s.scheduled_start)}
                       </Text>
                       <Text className="text-white/60 text-[11px] mt-0.5">

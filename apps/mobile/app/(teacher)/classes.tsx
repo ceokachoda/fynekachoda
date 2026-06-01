@@ -26,6 +26,7 @@ import {
 import { useAssignedBatches } from "@/features/org/useAssignedBatches";
 import { AdhocSheet } from "@/components/teacher/AdhocSheet";
 import { ScheduleLiveSheet } from "@/components/teacher/ScheduleLiveSheet";
+import { sessionDisplayName } from "@/lib/session-name";
 
 const BUCKET_LABELS: Record<SessionBucket, string> = {
   today: "Today",
@@ -270,7 +271,7 @@ function ClassRow({
             className="text-sm font-extrabold text-slate-900"
             numberOfLines={1}
           >
-            {session.subject_name ?? "Class"}
+            {sessionDisplayName(session.title, session.subject_name)}
             {session.is_ad_hoc ? (
               <Text className="text-amber-600 text-xs"> · ad-hoc</Text>
             ) : null}

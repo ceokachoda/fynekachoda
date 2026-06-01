@@ -149,18 +149,18 @@ attendance-correct edge fn
 
 `reason` required — UI prefills suggestions: "Late entry confirmed", "QR scan failed", "Teacher error", "Other".
 
-## 7. Ad-hoc Sessions
+## 7. Ad-hoc / Offline Classes (D-205)
 
-For makeup classes or special revisions, teacher creates a one-off session:
+For offline classes, makeup classes, or special revisions, the teacher creates a one-off session. Surfaced in the UI as **"New offline class"** (blue `+` FAB) and **"Schedule live class"** (red FAB) — both go through the same `session-create-ad-hoc` edge fn.
 
-`(teacher)/classes.tsx` → "+" → "New Ad-hoc Class":
+`(teacher)/classes.tsx` → "+" → "New offline class":
+- **Class name** (required, ≤120 chars) — `sessions.title`. Shown to students/teachers everywhere via `sessionDisplayName(title, subject_name)` (`title || subject || "Class"`), so an offline class is recognisable even with no subject.
 - Select batch (limited to assigned batches)
-- Select subject (optional)
-- Start & end time (defaults to next free hour)
-- Optional: "Make this a live class" → triggers `yt-broadcast-create`
+- **Date + start time** picker — schedule for now *or* any future slot (15-min steps). Web anchors to IST; mobile reuses the exam-builder picker.
+- Duration → `scheduled_end`.
+- "Schedule live class" sets `is_live_class = true` → live-control + `yt-broadcast-create`.
 
-On save → `sessions` row with `is_ad_hoc = true`.
-QR signing and roster work identically.
+On save → `sessions` row with `is_ad_hoc = true` (+ `is_live_class` per mode). **Attendance works whether or not the class is live** — QR signing and the roster (manual P/L/A, bulk all-present/all-absent, un-mark, correction) work identically to materialized sessions. `attendance-manual-mark`/`-bulk-mark`/`-unmark` impose no time window; QR verify still enforces the present/late bands off `scheduled_start`.
 
 ## 8. Student-side Attendance UI
 
@@ -231,7 +231,7 @@ PostHog:
 
 ## 13. Data Model Touchpoints
 
-- `sessions` — defines scan window
+- `sessions` — defines scan window; `sessions.title` (nullable, ≤120 chars, D-205) holds the teacher-given class name
 - `attendance` — primary record
 - `attendance_corrections` — change history
 - `activity_days` — streak feeder

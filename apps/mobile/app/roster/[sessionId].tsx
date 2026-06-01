@@ -28,6 +28,7 @@ import { RosterRow } from "@/components/teacher/RosterRow";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useSession } from "@/features/auth/useSession";
 import { useRole } from "@/features/auth/useRole";
+import { sessionDisplayName } from "@/lib/session-name";
 
 const REASON_PRESETS = [
   "Late entry confirmed",
@@ -305,7 +306,7 @@ export default function RosterScreen(): React.ReactElement {
                     ) : null}
                   </Text>
                   <Text className="mt-1 text-xl font-extrabold text-slate-900">
-                    {meta.subject_name ?? "Class"}
+                    {sessionDisplayName(meta.title, meta.subject_name)}
                   </Text>
                   <Text className="text-sm font-medium text-slate-500 mt-0.5">
                     {formatTimeRange(meta.scheduled_start, meta.scheduled_end)}

@@ -40,6 +40,19 @@ Deno.serve(async (req: Request) => {
       is_live_class,
     } = parsed.data;
 
+    // Teacher-given class name. Read straight off the raw body + validated
+    // inline (not via the shared schema) so this fn rolls out independently of
+    // the bundled _shared/schemas.ts version. The schema documents `title` as
+    // optional; the create UI requires a non-empty value. Null → display falls
+    // back to the subject name, then "Class".
+    const rawTitle = (rawBody as { title?: unknown }).title;
+    const trimmedTitle =
+      typeof rawTitle === "string" ? rawTitle.trim() : "";
+    const title =
+      trimmedTitle.length >= 1 && trimmedTitle.length <= 120
+        ? trimmedTitle
+        : null;
+
     const admin = getServiceRoleClient();
 
     const { data: batch, error: batchErr } = await admin
@@ -87,6 +100,7 @@ Deno.serve(async (req: Request) => {
       .insert({
         batch_id,
         subject_id: subject_id ?? null,
+        title: title ?? null,
         scheduled_start,
         scheduled_end,
         is_ad_hoc: true,
@@ -114,6 +128,7 @@ Deno.serve(async (req: Request) => {
       after_data: {
         batch_id,
         subject_id: subject_id ?? null,
+        title: title ?? null,
         scheduled_start,
         scheduled_end,
         is_live_class,

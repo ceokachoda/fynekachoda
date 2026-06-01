@@ -17,6 +17,7 @@ export interface TeacherSession {
   scheduled_start: string;
   scheduled_end: string;
   subject_name: string | null;
+  title: string | null;
   is_ad_hoc: boolean;
   is_live_class: boolean;
   status: "scheduled" | "live" | "ended" | "cancelled";
@@ -57,6 +58,7 @@ interface RawSessionRow {
   batch_id: string;
   scheduled_start: string;
   scheduled_end: string;
+  title: string | null;
   is_ad_hoc: boolean;
   is_live_class: boolean;
   status: "scheduled" | "live" | "ended" | "cancelled";
@@ -126,7 +128,7 @@ export function useTeacherSessions(): State {
         supabase
           .from("sessions")
           .select(
-            "id, batch_id, scheduled_start, scheduled_end, is_ad_hoc, is_live_class, status, subjects(name), batches(name, courses(code), students(count))",
+            "id, batch_id, scheduled_start, scheduled_end, title, is_ad_hoc, is_live_class, status, subjects(name), batches(name, courses(code), students(count))",
           )
           .in("batch_id", batchIds)
           .gte("scheduled_start", pastBoundary)
@@ -168,6 +170,7 @@ export function useTeacherSessions(): State {
         scheduled_start: r.scheduled_start,
         scheduled_end: r.scheduled_end,
         subject_name: r.subjects?.name ?? null,
+        title: r.title ?? null,
         is_ad_hoc: r.is_ad_hoc,
         is_live_class: r.is_live_class,
         status: r.status,

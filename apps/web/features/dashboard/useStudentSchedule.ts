@@ -11,6 +11,7 @@ const WINDOW_FUTURE_MS = 14 * 24 * 60 * 60 * 1000;
 export interface ScheduleSession {
   id: string;
   subject_name: string;
+  title: string | null;
   scheduled_start: string;
   scheduled_end: string;
   status: "scheduled" | "live" | "ended" | "cancelled";
@@ -27,6 +28,7 @@ interface RawSession {
   status: string;
   is_live_class: boolean | null;
   yt_video_id: string | null;
+  title: string | null;
   subjects: { name: string } | null;
 }
 
@@ -52,7 +54,7 @@ export function useStudentSchedule() {
       const { data: sessions, error } = await supabase
         .from("sessions")
         .select(
-          "id, scheduled_start, scheduled_end, status, is_live_class, yt_video_id, subjects(name)",
+          "id, scheduled_start, scheduled_end, status, is_live_class, yt_video_id, title, subjects(name)",
         )
         .eq("batch_id", batch!.batch_id)
         .neq("status", "cancelled")
@@ -80,6 +82,7 @@ export function useStudentSchedule() {
       return rows.map<ScheduleSession>((s) => ({
         id: s.id,
         subject_name: s.subjects?.name ?? "Class",
+        title: s.title ?? null,
         scheduled_start: s.scheduled_start,
         scheduled_end: s.scheduled_end,
         status: s.status as ScheduleSession["status"],

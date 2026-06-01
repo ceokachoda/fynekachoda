@@ -186,6 +186,13 @@ Format:
 
 ## Attendance
 
+- **D-205 (2026-06-01):** Ad-hoc sessions are surfaced to teachers as **"offline classes"** and gain a teacher-given **`sessions.title`** plus a **date + start-time picker** (not just "now"). Both the offline (`is_live_class=false`) and live (`is_live_class=true`) create flows go through `session-create-ad-hoc`, which now carries `title`. Attendance for these classes works exactly as for materialized sessions — QR (`attendance-qr-verify`) or manual roster (`attendance-manual-mark`/`-bulk-mark`/`-unmark`), neither of which requires the class to be live.
+  - Why: the institute runs offline classes that still need rotating-QR + manual attendance; teachers needed to name a class so students recognise it, and to schedule it ahead.
+  - Decisions: `title` is `text` **nullable** in the DB (materialized recurring sessions have none) with `check (title is null or char_length(btrim(title)) between 1 and 120)`; **required in the create UI**; the edge fn validates it **inline from the request body** (not via `_shared/schemas.ts`) so the fn rolls out independently of every consumer of the shared schema. Display everywhere uses `sessionDisplayName(title, subject_name)` → `title || subject || "Class"`. Web anchors the picker to IST (`+05:30`); mobile reuses the exam-builder ScrollView picker (device-local wall clock labelled IST), matching existing mobile convention.
+  - Impacts: migration `20260601120000_sessions_title.sql`; `session-create-ad-hoc` + `_shared/schemas.ts`; web (`SessionCreateSheet`, `session-schedule.ts`, `lib/session-name.ts`, teacher/student/roster/attendance/live/recording surfaces); mobile (`AdhocSheet`, `ScheduleLiveSheet`, `ClassDateTimePicker`, `lib/session-name.ts`, same surfaces); admin attendance matrix. `spec/attendance.md`.
+  - Follow-up (not done): the `student_dashboard`/`teacher_dashboard` SQL fns still build their "Up next" + "today" `subject` from `coalesce(subject_name, 'Class')`; wiring `title` in needs a tested rewrite of those SECURITY DEFINER fns (deferred — primary surfaces already show the title).
+  - Status: Locked.
+
 - **D-030 (2026-05-14):** **Rotating QR**, 30-second HMAC-signed token. Student displays, teacher scans.
   - Why: defeats screenshot-and-share; replay-impossible.
   - Impacts: `attendance-qr-sign` + `attendance-qr-verify` edge fns. `spec/attendance.md`.

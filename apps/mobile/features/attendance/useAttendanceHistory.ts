@@ -14,6 +14,7 @@ export interface AttendanceRow {
   method: "qr" | "manual" | "correction";
   marked_at: string;
   subject_name: string | null;
+  title: string | null;
   scheduled_start: string | null;
 }
 
@@ -68,7 +69,7 @@ export function useAttendanceHistory(): State {
         supabase
           .from("attendance")
           .select(
-            "id, session_id, status, method, marked_at, sessions(scheduled_start, subjects(name))",
+            "id, session_id, status, method, marked_at, sessions(scheduled_start, title, subjects(name))",
           )
           .eq("student_id", appUser.id)
           .gte("marked_at", since)
@@ -85,7 +86,7 @@ export function useAttendanceHistory(): State {
         status: "present" | "late" | "absent";
         method: "qr" | "manual" | "correction";
         marked_at: string;
-        sessions: { scheduled_start: string | null; subjects: { name: string } | null } | null;
+        sessions: { scheduled_start: string | null; title: string | null; subjects: { name: string } | null } | null;
       }>;
 
       const recent: AttendanceRow[] = rows.map((r) => ({
@@ -95,6 +96,7 @@ export function useAttendanceHistory(): State {
         method: r.method,
         marked_at: r.marked_at,
         subject_name: r.sessions?.subjects?.name ?? null,
+        title: r.sessions?.title ?? null,
         scheduled_start: r.sessions?.scheduled_start ?? null,
       }));
 

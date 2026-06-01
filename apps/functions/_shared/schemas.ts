@@ -134,6 +134,9 @@ export const SessionCreateAdHocInputSchema = z
   .object({
     batch_id: z.string().uuid(),
     subject_id: z.string().uuid().optional(),
+    // Teacher-given class name. Optional here (so already-shipped clients that
+    // don't send it keep working); the create UI requires a non-empty value.
+    title: z.string().trim().min(1).max(120).optional(),
     scheduled_start: z.string().datetime(),
     scheduled_end: z.string().datetime(),
     is_live_class: z.boolean().default(false),

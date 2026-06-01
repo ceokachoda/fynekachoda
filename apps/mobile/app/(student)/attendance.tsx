@@ -20,6 +20,7 @@ import {
 import { useAttendanceHistory } from "@/features/attendance/useAttendanceHistory";
 import { useAttendanceRealtime } from "@/features/attendance/useAttendanceRealtime";
 import { useSession } from "@/features/auth/useSession";
+import { sessionDisplayName } from "@/lib/session-name";
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-IN", {
@@ -144,7 +145,7 @@ export default function AttendanceScreen(): React.ReactElement {
             <QrDisplay
               sessionId={activeSession.id}
               sessionLabel={
-                (activeSession.subject_name ?? "Class") +
+                sessionDisplayName(activeSession.title, activeSession.subject_name) +
                 " · " +
                 formatTime(activeSession.scheduled_start)
               }
@@ -166,7 +167,7 @@ export default function AttendanceScreen(): React.ReactElement {
                         s.id === activeSessionId ? "text-white" : "text-slate-700"
                       }`}
                     >
-                      {(s.subject_name ?? "Class") +
+                      {sessionDisplayName(s.title, s.subject_name) +
                         " · " +
                         formatTime(s.scheduled_start)}
                     </Text>
@@ -209,7 +210,7 @@ export default function AttendanceScreen(): React.ReactElement {
                   >
                     <View className="flex-1">
                       <Text className="font-bold text-slate-900 text-sm">
-                        {s.subject_name ?? "Class"}
+                        {sessionDisplayName(s.title, s.subject_name)}
                         {s.is_ad_hoc ? (
                           <Text className="text-[10px] font-semibold text-amber-600">
                             {" "}

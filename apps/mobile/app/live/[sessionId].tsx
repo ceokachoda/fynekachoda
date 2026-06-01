@@ -22,6 +22,7 @@ import { LobbyCountdown } from "@/components/live/LobbyCountdown";
 import { useSession } from "@/features/auth/useSession";
 import { useLiveSession } from "@/features/live/useLiveSession";
 import { usePlaybackSign } from "@/features/live/usePlaybackSign";
+import { sessionDisplayName } from "@/lib/session-name";
 import { useSessionState } from "@/features/live/useSessionState";
 import { useRaiseHand } from "@/features/live/useRaiseHand";
 import { useChatChannel } from "@/features/chat/useChatChannel";
@@ -37,7 +38,9 @@ export default function LiveScreen() {
   });
   const isLive = session?.status === "live";
   const sign = usePlaybackSign(sessionId, "live", !!isLive);
-  const chat = useChatChannel(sessionId);
+  // Track presence so the teacher's live-control sees an accurate viewer count
+  // (track-only: this screen never re-renders on join/leave — low-end perf).
+  const chat = useChatChannel(sessionId, { trackPresence: true });
   const hand = useRaiseHand(sessionId);
   const { isBanned } = useSessionState(sessionId);
   const { isLandscape } = useVideoOrientation();
@@ -119,7 +122,7 @@ export default function LiveScreen() {
   if (ended) {
     return (
       <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
-        <Header title={session?.subject_name ?? "Live class"} />
+        <Header title={session ? sessionDisplayName(session.title, session.subject_name) : "Live class"} />
         <View className="flex-1 items-center justify-center px-8">
           <Text className="text-xl font-bold text-slate-900 text-center">
             This class has ended
@@ -151,7 +154,7 @@ export default function LiveScreen() {
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={isLandscape ? [] : ["top"]}>
       <StatusBar hidden={isLandscape} />
-      {!isLandscape ? <Header title={session?.subject_name ?? "Live class"} /> : null}
+      {!isLandscape ? <Header title={session ? sessionDisplayName(session.title, session.subject_name) : "Live class"} /> : null}
 
       {/* Media stays at a STABLE tree position so rotating never reloads the
           player — only its wrapper style toggles inline ↔ fullscreen. */}
@@ -183,7 +186,7 @@ export default function LiveScreen() {
         ) : (
           <LobbyCountdown
             scheduledStart={session?.scheduled_start ?? new Date().toISOString()}
-            subjectName={session?.subject_name}
+            subjectName={session ? sessionDisplayName(session.title, session.subject_name) : undefined}
           />
         )}
       </View>

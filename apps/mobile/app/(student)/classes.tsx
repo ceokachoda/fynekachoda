@@ -7,6 +7,7 @@ import { FyneStudyLogo } from "../../components/FyneStudyLogo";
 import { Skeleton } from "../../components/ui/skeleton";
 import { useStudentSchedule, type ScheduleSession } from "@/features/dashboard/useStudentSchedule";
 import { useStudentExams } from "@/features/exam/useStudentExams";
+import { sessionDisplayName } from "@/lib/session-name";
 
 type Seg = "live" | "upcoming" | "recorded";
 
@@ -59,7 +60,7 @@ function SessionRow({ s, onPress }: { s: ScheduleSession; onPress: () => void })
       </View>
       <View className="flex-1">
         <Text className="text-sm font-bold text-slate-900" numberOfLines={1}>
-          {s.subject_name ?? "Class"}
+          {sessionDisplayName(s.title, s.subject_name)}
         </Text>
         <Text className="text-[11px] text-slate-500 mt-1">{fmtWhen(s.scheduled_start)}</Text>
       </View>

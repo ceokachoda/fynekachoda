@@ -33,7 +33,12 @@ interface SessionCol {
   scheduled_start: string;
   scheduled_end: string;
   subject_name: string | null;
+  title: string | null;
   is_ad_hoc: boolean;
+}
+
+function sessionName(s: { title: string | null; subject_name: string | null }): string {
+  return s.title?.trim() || s.subject_name?.trim() || "Class";
 }
 
 interface Props {
@@ -140,7 +145,7 @@ export function AttendanceMatrix({
       "Student",
       "Email",
       ...sessions.map((s) =>
-        `${formatColumnDate(s.scheduled_start)}${s.subject_name ? ` — ${s.subject_name}` : ""}${s.is_ad_hoc ? " (ad-hoc)" : ""}`,
+        `${formatColumnDate(s.scheduled_start)} — ${sessionName(s)}${s.is_ad_hoc ? " (ad-hoc)" : ""}`,
       ),
     ];
     const lines = [header.map(escapeCsvCell).join(",")];
@@ -253,7 +258,7 @@ export function AttendanceMatrix({
                   >
                     <div>{formatColumnDate(s.scheduled_start)}</div>
                     <div className="text-[10px] font-normal text-slate-400">
-                      {s.subject_name ?? "Class"}
+                      {sessionName(s)}
                       {s.is_ad_hoc ? " · ad-hoc" : ""}
                     </div>
                   </th>
@@ -324,7 +329,7 @@ export function AttendanceMatrix({
             </DialogTitle>
             <DialogDescription>
               {editing
-                ? `${editing.session.subject_name ?? "Class"} · ${formatColumnDate(editing.session.scheduled_start)} · current status: ${editing.cell.status}`
+                ? `${sessionName(editing.session)} · ${formatColumnDate(editing.session.scheduled_start)} · current status: ${editing.cell.status}`
                 : ""}
             </DialogDescription>
           </DialogHeader>

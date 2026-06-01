@@ -33,6 +33,7 @@ import {
   type TeacherSession,
 } from "@/features/teacher/useTeacherSessions";
 import type { ScanToast } from "@/features/teacher/scan-toast-mapper";
+import { sessionDisplayName } from "@/lib/session-name";
 
 const TOAST_VISIBLE_MS = 2200;
 
@@ -45,7 +46,7 @@ function fmtTime(iso: string): string {
 }
 
 function sessionLabel(s: TeacherSession): string {
-  return `${s.subject_name ?? "Class"} · ${fmtTime(s.scheduled_start)} · ${s.batch_name}`;
+  return `${sessionDisplayName(s.title, s.subject_name)} · ${fmtTime(s.scheduled_start)} · ${s.batch_name}`;
 }
 
 export function ScanClient() {
@@ -207,7 +208,7 @@ export function ScanClient() {
                   className="block w-full border-b border-slate-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted/50 focus-visible:bg-muted/70 focus-visible:outline-none"
                 >
                   <p className="truncate text-sm font-semibold text-slate-900">
-                    {s.subject_name ?? "Class"} · {fmtTime(s.scheduled_start)}
+                    {sessionDisplayName(s.title, s.subject_name)} · {fmtTime(s.scheduled_start)}
                   </p>
                   <p className="mt-0.5 text-xs text-slate-500">
                     {s.batch_name} · {s.bucket === "today" ? "Today" : "Upcoming"}

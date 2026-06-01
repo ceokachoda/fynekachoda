@@ -12,6 +12,7 @@ export interface AttendanceRow {
   marked_at: string;
   scheduled_start: string | null;
   subject_name: string | null;
+  title: string | null;
 }
 
 export interface AttendanceStats {
@@ -30,6 +31,7 @@ interface RawAttendance {
   marked_at: string;
   sessions: {
     scheduled_start: string;
+    title: string | null;
     subjects: { name: string } | null;
   } | null;
 }
@@ -50,7 +52,7 @@ export function useAttendanceHistory() {
       const { data, error } = await supabase
         .from("attendance")
         .select(
-          "id, session_id, status, method, marked_at, sessions(scheduled_start, subjects(name))",
+          "id, session_id, status, method, marked_at, sessions(scheduled_start, title, subjects(name))",
         )
         .eq("student_id", studentId!)
         .gte("marked_at", monthAgo)
@@ -66,6 +68,7 @@ export function useAttendanceHistory() {
         marked_at: r.marked_at,
         scheduled_start: r.sessions?.scheduled_start ?? null,
         subject_name: r.sessions?.subjects?.name ?? null,
+        title: r.sessions?.title ?? null,
       }));
 
       let weekPresent = 0,

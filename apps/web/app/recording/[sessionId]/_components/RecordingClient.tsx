@@ -8,6 +8,7 @@ import { SessionProvider, useSession } from "@/features/auth/SessionProvider";
 import { useLiveSession } from "@/features/live/useLiveSession";
 import { useLivePlaybackSign } from "@/features/live/useLivePlaybackSign";
 import { useChatChannel } from "@/features/chat/useChatChannel";
+import { sessionDisplayName } from "@/lib/session-name";
 import { WrappedYtPlayer } from "@/components/player/WrappedYtPlayer";
 import { Watermark } from "@/components/player/Watermark";
 import { ChatReplay } from "@/components/live/ChatReplay";
@@ -73,7 +74,7 @@ function RecordingInner({ sessionId, fullName }: RecordingClientProps) {
   if (!sign.signed) {
     return (
       <div className="flex min-h-svh flex-col bg-slate-50">
-        <Header subject={session?.subject_name ?? "Recording"} />
+        <Header subject={session ? sessionDisplayName(session.title, session.subject_name) : "Recording"} />
         <div className="flex flex-1 items-center justify-center px-8">
           <p className="max-w-md text-center text-sm font-semibold text-slate-700">
             {sign.status === 409

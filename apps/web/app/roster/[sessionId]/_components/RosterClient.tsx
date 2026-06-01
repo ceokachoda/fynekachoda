@@ -27,6 +27,7 @@ import { RosterRow } from "@/components/teacher/RosterRow";
 import { CorrectionDialog } from "@/components/teacher/CorrectionDialog";
 import { ConfirmDialog } from "@/components/teacher/ConfirmDialog";
 import { nextRosterAction } from "@/features/teacher/roster-pill-state";
+import { sessionDisplayName } from "@/lib/session-name";
 
 interface Props {
   sessionId: string;
@@ -166,7 +167,7 @@ function RosterInner({ sessionId }: Props) {
               ) : null}
             </p>
             <p className="mt-1 text-xl font-extrabold text-slate-900">
-              {roster.meta.subject_name ?? "Class"}
+              {sessionDisplayName(roster.meta.title, roster.meta.subject_name)}
             </p>
             <p className="mt-0.5 text-sm font-medium text-slate-500">
               {fmtTimeRange(

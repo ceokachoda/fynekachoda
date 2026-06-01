@@ -23,6 +23,7 @@ import {
 import { ChatReplay } from "@/components/live/ChatReplay";
 import { useLiveSession } from "@/features/live/useLiveSession";
 import { usePlaybackSign } from "@/features/live/usePlaybackSign";
+import { sessionDisplayName } from "@/lib/session-name";
 import { useChatChannel } from "@/features/chat/useChatChannel";
 import { useVideoOrientation } from "@/features/live/useVideoOrientation";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -130,7 +131,7 @@ export default function RecordingScreen() {
             <ChevronLeft size={20} color="#1e293b" />
           </Pressable>
           <Text className="text-base font-bold text-blue-900 flex-1" numberOfLines={1}>
-            {session?.subject_name ?? "Recording"}
+            {session ? sessionDisplayName(session.title, session.subject_name) : "Recording"}
           </Text>
         </View>
         <View className="flex-1 items-center justify-center px-8">
@@ -156,7 +157,7 @@ export default function RecordingScreen() {
             <ChevronLeft size={20} color="#1e293b" />
           </Pressable>
           <Text className="text-base font-bold text-blue-900 flex-1" numberOfLines={1}>
-            {session?.subject_name ?? "Recording"}
+            {session ? sessionDisplayName(session.title, session.subject_name) : "Recording"}
           </Text>
           <View className="bg-slate-100 px-2 py-1 rounded-md">
             <Text className="text-slate-600 text-[11px] font-bold">RECORDING</Text>

@@ -33,6 +33,7 @@ interface BulkMarkInput {
 
 interface AdHocCreateInput {
   batch_id: string;
+  title: string;
   scheduled_start: string;
   scheduled_end: string;
   is_live_class: boolean;

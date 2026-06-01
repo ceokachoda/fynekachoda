@@ -28,6 +28,7 @@ import {
 } from "@/features/teacher/useTeacherSessions";
 import { useAssignedBatches } from "@/features/teacher/useAssignedBatches";
 import { formatIstDay, formatIstTime } from "@/lib/ist";
+import { sessionDisplayName } from "@/lib/session-name";
 
 function statusPill(s: TeacherSession): {
   tone: "neutral" | "warning" | "success" | "error" | "primary";
@@ -158,7 +159,7 @@ function ClassRow({
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-extrabold text-slate-900">
-            {session.subject_name ?? "Class"}
+            {sessionDisplayName(session.title, session.subject_name)}
             {session.is_ad_hoc ? (
               <span className="ml-1 text-xs font-semibold text-amber-600">· ad-hoc</span>
             ) : null}

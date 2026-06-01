@@ -12,6 +12,7 @@ const SCAN_WINDOW_AFTER_MS = 15 * 60 * 1000;
 export interface TodaySession {
   id: string;
   subject_name: string;
+  title: string | null;
   scheduled_start: string;
   scheduled_end: string;
   is_ad_hoc: boolean;
@@ -24,6 +25,7 @@ interface RawSession {
   scheduled_start: string;
   scheduled_end: string;
   is_ad_hoc: boolean | null;
+  title: string | null;
   subjects: { name: string } | null;
 }
 
@@ -55,7 +57,7 @@ export function useTodaySessions() {
       const { data: sessions, error } = await supabase
         .from("sessions")
         .select(
-          "id, scheduled_start, scheduled_end, is_ad_hoc, subjects(name)",
+          "id, scheduled_start, scheduled_end, is_ad_hoc, title, subjects(name)",
         )
         .eq("batch_id", batch!.batch_id)
         .neq("status", "cancelled")
@@ -85,6 +87,7 @@ export function useTodaySessions() {
       return rows.map<TodaySession>((s) => ({
         id: s.id,
         subject_name: s.subjects?.name ?? "Class",
+        title: s.title ?? null,
         scheduled_start: s.scheduled_start,
         scheduled_end: s.scheduled_end,
         is_ad_hoc: !!s.is_ad_hoc,

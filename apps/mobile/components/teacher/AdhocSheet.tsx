@@ -1,19 +1,21 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { CalendarPlus, ChevronDown, X } from "lucide-react-native";
+import { CalendarPlus, ChevronDown, Clock, X } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import {
   isNetworkError,
   NETWORK_ERROR_MESSAGE,
   withTimeout,
 } from "@/features/auth/network-errors";
+import { ClassDateTimePicker, round15 } from "@/components/teacher/ClassDateTimePicker";
 import type { AssignedBatch } from "@/features/org/useAssignedBatches";
 
 interface Props {
@@ -29,13 +31,21 @@ interface CreateResponse {
 }
 
 const DURATION_OPTIONS_MIN = [30, 45, 60, 90];
+const TITLE_MAX = 120;
 
-function nextRoundedHour(): Date {
-  const now = new Date();
-  const ms = now.getTime();
-  const fifteenMin = 15 * 60 * 1000;
-  const rounded = new Date(Math.ceil(ms / fifteenMin) * fifteenMin);
-  return rounded;
+function formatStart(d: Date): string {
+  const day = d.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  });
+  const time = d.toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${day} · ${time}`;
 }
 
 function formatTimeIst(d: Date): string {
@@ -52,18 +62,28 @@ export function AdhocSheet({
   batches,
   onCreated,
 }: Props): React.ReactElement {
+  const [title, setTitle] = useState("");
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(
     batches[0]?.batch_id ?? null,
   );
+  const [start, setStart] = useState<Date>(() => round15(new Date()));
   const [durationMin, setDurationMin] = useState<number>(60);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showBatchPicker, setShowBatchPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Recompute the start time every time the sheet opens so the "next 15-min
-  // mark" is current, not stale from the first mount.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const start = useMemo(() => nextRoundedHour(), [visible]);
+  useEffect(() => {
+    if (visible) {
+      setTitle("");
+      setStart(round15(new Date()));
+      setDurationMin(60);
+      setError(null);
+      setShowBatchPicker(false);
+      setShowDatePicker(false);
+    }
+  }, [visible]);
+
   const end = useMemo(
     () => new Date(start.getTime() + durationMin * 60 * 1000),
     [start, durationMin],
@@ -71,18 +91,19 @@ export function AdhocSheet({
 
   const selectedBatch = batches.find((b) => b.batch_id === selectedBatchId);
 
-  const reset = () => {
+  const handleClose = () => {
     setError(null);
     setSubmitting(false);
     setShowBatchPicker(false);
-  };
-
-  const handleClose = () => {
-    reset();
+    setShowDatePicker(false);
     onClose();
   };
 
   const handleSubmit = async () => {
+    if (!title.trim()) {
+      setError("Give the class a name.");
+      return;
+    }
     if (!selectedBatchId) {
       setError("Pick a batch first.");
       return;
@@ -94,6 +115,7 @@ export function AdhocSheet({
         supabase.functions.invoke<CreateResponse>("session-create-ad-hoc", {
           body: {
             batch_id: selectedBatchId,
+            title: title.trim(),
             scheduled_start: start.toISOString(),
             scheduled_end: end.toISOString(),
             is_live_class: false,
@@ -106,7 +128,7 @@ export function AdhocSheet({
         setError(
           data?.error ?? (status === 403
             ? "You're not assigned to this batch."
-            : "Couldn't create ad-hoc class."),
+            : "Couldn't create offline class."),
         );
         setSubmitting(false);
         return;
@@ -122,7 +144,7 @@ export function AdhocSheet({
       setError(
         isNetworkError(err)
           ? NETWORK_ERROR_MESSAGE
-          : "Couldn't create ad-hoc class.",
+          : "Couldn't create offline class.",
       );
       setSubmitting(false);
     }
@@ -141,7 +163,7 @@ export function AdhocSheet({
             <View className="flex-row items-center">
               <CalendarPlus size={20} color="#2563eb" style={{ marginRight: 8 }} />
               <Text className="text-lg font-extrabold text-slate-900">
-                New ad-hoc class
+                New offline class
               </Text>
             </View>
             <TouchableOpacity onPress={handleClose} accessibilityLabel="Close">
@@ -149,8 +171,20 @@ export function AdhocSheet({
             </TouchableOpacity>
           </View>
           <Text className="text-xs text-slate-500 mb-4">
-            One-off session in one of your assigned batches.
+            One-off session — take attendance by QR or mark students manually.
           </Text>
+
+          <Text className="text-[11px] font-bold uppercase text-slate-500 mb-1.5">
+            Class name
+          </Text>
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            maxLength={TITLE_MAX}
+            placeholder="e.g. Chemistry — Mole concept revision"
+            placeholderTextColor="#94a3b8"
+            className="border border-slate-200 rounded-2xl px-4 py-3 text-sm text-slate-900 bg-white mb-4"
+          />
 
           <Text className="text-[11px] font-bold uppercase text-slate-500 mb-1.5">
             Batch
@@ -196,6 +230,19 @@ export function AdhocSheet({
           ) : null}
 
           <Text className="text-[11px] font-bold uppercase text-slate-500 mt-4 mb-1.5">
+            Starts
+          </Text>
+          <TouchableOpacity
+            onPress={() => setShowDatePicker(true)}
+            className="border border-slate-200 rounded-2xl px-4 py-3 flex-row items-center justify-between bg-slate-50"
+          >
+            <Text className="text-sm font-semibold text-slate-900">
+              {formatStart(start)}
+            </Text>
+            <Clock size={16} color="#64748b" />
+          </TouchableOpacity>
+
+          <Text className="text-[11px] font-bold uppercase text-slate-500 mt-4 mb-1.5">
             Duration
           </Text>
           <View className="flex-row">
@@ -222,13 +269,13 @@ export function AdhocSheet({
 
           <View className="mt-4 bg-slate-50 rounded-2xl p-4">
             <Text className="text-[11px] uppercase font-bold text-slate-500">
-              Starts
+              Class window
             </Text>
             <Text className="text-sm font-bold text-slate-900 mt-0.5">
               {formatTimeIst(start)} — {formatTimeIst(end)} (IST)
             </Text>
             <Text className="text-[11px] text-slate-400 mt-1">
-              Starts at the next 15-minute mark. Adjust duration above.
+              Students can be scanned (or marked manually) from 15 min before start.
             </Text>
           </View>
 
@@ -238,9 +285,9 @@ export function AdhocSheet({
 
           <TouchableOpacity
             onPress={handleSubmit}
-            disabled={submitting || !selectedBatchId}
+            disabled={submitting || !selectedBatchId || !title.trim()}
             className={`mt-5 rounded-2xl py-3.5 items-center justify-center ${
-              submitting || !selectedBatchId ? "bg-slate-300" : "bg-blue-600"
+              submitting || !selectedBatchId || !title.trim() ? "bg-slate-300" : "bg-blue-600"
             }`}
             activeOpacity={0.85}
           >
@@ -254,6 +301,16 @@ export function AdhocSheet({
           </TouchableOpacity>
         </View>
       </View>
+
+      <ClassDateTimePicker
+        visible={showDatePicker}
+        startsAt={start.toISOString()}
+        onClose={() => setShowDatePicker(false)}
+        onChange={(iso) => {
+          setStart(new Date(iso));
+          setShowDatePicker(false);
+        }}
+      />
     </Modal>
   );
 }

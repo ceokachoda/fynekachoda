@@ -31,6 +31,7 @@ interface SessionCol {
   scheduled_start: string;
   scheduled_end: string;
   subject_name: string | null;
+  title: string | null;
   is_ad_hoc: boolean;
 }
 
@@ -110,7 +111,7 @@ async function loadData(filters: { from: string; to: string; batch?: string }) {
 
   const sessionsRes = await supabase
     .from("sessions")
-    .select("id, scheduled_start, scheduled_end, is_ad_hoc, subjects(name)")
+    .select("id, scheduled_start, scheduled_end, is_ad_hoc, title, subjects(name)")
     .eq("batch_id", filters.batch)
     .gte("scheduled_start", fromIso)
     .lt("scheduled_start", toIso)
@@ -121,11 +122,13 @@ async function loadData(filters: { from: string; to: string; batch?: string }) {
     scheduled_end: string;
     is_ad_hoc: boolean;
     subjects: { name: string } | null;
+    title: string | null;
   }>).map((s) => ({
     id: s.id,
     scheduled_start: s.scheduled_start,
     scheduled_end: s.scheduled_end,
     subject_name: s.subjects?.name ?? null,
+    title: s.title ?? null,
     is_ad_hoc: s.is_ad_hoc,
   }));
 

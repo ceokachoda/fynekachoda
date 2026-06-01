@@ -15,6 +15,7 @@ export interface ScheduleSession {
   scheduled_start: string;
   scheduled_end: string;
   subject_name: string | null;
+  title: string | null;
   status: "scheduled" | "live" | "ended" | "cancelled";
   is_live_class: boolean;
   yt_video_id: string | null;
@@ -66,7 +67,7 @@ export function useStudentSchedule(): State {
       const res = await withTimeout(
         supabase
           .from("sessions")
-          .select("id, scheduled_start, scheduled_end, status, is_live_class, yt_video_id, subject_id, subjects(name)")
+          .select("id, scheduled_start, scheduled_end, status, is_live_class, yt_video_id, subject_id, title, subjects(name)")
           .eq("batch_id", myBatch.batch_id)
           .neq("status", "cancelled")
           .gte("scheduled_start", startIso)
@@ -86,6 +87,7 @@ export function useStudentSchedule(): State {
         status: "scheduled" | "live" | "ended" | "cancelled";
         is_live_class: boolean;
         yt_video_id: string | null;
+        title: string | null;
         subjects: { name: string } | null;
       }>;
 
@@ -114,6 +116,7 @@ export function useStudentSchedule(): State {
           scheduled_start: r.scheduled_start,
           scheduled_end: r.scheduled_end,
           subject_name: r.subjects?.name ?? null,
+          title: r.title ?? null,
           status: r.status,
           is_live_class: r.is_live_class,
           yt_video_id: r.yt_video_id,

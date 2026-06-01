@@ -2,6 +2,7 @@
 
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import { formatIstDay, formatIstTime } from "@/lib/ist";
+import { sessionDisplayName } from "@/lib/session-name";
 import type { AttendanceRow } from "@/features/attendance/useAttendanceHistory";
 
 function statusIcon(status: AttendanceRow["status"]) {
@@ -39,7 +40,7 @@ export function AttendanceHistoryList({ rows }: { rows: AttendanceRow[] }) {
             <div className="mr-3">{statusIcon(r.status)}</div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-slate-900">
-                {r.subject_name ?? "Class"}
+                {sessionDisplayName(r.title, r.subject_name)}
               </p>
               <p className="mt-0.5 text-xs text-slate-500">
                 {formatIstDay(ts)} · {formatIstTime(ts)}
