@@ -118,7 +118,13 @@ Format:
 - **D-023 (2026-05-14):** **TOTP MFA required** for both admin tiers; optional for teacher; off for student.
   - Why: admins have blast radius; teachers handle PII; students get friction-free login.
   - Impacts: `spec/authentication.md §9`, admin middleware.
-  - Status: Locked.
+  - Status: **Superseded by D-206 (2026-06-02)** — admin TOTP is now optional, not required.
+
+- **D-206 (2026-06-02):** **Admin TOTP MFA is OPTIONAL, not required** (supersedes D-023's "required for both admin tiers"). The admin login funnel no longer *forces* enrollment: email + password alone admits an admin. 2FA becomes opt-in — if an admin voluntarily enrolls a TOTP factor it is still enforced for their session, but accounts with no factor skip the code step entirely.
+  - Why: the client (a small institute, 2–3 staff admins) found the per-login Google Authenticator step too high-friction for daily ops and asked to remove it. Accepting the trade-off: a leaked/guessed admin password is now the only gate, so admin password hygiene matters more. The capability is preserved (not deleted) so it can be re-enabled.
+  - Decisions: implemented by deleting **Stage A** (forced enroll) from `apps/admin/middleware.ts` and guarding **Stage B** with `hasVerifiedFactor` so the verify step only fires when a factor exists. The `/2fa/{enroll,verify,recovery}` pages + `mfa-codes-*` edge fns + `mfa_recovery_codes` table (D-155) remain in place as **dormant** code — re-enabling = restore the Stage A redirect. No server-side change: no RLS policy or edge fn ever required `aal2`. The one pre-existing prod factor (on `owner@fynestudy.example.com`) was un-enrolled so the change takes effect immediately.
+  - Impacts: `apps/admin/middleware.ts`, `spec/authentication.md §9` (admin MFA now optional), `CLAUDE.md` Roles table (staff_admin/owner_admin "TOTP req" → optional). `auth.mfa_factors` factor `30cb0f6d…` deleted in prod.
+  - Status: Locked. Deployed via `main` 2026-06-02.
 
 - **D-024 (2026-05-14):** Account lockout = **5 failed attempts / email / 15 minutes**.
   - Why: matches Supabase native + industry norm.

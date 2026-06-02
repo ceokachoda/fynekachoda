@@ -111,8 +111,8 @@ Admin issues every account. **No self-signup, ever.**
 |---|---|---|---|
 | `student` | Mobile / Web | off | One batch at a time |
 | `teacher` | Mobile / Web | optional | Can be in multiple batches |
-| `staff_admin` | Web admin | TOTP req | Ops; cannot manage admins or institute settings |
-| `owner_admin` | Web admin | TOTP req | Everything |
+| `staff_admin` | Web admin | optional (D-206) | Ops; cannot manage admins or institute settings |
+| `owner_admin` | Web admin | optional (D-206) | Everything |
 
 ## Module Map
 | Feature | Spec | Primary mobile route | Edge fn(s) |

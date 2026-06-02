@@ -72,22 +72,17 @@ export async function middleware(req: NextRequest) {
   const currentLevel = aalData?.currentLevel ?? "aal1";
   const nextLevel = aalData?.nextLevel ?? "aal1";
 
-  // MFA state machine.
+  // 2FA is OPTIONAL (D-206, supersedes D-023). Enrollment is no longer forced —
+  // email + password alone admits an admin. If an admin has *voluntarily*
+  // enrolled a TOTP factor we still require it for their session (opt-in
+  // protection); accounts with no factor skip the code step entirely.
   const hasVerifiedFactor = nextLevel === "aal2";
   const mfaSatisfied = currentLevel === "aal2";
 
-  // Stage A: no verified factor → must enroll.
-  if (!hasVerifiedFactor) {
-    if (pathname.startsWith("/2fa/enroll")) return response;
-    const url = req.nextUrl.clone();
-    url.pathname = "/2fa/enroll";
-    return NextResponse.redirect(url);
-  }
-
-  // Stage B: verified factor exists, but this session hasn't satisfied it.
-  // /2fa/recovery is the emergency exit — consuming a code deletes the
-  // factor and Stage A will re-route to /2fa/enroll on the next request.
-  if (!mfaSatisfied) {
+  // Opt-in challenge: only gate sessions whose account actually has a factor.
+  // /2fa/recovery is the emergency exit — consuming a code deletes the factor,
+  // after which the account falls back to password-only.
+  if (hasVerifiedFactor && !mfaSatisfied) {
     if (
       pathname.startsWith("/2fa/verify") ||
       pathname.startsWith("/2fa/recovery")
