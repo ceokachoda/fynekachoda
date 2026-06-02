@@ -95,6 +95,25 @@ Deno.serve(async (req: Request) => {
       if (!subject) return jsonError(400, "subject not found", origin);
     }
 
+    // A batch can hold only one session at a given start instant — enforced by
+    // the `sessions_batch_start_unique (batch_id, scheduled_start)` constraint
+    // (also what keeps the nightly materialize idempotent). Pre-check so the
+    // teacher gets a clear, actionable message instead of an opaque
+    // "session insert failed" duplicate-key error. The 23505 fallback on the
+    // insert below closes the check-then-insert race.
+    const CONFLICT_MSG =
+      "This batch already has a class scheduled at that start time. Pick a different time.";
+    const { data: clash, error: clashErr } = await admin
+      .from("sessions")
+      .select("id")
+      .eq("batch_id", batch_id)
+      .eq("scheduled_start", scheduled_start)
+      .maybeSingle();
+    if (clashErr) {
+      return jsonError(500, "session lookup failed", origin, clashErr.message);
+    }
+    if (clash) return jsonError(409, CONFLICT_MSG, origin);
+
     const { data: inserted, error: insertErr } = await admin
       .from("sessions")
       .insert({
@@ -110,6 +129,10 @@ Deno.serve(async (req: Request) => {
       .select("id, scheduled_start, scheduled_end")
       .single();
     if (insertErr || !inserted) {
+      // Lost the race to a concurrent create for the same (batch, start).
+      if ((insertErr as { code?: string } | null)?.code === "23505") {
+        return jsonError(409, CONFLICT_MSG, origin);
+      }
       return jsonError(
         500,
         "session insert failed",
