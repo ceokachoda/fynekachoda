@@ -10,8 +10,7 @@ import { useLivePlaybackSign } from "@/features/live/useLivePlaybackSign";
 import { useSessionState } from "@/features/live/useSessionState";
 import { useRaiseHand } from "@/features/live/useRaiseHand";
 import { useChatChannel } from "@/features/chat/useChatChannel";
-import { WrappedYtPlayer } from "@/components/player/WrappedYtPlayer";
-import { Watermark } from "@/components/player/Watermark";
+import { LiveVideoStage } from "@/components/player/LiveVideoStage";
 import { LobbyCountdown } from "@/components/live/LobbyCountdown";
 import { ChatPane } from "@/components/live/ChatPane";
 import { ChatComposer } from "@/components/live/ChatComposer";
@@ -155,85 +154,86 @@ function LiveInner({ sessionId, fullName, activeRole }: LiveClientProps) {
   const playerReady = isLive && signedPlayback;
 
   return (
-    <div className="flex min-h-svh flex-col bg-slate-50">
+    <div className="flex h-svh flex-col overflow-hidden bg-slate-50">
       <Header
         subject={session ? sessionDisplayName(session.title, session.subject_name) : "Live class"}
         isLive={!!isLive}
       />
 
-      {/* Player area — 16:9 hero on mobile, side-by-side layout on lg+. */}
-      <div className="lg:flex lg:flex-1 lg:overflow-hidden">
-        <div className="relative bg-black lg:w-[min(70vw,1100px)]">
-          {playerReady ? (
-            <div className="relative">
-              <WrappedYtPlayer videoId={signedPlayback!.video_id} />
-              <Watermark text={watermarkText} />
-              {activeRole === "teacher" ? (
-                <div className="absolute right-2 top-2 z-20">
-                  <Link
-                    href={`/live-control/${sessionId}`}
-                    className="rounded-md bg-white/90 px-2.5 py-1.5 text-xs font-semibold text-slate-800 shadow-sm transition-colors hover:bg-white"
-                  >
-                    Open Live Control →
-                  </Link>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="h-[56vw] max-h-[80vh] lg:h-full">
-              <LobbyCountdown
-                scheduledStart={
-                  session?.scheduled_start ?? new Date().toISOString()
+      {/* Stage + chat. App-shell: header fixed, video contained on a light
+          surface (no black void), chat scrolls. Stacks on mobile, splits on lg+. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        {/* Video stage — light surface, contained 16:9 card (never a black void) */}
+        <div className="flex shrink-0 items-center justify-center bg-slate-100 p-3 sm:p-4 lg:min-h-0 lg:flex-1 lg:p-6">
+          <div className="w-full max-w-[1200px]">
+            {playerReady ? (
+              <LiveVideoStage
+                videoId={signedPlayback!.video_id}
+                watermarkText={watermarkText}
+                topLeft={
+                  activeRole === "teacher" ? (
+                    <Link
+                      href={`/live-control/${sessionId}`}
+                      className="rounded-md bg-white/90 px-2.5 py-1.5 text-xs font-semibold text-slate-800 shadow-sm transition-colors hover:bg-white"
+                    >
+                      Open Live Control →
+                    </Link>
+                  ) : null
                 }
-                subjectName={session ? sessionDisplayName(session.title, session.subject_name) : undefined}
               />
-            </div>
-          )}
+            ) : (
+              <div className="overflow-hidden rounded-2xl shadow-sm ring-1 ring-black/5">
+                <div className="aspect-video w-full">
+                  <LobbyCountdown
+                    scheduledStart={
+                      session?.scheduled_start ?? new Date().toISOString()
+                    }
+                    subjectName={session ? sessionDisplayName(session.title, session.subject_name) : undefined}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Chat column */}
-        <div className="flex min-h-0 flex-1 flex-col bg-white lg:border-l lg:border-slate-200">
+        <aside className="flex min-h-0 flex-1 flex-col border-t border-slate-200 bg-white lg:w-[384px] lg:flex-none lg:border-l lg:border-t-0">
           {pinned ? (
             <PinnedBanner text={pinned.body} byName={pinned.author_name} />
           ) : null}
 
-          <div className="flex min-h-[40vh] flex-1 flex-col">
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <ChatPane
-                messages={chat.messages}
-                currentUserId={appUser?.id}
-              />
-            </div>
-
-            <div className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-2">
-              <RaiseHandButton
-                raised={hand.myHandRaised}
-                busy={hand.isBusy}
-                disabled={!playerReady || isBanned}
-                onRaise={hand.raise}
-                onLower={hand.lower}
-              />
-              {hand.myHandRaised ? (
-                <span
-                  className="text-xs font-semibold text-amber-600"
-                  data-testid="hand-raised-pill"
-                >
-                  Hand raised ✋
-                </span>
-              ) : null}
-            </div>
-
-            <ChatComposer
-              onSend={(t) => chat.post(t)}
-              disabled={isBanned || !playerReady}
-              disabledReason={
-                isBanned
-                  ? "You've been muted by the teacher. You can read but can't send."
-                  : "Chat opens when the class goes live."
-              }
-            />
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <ChatPane messages={chat.messages} currentUserId={appUser?.id} />
           </div>
-        </div>
+
+          <div className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-2.5">
+            <RaiseHandButton
+              raised={hand.myHandRaised}
+              busy={hand.isBusy}
+              disabled={!playerReady || isBanned}
+              onRaise={hand.raise}
+              onLower={hand.lower}
+            />
+            {hand.myHandRaised ? (
+              <span
+                className="text-xs font-semibold text-amber-600"
+                data-testid="hand-raised-pill"
+              >
+                Hand raised ✋
+              </span>
+            ) : null}
+          </div>
+
+          <ChatComposer
+            onSend={(t) => chat.post(t)}
+            disabled={isBanned || !playerReady}
+            disabledReason={
+              isBanned
+                ? "You've been muted by the teacher. You can read but can't send."
+                : "Chat opens when the class goes live."
+            }
+          />
+        </aside>
       </div>
     </div>
   );

@@ -31,7 +31,6 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pill } from "@/components/fyne/Pill";
 import { FocusLayout } from "@/components/fyne/FocusLayout";
 import { QueryProvider } from "@/lib/query";
@@ -52,8 +51,7 @@ import {
   useYtBroadcastGoLive,
   useYtBroadcastStop,
 } from "@/features/teacher/mutations";
-import { WrappedYtPlayer } from "@/components/player/WrappedYtPlayer";
-import { Watermark } from "@/components/player/Watermark";
+import { LiveVideoStage } from "@/components/player/LiveVideoStage";
 import { ChatComposer } from "@/components/live/ChatComposer";
 import { ChatModerationMenu } from "@/components/teacher/ChatModerationMenu";
 import { ConfirmDialog } from "@/components/teacher/ConfirmDialog";
@@ -111,7 +109,6 @@ function LiveControlInner({ sessionId, fullName }: Props) {
 
   const [copied, setCopied] = useState<"server" | "key" | "both" | null>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [tab, setTab] = useState<"stream" | "moderate">("stream");
   const [pinComposerOpen, setPinComposerOpen] = useState(false);
   const [pinText, setPinText] = useState("");
   const [confirmEnd, setConfirmEnd] = useState(false);
@@ -275,7 +272,7 @@ function LiveControlInner({ sessionId, fullName }: Props) {
         ) : null}
       </header>
 
-      <main className="mx-auto w-full max-w-4xl flex-1 p-4">
+      <main className="mx-auto w-full max-w-6xl flex-1 p-4">
         {ended ? (
           <section className="flex flex-col items-center rounded-3xl border border-slate-100 bg-white p-8 text-center">
             <p className="text-lg font-bold text-slate-900">This class has ended</p>
@@ -284,7 +281,7 @@ function LiveControlInner({ sessionId, fullName }: Props) {
             </Button>
           </section>
         ) : !isLive ? (
-          <section className="space-y-6">
+          <section className="mx-auto max-w-2xl space-y-6">
             <header>
               <h1 className="text-xl font-extrabold text-slate-900">
                 Stream setup
@@ -405,40 +402,48 @@ function LiveControlInner({ sessionId, fullName }: Props) {
           </section>
         ) : (
           // ─── LIVE ─────────────────────────────────────────────────────────
-          <section className="space-y-4">
-            <Tabs value={tab} onValueChange={(v) => setTab(v as "stream" | "moderate")}>
-              <TabsList>
-                <TabsTrigger value="stream">Stream</TabsTrigger>
-                <TabsTrigger value="moderate">
-                  Moderate ({hand.queue.length} hand
-                  {hand.queue.length === 1 ? "" : "s"})
-                </TabsTrigger>
-              </TabsList>
+          // Single responsive layout (NOT tabs): stream on the left, the full
+          // moderation panel — chat, raise-hand queue, pin, composer — on the
+          // right and ALWAYS visible. Stacks on mobile, splits on lg+. Only one
+          // YT iframe is ever mounted (no duplicated mobile/desktop trees).
+          <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_390px] lg:items-start">
+            {/* Stream */}
+            <div className="space-y-3">
+              {sign.signed ? (
+                <LiveVideoStage
+                  videoId={sign.signed.video_id}
+                  watermarkText={watermarkText}
+                />
+              ) : (
+                <div className="flex aspect-video items-center justify-center rounded-2xl bg-slate-900 text-slate-300">
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Connecting preview…
+                </div>
+              )}
+              {lastPinned ? (
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3.5">
+                  <p className="text-xs font-bold uppercase tracking-wide text-blue-700">
+                    <Pin className="mr-1 inline size-3" />
+                    Pinned by {lastPinned.author_name}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-900">{lastPinned.body}</p>
+                </div>
+              ) : null}
+            </div>
 
-              <TabsContent value="stream" className="space-y-3">
-                {sign.signed ? (
-                  <div className="relative overflow-hidden rounded-3xl bg-black">
-                    <WrappedYtPlayer videoId={sign.signed.video_id} />
-                    <Watermark text={watermarkText} />
-                  </div>
-                ) : (
-                  <div className="flex aspect-video items-center justify-center rounded-3xl bg-slate-900 text-slate-300">
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                    Connecting preview…
-                  </div>
-                )}
-                {lastPinned ? (
-                  <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3.5">
-                    <p className="text-xs font-bold uppercase tracking-wide text-blue-700">
-                      <Pin className="mr-1 inline size-3" />
-                      Pinned by {lastPinned.author_name}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-900">{lastPinned.body}</p>
-                  </div>
-                ) : null}
-              </TabsContent>
-
-              <TabsContent value="moderate" className="space-y-3">
+            {/* Moderation panel — always visible */}
+            <div className="space-y-3 lg:sticky lg:top-4 lg:max-h-[calc(100svh-7rem)] lg:overflow-y-auto lg:pr-1">
+              {/* Chat + composer */}
+              <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white">
+                <div className="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Class chat
+                  </p>
+                  <Pill tone="neutral">
+                    <Users className="mr-1 size-3" />
+                    {presenceCount}
+                  </Pill>
+                </div>
                 <ModerateChatPane
                   messages={chat.messages}
                   currentUserId={appUser?.id}
@@ -461,93 +466,97 @@ function LiveControlInner({ sessionId, fullName }: Props) {
                     });
                   }}
                 />
-                <div className="rounded-2xl border border-slate-100 bg-white p-3">
-                  <p className="mb-2 text-xs font-bold uppercase text-slate-500">
-                    Raise-hand queue
-                  </p>
-                  {hand.queue.length === 0 ? (
-                    <p className="flex items-center text-sm text-slate-500">
-                      <Hand className="mr-2 size-4" />
-                      No raised hands right now.
-                    </p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {hand.queue.map((h, i) => (
-                        <li
-                          key={h.id}
-                          className="flex items-center rounded-xl bg-slate-50 p-3"
-                        >
-                          <div className="mr-3 flex size-7 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">
-                            {i + 1}
-                          </div>
-                          <p className="flex-1 text-sm font-semibold text-slate-800">
-                            {h.student_name}
-                          </p>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => void hand.resolve(h.id)}
-                            data-testid={`hand-resolve-${h.id}`}
-                          >
-                            Resolve
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-white p-3">
-                  {pinComposerOpen ? (
-                    <>
-                      <p className="mb-2 text-xs font-bold uppercase text-slate-500">
-                        Pin an announcement
-                      </p>
-                      <textarea
-                        value={pinText}
-                        onChange={(e) => setPinText(e.target.value)}
-                        rows={2}
-                        placeholder="e.g. We'll review Chapter 4 at the end."
-                        className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900"
-                      />
-                      <div className="mt-2 flex gap-2">
-                        <Button
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => {
-                            setPinText("");
-                            setPinComposerOpen(false);
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          className="flex-1"
-                          onClick={submitPin}
-                          disabled={!pinText.trim()}
-                        >
-                          Pin
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setPinComposerOpen(true)}
-                    >
-                      <Pin />
-                      Pin an announcement
-                    </Button>
-                  )}
-                </div>
-                <div className="rounded-2xl border border-slate-100 bg-white">
+                <div className="border-t border-slate-100">
                   <ChatComposer
                     placeholder="Message your class…"
                     onSend={(t) => chat.post(t, "chat")}
                   />
                 </div>
-              </TabsContent>
-            </Tabs>
+              </div>
+
+              {/* Raise-hand queue */}
+              <div className="rounded-2xl border border-slate-100 bg-white p-3">
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <Hand className="size-3.5" />
+                  Raised hands ({hand.queue.length})
+                </p>
+                {hand.queue.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    No raised hands right now.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {hand.queue.map((h, i) => (
+                      <li
+                        key={h.id}
+                        className="flex items-center rounded-xl bg-amber-50 p-2.5"
+                      >
+                        <div className="mr-3 flex size-7 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700">
+                          {i + 1}
+                        </div>
+                        <p className="flex-1 truncate text-sm font-semibold text-slate-800">
+                          {h.student_name}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void hand.resolve(h.id)}
+                          data-testid={`hand-resolve-${h.id}`}
+                        >
+                          Resolve
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Pin an announcement */}
+              <div className="rounded-2xl border border-slate-100 bg-white p-3">
+                {pinComposerOpen ? (
+                  <>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Pin an announcement
+                    </p>
+                    <textarea
+                      value={pinText}
+                      onChange={(e) => setPinText(e.target.value)}
+                      rows={2}
+                      placeholder="e.g. We'll review Chapter 4 at the end."
+                      className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                    <div className="mt-2 flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setPinText("");
+                          setPinComposerOpen(false);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        onClick={submitPin}
+                        disabled={!pinText.trim()}
+                      >
+                        Pin
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setPinComposerOpen(true)}
+                  >
+                    <Pin />
+                    Pin an announcement
+                  </Button>
+                )}
+              </div>
+            </div>
           </section>
         )}
       </main>
@@ -587,13 +596,13 @@ function ModerateChatPane({
   const chatMsgs = messages.filter((m) => m.kind === "chat");
   if (chatMsgs.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-100 bg-white p-6 text-center text-sm text-slate-500">
+      <div className="p-6 text-center text-sm text-slate-500">
         No messages yet.
       </div>
     );
   }
   return (
-    <ul className="max-h-[420px] space-y-2 overflow-y-auto rounded-2xl border border-slate-100 bg-white p-3">
+    <ul className="max-h-[44vh] min-h-[120px] space-y-2 overflow-y-auto p-3">
       {chatMsgs.map((m) => (
         <li
           key={m.id}
