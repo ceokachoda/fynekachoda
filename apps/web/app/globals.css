@@ -197,3 +197,18 @@
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * iOS Safari auto-zooms the viewport whenever a text-entry control is focused
+ * and its font-size is < 16px (e.g. the live-chat composer typing → the screen
+ * jumps in, then back out on blur). We can't disable pinch-zoom globally
+ * (WCAG 1.4.4), so instead we guarantee a 16px minimum on every text input at
+ * phone widths — that removes the zoom trigger without harming accessibility.
+ */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}

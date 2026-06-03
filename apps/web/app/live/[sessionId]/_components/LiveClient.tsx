@@ -10,7 +10,7 @@ import { useLivePlaybackSign } from "@/features/live/useLivePlaybackSign";
 import { useSessionState } from "@/features/live/useSessionState";
 import { useRaiseHand } from "@/features/live/useRaiseHand";
 import { useChatChannel } from "@/features/chat/useChatChannel";
-import { LiveVideoStage } from "@/components/player/LiveVideoStage";
+import { WrappedYtPlayer } from "@/components/player/WrappedYtPlayer";
 import { LobbyCountdown } from "@/components/live/LobbyCountdown";
 import { ChatPane } from "@/components/live/ChatPane";
 import { ChatComposer } from "@/components/live/ChatComposer";
@@ -167,7 +167,8 @@ function LiveInner({ sessionId, fullName, activeRole }: LiveClientProps) {
         <div className="flex shrink-0 items-center justify-center bg-slate-100 p-3 sm:p-4 lg:min-h-0 lg:flex-1 lg:p-6">
           <div className="w-full max-w-[1200px]">
             {playerReady ? (
-              <LiveVideoStage
+              <WrappedYtPlayer
+                live
                 videoId={signedPlayback!.video_id}
                 watermarkText={watermarkText}
                 topLeft={

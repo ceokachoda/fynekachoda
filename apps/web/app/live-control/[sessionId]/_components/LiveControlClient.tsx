@@ -51,7 +51,7 @@ import {
   useYtBroadcastGoLive,
   useYtBroadcastStop,
 } from "@/features/teacher/mutations";
-import { LiveVideoStage } from "@/components/player/LiveVideoStage";
+import { WrappedYtPlayer } from "@/components/player/WrappedYtPlayer";
 import { ChatComposer } from "@/components/live/ChatComposer";
 import { ChatModerationMenu } from "@/components/teacher/ChatModerationMenu";
 import { ConfirmDialog } from "@/components/teacher/ConfirmDialog";
@@ -410,7 +410,8 @@ function LiveControlInner({ sessionId, fullName }: Props) {
             {/* Stream */}
             <div className="space-y-3">
               {sign.signed ? (
-                <LiveVideoStage
+                <WrappedYtPlayer
+                  live
                   videoId={sign.signed.video_id}
                   watermarkText={watermarkText}
                 />
@@ -523,7 +524,7 @@ function LiveControlInner({ sessionId, fullName }: Props) {
                       onChange={(e) => setPinText(e.target.value)}
                       rows={2}
                       placeholder="e.g. We'll review Chapter 4 at the end."
-                      className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-base text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                     <div className="mt-2 flex gap-2">
                       <Button

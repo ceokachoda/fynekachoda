@@ -1,244 +1,684 @@
 "use client";
 
+// Secure, self-contained YouTube surface for FyneStudy live + recordings +
+// lessons. The institute pays for this content, so a student must NEVER be able
+// to bounce out to youtube.com. Three layers enforce that:
+//
+//   1. Player vars strip every native route to YouTube:
+//        controls:0       → no native control bar (YouTube logo + "Watch on
+//                           YouTube" + share live there). modestbranding is
+//                           deprecated since 2023-08-15, so it can't be relied
+//                           on alone — controls:0 is what actually removes it.
+//        fs:0             → no native fullscreen button; we own fullscreen.
+//        rel:0            → no cross-channel "related" grid at the end.
+//        iv_load_policy:3 → no annotation/cards.
+//        disablekb:1      → no keyboard shortcuts.
+//        playsinline:1    → iOS plays inline so our overlay can sit on top,
+//                           instead of handing off to the native fullscreen
+//                           player (which shows a YouTube button + an exit).
+//   2. A transparent SHIELD over the iframe eats every pointer event, so any
+//      residual hover/pause title chrome inside the iframe is unclickable and
+//      the right-click "Copy video URL" menu never opens. touch-action:none on
+//      the shield also blocks pinch / double-tap zoom on the video.
+//   3. A SCRIM (our own play button) covers the video while paused, hiding the
+//      YouTube pause overlay (title + channel + "Watch on YouTube") visually.
+//
+// On top of that we render our own controls (play/pause, seek, mute,
+// fullscreen) + a moving watermark, and own fullscreen + landscape-lock for a
+// Netflix-style phone experience (real Fullscreen API on Android/desktop, a CSS
+// "pseudo-fullscreen" fallback on iOS Safari which can't fullscreen a <div>).
+
 import dynamic from "next/dynamic";
 import {
-  forwardRef,
   useCallback,
   useEffect,
-  useImperativeHandle,
   useRef,
+  useState,
+  type ReactNode,
 } from "react";
+import {
+  FastForward,
+  Loader2,
+  Maximize,
+  Minimize,
+  Pause,
+  Play,
+  RotateCcw,
+  Rewind,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+import { Watermark } from "@/components/player/Watermark";
+import { cn } from "@/lib/utils";
 
-// react-youtube ships a `window`-only IFrame API wrapper. Dynamic-import with
-// ssr:false so Next 15 doesn't try to render it on the server.
 const YouTube = dynamic(() => import("react-youtube"), {
   ssr: false,
   loading: () => (
-    <div className="flex aspect-video w-full items-center justify-center bg-slate-900 text-slate-500">
-      Loading player…
+    <div className="flex size-full items-center justify-center bg-black text-slate-500">
+      <Loader2 className="size-6 animate-spin" aria-hidden />
     </div>
   ),
 });
 
-// D-173: NEVER set controls=0. The visible play button is the autoplay gesture
-// proxy. We DO disable related videos, branding, fullscreen-button, and the
-// channel link to keep the surface tight.
 const PLAYER_OPTS = {
   width: "100%",
   height: "100%",
   playerVars: {
     autoplay: 0,
+    controls: 0,
     rel: 0,
     modestbranding: 1,
     iv_load_policy: 3,
-    fs: 1,
+    fs: 0,
+    disablekb: 1,
+    playsinline: 1,
   },
 };
 
+const SKIP_SECONDS = 10;
+const CHROME_HIDE_MS = 3200;
+
 interface WrappedYtPlayerProps {
   videoId: string;
+  /** Rendered as a moving anti-piracy watermark on top of the video. */
+  watermarkText?: string;
+  /** Top-left overlay slot (e.g. a teacher's "Open Live Control" link). */
+  topLeft?: ReactNode;
+  /** Live mode: no scrubber, a LIVE pill instead of a timeline. */
+  live?: boolean;
+  /** Show the seek timeline + skip buttons (recordings & lessons). */
+  seekable?: boolean;
   startSeconds?: number;
-  /** Lesson-style progress tick (every 2s while playing). */
-  onProgress?: (positionSec: number, durationSec: number) => void;
-  /** Recording-only: 1 / 1.5 / 2 — applied via setPlaybackRate. */
   playbackRate?: number;
-  /** Recording-only: live play/pause state for the parent to toggle a custom button. */
-  onPlayingChange?: (playing: boolean) => void;
-  /** Recording-only: total duration once known. */
-  onDuration?: (durationSec: number) => void;
-  /** Recording-only: high-frequency position tick (every ~1s) for chat-replay sync. */
+  /** Lesson-style progress tick (~2s while playing) for resume points. */
+  onProgress?: (positionSec: number, durationSec: number) => void;
+  /** High-frequency position tick (~0.5s) for chat-replay sync. */
   onPosition?: (positionSec: number, durationSec: number) => void;
+  /** Override container classes (e.g. `rounded-none` for full-bleed). */
+  className?: string;
 }
 
-export interface WrappedYtPlayerHandle {
-  play(): void;
-  pause(): void;
-  seekTo(sec: number): void;
-}
-
-interface PlayerRef {
+interface PlayerApi {
   getCurrentTime: () => number;
   getDuration: () => number;
   seekTo: (sec: number, allowSeekAhead: boolean) => void;
   playVideo: () => void;
   pauseVideo: () => void;
   setPlaybackRate: (rate: number) => void;
+  mute: () => void;
+  unMute: () => void;
+  isMuted: () => boolean;
 }
-
 interface ReadyEvent {
-  target: PlayerRef;
+  target: PlayerApi;
 }
-
 interface StateEvent {
   data: number;
+  target: PlayerApi;
 }
 
-export const WrappedYtPlayer = forwardRef<
-  WrappedYtPlayerHandle,
-  WrappedYtPlayerProps
->(function WrappedYtPlayer(
-  {
-    videoId,
-    startSeconds,
-    onProgress,
-    playbackRate,
-    onPlayingChange,
-    onDuration,
-    onPosition,
-  },
-  ref,
-) {
-  const playerRef = useRef<PlayerRef | null>(null);
-  // Lesson-style progress tick (2s).
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Recording-style high-frequency position tick (1s) for chat replay sync.
-  const posTickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+// Vendor-prefixed fullscreen + the still-experimental orientation lock aren't
+// in lib.dom — narrow to just the members we touch instead of using `any`.
+type FsEl = HTMLDivElement & {
+  webkitRequestFullscreen?: () => Promise<void> | void;
+};
+type FsDoc = Document & {
+  webkitFullscreenElement?: Element | null;
+  webkitExitFullscreen?: () => Promise<void> | void;
+};
+type LockableOrientation = ScreenOrientation & {
+  lock?: (orientation: "landscape") => Promise<void>;
+  unlock?: () => void;
+};
 
+function fmt(sec: number): string {
+  const t = Number.isFinite(sec) && sec > 0 ? Math.floor(sec) : 0;
+  const s = t % 60;
+  const m = Math.floor(t / 60) % 60;
+  const h = Math.floor(t / 3600);
+  const ss = String(s).padStart(2, "0");
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${ss}`;
+  return `${m}:${ss}`;
+}
+
+export function WrappedYtPlayer({
+  videoId,
+  watermarkText,
+  topLeft,
+  live = false,
+  seekable = !live,
+  startSeconds,
+  playbackRate,
+  onProgress,
+  onPosition,
+  className,
+}: WrappedYtPlayerProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<PlayerApi | null>(null);
+
+  const [ready, setReady] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [buffering, setBuffering] = useState(false);
+  const [ended, setEnded] = useState(false);
+  const [muted, setMuted] = useState(false);
+
+  const [pos, setPos] = useState(0);
+  const [dur, setDur] = useState(0);
+  const seekingRef = useRef(false);
+
+  const [isFs, setIsFs] = useState(false); // real Fullscreen API active
+  const [pseudoFs, setPseudoFs] = useState(false); // iOS CSS fallback active
+  const [chromeVisible, setChromeVisible] = useState(true);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Mirror `playing` into a ref so the auto-hide timer reads the latest value
+  // without re-creating the timer each render.
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
+
+  // Latest callbacks in refs so the playback intervals never re-subscribe.
+  const onProgressRef = useRef(onProgress);
+  onProgressRef.current = onProgress;
+  const onPositionRef = useRef(onPosition);
+  onPositionRef.current = onPosition;
+
+  // ── playback ticker — drives our scrubber + chat-replay sync ──────────────
   useEffect(() => {
-    return () => {
-      if (tickRef.current) clearInterval(tickRef.current);
-      tickRef.current = null;
-      if (posTickRef.current) clearInterval(posTickRef.current);
-      posTickRef.current = null;
-    };
-  }, []);
+    if (!playing) return;
+    const id = setInterval(() => {
+      const p = playerRef.current;
+      if (!p) return;
+      try {
+        const c = p.getCurrentTime();
+        const d = p.getDuration();
+        if (!seekingRef.current) setPos(c);
+        if (d > 0) setDur(d);
+        onPositionRef.current?.(c, d);
+      } catch {
+        /* player torn down mid-tick */
+      }
+    }, 500);
+    return () => clearInterval(id);
+  }, [playing]);
 
-  useImperativeHandle(
-    ref,
-    () => ({
-      play: () => {
-        try {
-          playerRef.current?.playVideo();
-        } catch {
-          // ignore
-        }
-      },
-      pause: () => {
-        try {
-          playerRef.current?.pauseVideo();
-        } catch {
-          // ignore
-        }
-      },
-      seekTo: (sec: number) => {
-        try {
-          playerRef.current?.seekTo(sec, true);
-        } catch {
-          // ignore
-        }
-      },
-    }),
-    [],
-  );
-
-  // Apply playbackRate whenever it changes (also after onReady re-mounts).
+  // ── lesson progress tick (slower; only when a consumer wants it) ──────────
   useEffect(() => {
-    if (!playbackRate) return;
+    if (!playing || !onProgress) return;
+    const id = setInterval(() => {
+      const p = playerRef.current;
+      if (!p) return;
+      try {
+        onProgressRef.current?.(p.getCurrentTime(), p.getDuration());
+      } catch {
+        /* ignore */
+      }
+    }, 2000);
+    return () => clearInterval(id);
+  }, [playing, onProgress]);
+
+  const flush = useCallback((p: PlayerApi) => {
     try {
-      playerRef.current?.setPlaybackRate(playbackRate);
+      const c = p.getCurrentTime();
+      const d = p.getDuration();
+      if (!seekingRef.current) setPos(c);
+      onProgressRef.current?.(c, d);
+      onPositionRef.current?.(c, d);
     } catch {
-      // ignore
+      /* ignore */
     }
-  }, [playbackRate]);
+  }, []);
 
   const onReady = useCallback(
     (e: ReadyEvent) => {
       playerRef.current = e.target;
-      if (startSeconds && startSeconds > 0) {
-        try {
-          e.target.seekTo(startSeconds, true);
-        } catch {
-          // ignore
-        }
+      setReady(true);
+      try {
+        if (startSeconds && startSeconds > 0) e.target.seekTo(startSeconds, true);
+      } catch {
+        /* ignore */
       }
-      if (playbackRate) {
-        try {
-          e.target.setPlaybackRate(playbackRate);
-        } catch {
-          // ignore
-        }
+      try {
+        if (playbackRate) e.target.setPlaybackRate(playbackRate);
+      } catch {
+        /* ignore */
       }
-      if (onDuration) {
-        try {
-          const d = e.target.getDuration();
-          if (d > 0) onDuration(d);
-        } catch {
-          // ignore
-        }
+      try {
+        const d = e.target.getDuration();
+        if (d > 0) setDur(d);
+      } catch {
+        /* ignore */
+      }
+      try {
+        setMuted(e.target.isMuted());
+      } catch {
+        /* ignore */
       }
     },
-    [startSeconds, playbackRate, onDuration],
+    [startSeconds, playbackRate],
   );
 
   const onStateChange = useCallback(
     (e: StateEvent) => {
-      // 1 = playing, 2 = paused, 0 = ended, 3 = buffering, 5 = cued.
-      const playing = e.data === 1;
-      onPlayingChange?.(playing);
-
-      if (playing) {
-        if (!tickRef.current && onProgress) {
-          tickRef.current = setInterval(() => {
-            const p = playerRef.current;
-            if (!p) return;
-            try {
-              onProgress(p.getCurrentTime(), p.getDuration());
-            } catch {
-              // ignore
-            }
-          }, 2_000);
-        }
-        if (!posTickRef.current && onPosition) {
-          posTickRef.current = setInterval(() => {
-            const p = playerRef.current;
-            if (!p) return;
-            try {
-              onPosition(p.getCurrentTime(), p.getDuration());
-            } catch {
-              // ignore
-            }
-          }, 1_000);
-        }
-      } else {
-        if (tickRef.current) {
-          clearInterval(tickRef.current);
-          tickRef.current = null;
-          const p = playerRef.current;
-          if (p && onProgress) {
-            try {
-              onProgress(p.getCurrentTime(), p.getDuration());
-            } catch {
-              // ignore
-            }
-          }
-        }
-        if (posTickRef.current) {
-          clearInterval(posTickRef.current);
-          posTickRef.current = null;
-          const p = playerRef.current;
-          if (p && onPosition) {
-            try {
-              onPosition(p.getCurrentTime(), p.getDuration());
-            } catch {
-              // ignore
-            }
-          }
-        }
+      // -1 unstarted · 0 ended · 1 playing · 2 paused · 3 buffering · 5 cued
+      const d = e.data;
+      setBuffering(d === 3);
+      if (d === 1) {
+        setPlaying(true);
+        setEnded(false);
+      } else if (d === 0) {
+        setPlaying(false);
+        setEnded(true);
+        flush(e.target);
+      } else if (d === 2) {
+        setPlaying(false);
+        flush(e.target);
       }
     },
-    [onPlayingChange, onProgress, onPosition],
+    [flush],
   );
 
+  useEffect(() => {
+    if (!playbackRate || !ready) return;
+    try {
+      playerRef.current?.setPlaybackRate(playbackRate);
+    } catch {
+      /* ignore */
+    }
+  }, [playbackRate, ready]);
+
+  // ── transport ─────────────────────────────────────────────────────────────
+  const togglePlay = useCallback(() => {
+    const p = playerRef.current;
+    if (!p) return;
+    try {
+      if (playing) {
+        p.pauseVideo();
+      } else {
+        if (ended && seekable) p.seekTo(0, true);
+        p.playVideo();
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [playing, ended, seekable]);
+
+  const seek = useCallback((sec: number) => {
+    const target = Math.max(0, sec);
+    try {
+      playerRef.current?.seekTo(target, true);
+    } catch {
+      /* ignore */
+    }
+    setPos(target);
+  }, []);
+
+  const skip = useCallback(
+    (delta: number) => {
+      const p = playerRef.current;
+      const base = p ? safeTime(p) : pos;
+      seek(base + delta);
+    },
+    [pos, seek],
+  );
+
+  const toggleMute = useCallback(() => {
+    const p = playerRef.current;
+    if (!p) return;
+    try {
+      if (p.isMuted()) {
+        p.unMute();
+        setMuted(false);
+      } else {
+        p.mute();
+        setMuted(true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // ── fullscreen + landscape lock ───────────────────────────────────────────
+  const realFsElement = useCallback(() => {
+    const d = document as FsDoc;
+    return d.fullscreenElement ?? d.webkitFullscreenElement ?? null;
+  }, []);
+
+  const enterFs = useCallback(async () => {
+    const el = rootRef.current as FsEl | null;
+    if (!el) return;
+    if (el.requestFullscreen) {
+      try {
+        await el.requestFullscreen();
+        return;
+      } catch {
+        /* fall through to pseudo-fullscreen */
+      }
+    } else if (el.webkitRequestFullscreen) {
+      try {
+        await el.webkitRequestFullscreen();
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+    setPseudoFs(true); // iOS Safari / API rejected → CSS fallback
+  }, []);
+
+  const exitFs = useCallback(async () => {
+    const d = document as FsDoc;
+    if (realFsElement()) {
+      try {
+        if (d.exitFullscreen) await d.exitFullscreen();
+        else if (d.webkitExitFullscreen) await d.webkitExitFullscreen();
+      } catch {
+        /* ignore */
+      }
+    }
+    setPseudoFs(false);
+  }, [realFsElement]);
+
+  const fullscreenActive = isFs || pseudoFs;
+
+  const toggleFs = useCallback(() => {
+    if (fullscreenActive) void exitFs();
+    else void enterFs();
+  }, [fullscreenActive, enterFs, exitFs]);
+
+  // Real Fullscreen API: track state + lock orientation to landscape on phones.
+  useEffect(() => {
+    const onChange = () => {
+      const active = realFsElement() === rootRef.current;
+      setIsFs(active);
+      const orientation = (
+        typeof screen !== "undefined" ? screen.orientation : undefined
+      ) as LockableOrientation | undefined;
+      if (active) {
+        void orientation?.lock?.("landscape").catch(() => {});
+      } else {
+        try {
+          orientation?.unlock?.();
+        } catch {
+          /* unsupported — fine */
+        }
+      }
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    document.addEventListener("webkitfullscreenchange", onChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("webkitfullscreenchange", onChange);
+    };
+  }, [realFsElement]);
+
+  // iOS pseudo-fullscreen: lock body scroll + best-effort landscape lock.
+  useEffect(() => {
+    if (!pseudoFs || typeof document === "undefined") return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const orientation = (
+      typeof screen !== "undefined" ? screen.orientation : undefined
+    ) as LockableOrientation | undefined;
+    void orientation?.lock?.("landscape").catch(() => {});
+    return () => {
+      document.body.style.overflow = prev;
+      try {
+        orientation?.unlock?.();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [pseudoFs]);
+
+  // ── auto-hiding chrome ────────────────────────────────────────────────────
+  const scheduleHide = useCallback(() => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => {
+      if (playingRef.current) setChromeVisible(false);
+    }, CHROME_HIDE_MS);
+  }, []);
+
+  const revealChrome = useCallback(() => {
+    setChromeVisible(true);
+    scheduleHide();
+  }, [scheduleHide]);
+
+  const onSurfaceTap = useCallback(() => {
+    setChromeVisible((v) => !v);
+    scheduleHide();
+  }, [scheduleHide]);
+
+  // Paused → controls always visible; playing → start the hide countdown.
+  useEffect(() => {
+    if (!playing) {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+      setChromeVisible(true);
+    } else {
+      scheduleHide();
+    }
+  }, [playing, scheduleHide]);
+
+  useEffect(
+    () => () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    },
+    [],
+  );
+
+  const showCenter = !ready || buffering || !playing || chromeVisible;
+  const pct = dur > 0 ? Math.min(100, (pos / dur) * 100) : 0;
+
   return (
-    <div className="relative aspect-video w-full overflow-hidden bg-black">
-      <YouTube
-        videoId={videoId}
-        opts={PLAYER_OPTS}
-        onReady={onReady}
-        onStateChange={onStateChange}
-        className="absolute inset-0 size-full"
-        iframeClassName="size-full"
-      />
+    <div
+      ref={rootRef}
+      data-testid="video-player"
+      onMouseMove={revealChrome}
+      className={cn(
+        "relative w-full select-none overflow-hidden bg-black",
+        fullscreenActive
+          ? "fixed inset-0 z-[9999] flex items-center justify-center"
+          : "aspect-video rounded-2xl shadow-sm ring-1 ring-black/5",
+        !chromeVisible && playing && "cursor-none",
+        className,
+      )}
+    >
+      {/* The video box. In fullscreen it's letterboxed to 16:9 inside the
+          black backdrop; otherwise it fills the aspect-ratio container. */}
+      <div
+        className={cn(
+          "relative",
+          fullscreenActive
+            ? "aspect-video w-full max-h-full max-w-[calc(100vh*16/9)]"
+            : "absolute inset-0",
+        )}
+      >
+        <YouTube
+          videoId={videoId}
+          opts={PLAYER_OPTS}
+          onReady={onReady}
+          onStateChange={onStateChange}
+          className="absolute inset-0 size-full"
+          iframeClassName="size-full"
+        />
+
+        {/* SHIELD — blocks every pointer event from reaching the iframe (no
+            click-through to YouTube, no context menu) and kills pinch/double-tap
+            zoom on the video. Tapping it toggles the controls overlay. */}
+        <button
+          type="button"
+          aria-label="Toggle player controls"
+          tabIndex={-1}
+          onClick={onSurfaceTap}
+          onContextMenu={(e) => e.preventDefault()}
+          className="absolute inset-0 z-10 size-full cursor-pointer outline-none"
+          style={{ touchAction: "none" }}
+        />
+
+        {watermarkText ? <Watermark text={watermarkText} /> : null}
+
+        {/* Center play / buffering affordance (covers the YouTube pause UI). */}
+        {showCenter ? (
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+            {!ready || buffering ? (
+              <Loader2 className="size-12 animate-spin text-white/90" aria-hidden />
+            ) : (
+              <button
+                type="button"
+                onClick={togglePlay}
+                aria-label={playing ? "Pause" : ended ? "Replay" : "Play"}
+                className="pointer-events-auto flex size-16 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/30 backdrop-blur-sm transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+              >
+                {playing ? (
+                  <Pause className="size-7" />
+                ) : ended ? (
+                  <RotateCcw className="size-7" />
+                ) : (
+                  <Play className="size-7 translate-x-0.5" />
+                )}
+              </button>
+            )}
+          </div>
+        ) : null}
+
+        {topLeft ? (
+          <div
+            className={cn(
+              "absolute left-2 top-2 z-30 transition-opacity duration-200",
+              chromeVisible ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          >
+            {topLeft}
+          </div>
+        ) : null}
+
+        {/* Bottom control bar. */}
+        <div
+          className={cn(
+            "absolute inset-x-0 bottom-0 z-30 flex flex-col gap-1.5 bg-gradient-to-t from-black/85 via-black/35 to-transparent px-3 pb-2.5 pt-10 transition-opacity duration-200",
+            chromeVisible ? "opacity-100" : "pointer-events-none opacity-0",
+          )}
+        >
+          {seekable ? (
+            <input
+              type="range"
+              min={0}
+              max={Math.max(dur, 1)}
+              step={0.1}
+              value={Math.min(pos, dur || pos)}
+              aria-label="Seek"
+              aria-valuetext={`${fmt(pos)} of ${fmt(dur)}`}
+              onPointerDown={() => {
+                seekingRef.current = true;
+              }}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                setPos(v);
+                if (!seekingRef.current) seek(v); // keyboard / track click
+              }}
+              onPointerUp={(e) => {
+                seekingRef.current = false;
+                seek(Number((e.target as HTMLInputElement).value));
+                revealChrome();
+              }}
+              className="h-1.5 w-full cursor-pointer accent-white"
+              style={{
+                background: `linear-gradient(to right, rgba(255,255,255,0.95) ${pct}%, rgba(255,255,255,0.28) ${pct}%)`,
+                borderRadius: 9999,
+              }}
+            />
+          ) : null}
+
+          <div className="flex items-center gap-1.5 text-white">
+            <ControlButton
+              onClick={togglePlay}
+              label={playing ? "Pause" : ended ? "Replay" : "Play"}
+            >
+              {playing ? (
+                <Pause className="size-5" />
+              ) : ended ? (
+                <RotateCcw className="size-5" />
+              ) : (
+                <Play className="size-5" />
+              )}
+            </ControlButton>
+
+            {seekable ? (
+              <>
+                <ControlButton
+                  onClick={() => skip(-SKIP_SECONDS)}
+                  label="Rewind 10 seconds"
+                >
+                  <Rewind className="size-5" />
+                </ControlButton>
+                <ControlButton
+                  onClick={() => skip(SKIP_SECONDS)}
+                  label="Forward 10 seconds"
+                >
+                  <FastForward className="size-5" />
+                </ControlButton>
+              </>
+            ) : null}
+
+            {seekable ? (
+              <span className="ml-1 select-none text-xs font-medium tabular-nums text-white/90">
+                {fmt(pos)} / {fmt(dur)}
+              </span>
+            ) : (
+              <span className="ml-1 inline-flex select-none items-center rounded-md bg-red-600 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
+                <span className="mr-1.5 inline-block size-1.5 animate-pulse rounded-full bg-white" />
+                Live
+              </span>
+            )}
+
+            <div className="flex-1" />
+
+            <ControlButton
+              onClick={toggleMute}
+              label={muted ? "Unmute" : "Mute"}
+            >
+              {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+            </ControlButton>
+            <ControlButton
+              onClick={toggleFs}
+              label={fullscreenActive ? "Exit fullscreen" : "Fullscreen"}
+            >
+              {fullscreenActive ? (
+                <Minimize className="size-5" />
+              ) : (
+                <Maximize className="size-5" />
+              )}
+            </ControlButton>
+          </div>
+        </div>
+      </div>
     </div>
   );
-});
+}
+
+function ControlButton({
+  onClick,
+  label,
+  children,
+}: {
+  onClick: () => void;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="flex size-9 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+    >
+      {children}
+    </button>
+  );
+}
+
+function safeTime(p: PlayerApi): number {
+  try {
+    return p.getCurrentTime();
+  } catch {
+    return 0;
+  }
+}

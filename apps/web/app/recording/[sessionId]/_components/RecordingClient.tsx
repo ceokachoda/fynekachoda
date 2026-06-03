@@ -10,7 +10,6 @@ import { useLivePlaybackSign } from "@/features/live/useLivePlaybackSign";
 import { useChatChannel } from "@/features/chat/useChatChannel";
 import { sessionDisplayName } from "@/lib/session-name";
 import { WrappedYtPlayer } from "@/components/player/WrappedYtPlayer";
-import { Watermark } from "@/components/player/Watermark";
 import { ChatReplay } from "@/components/live/ChatReplay";
 import { cn } from "@/lib/utils";
 import { formatWatermark } from "@/lib/watermark";
@@ -93,14 +92,13 @@ function RecordingInner({ sessionId, fullName }: RecordingClientProps) {
       <div className="lg:flex lg:flex-1 lg:overflow-hidden">
         {/* Player + speed controls */}
         <div className="bg-black lg:w-[min(70vw,1100px)]">
-          <div className="relative">
-            <WrappedYtPlayer
-              videoId={sign.signed.video_id}
-              playbackRate={rate}
-              onPosition={(sec) => setPosSec(sec)}
-            />
-            <Watermark text={watermarkText} />
-          </div>
+          <WrappedYtPlayer
+            videoId={sign.signed.video_id}
+            watermarkText={watermarkText}
+            playbackRate={rate}
+            onPosition={(sec) => setPosSec(sec)}
+            className="rounded-none shadow-none ring-0"
+          />
 
           <div className="flex items-center justify-end gap-1.5 border-t border-slate-200 bg-white px-3 py-2.5">
             <span className="mr-2 text-xs font-semibold uppercase tracking-wide text-slate-500">

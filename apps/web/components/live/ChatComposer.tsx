@@ -91,7 +91,7 @@ export function ChatComposer({
             placeholder={placeholder ?? "Type a message…"}
             maxLength={500}
             rows={1}
-            className="max-h-24 w-full resize-none border-0 bg-transparent py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none"
+            className="max-h-24 w-full resize-none border-0 bg-transparent py-2 text-base text-slate-800 placeholder:text-slate-400 focus:outline-none"
           />
         </div>
         <button

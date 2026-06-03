@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, AlertCircle } from "lucide-react";
 import { WrappedYtPlayer } from "@/components/player/WrappedYtPlayer";
-import { Watermark } from "@/components/player/Watermark";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useContentItem } from "@/features/library/useContentItem";
@@ -89,16 +88,17 @@ export function VideoClient({ contentId, fullName }: Props) {
             </Button>
           </div>
         ) : playerReady && playback.data ? (
-          <>
+          <div className="flex h-full items-center justify-center">
             <WrappedYtPlayer
               videoId={playback.data.video_id}
+              watermarkText={watermarkText}
               startSeconds={startSeconds}
               onProgress={(pos, dur) => {
                 void progress.update(pos, dur);
               }}
+              className="rounded-none shadow-none ring-0"
             />
-            <Watermark text={watermarkText} />
-          </>
+          </div>
         ) : null}
       </div>
       {item.data?.description ? (
