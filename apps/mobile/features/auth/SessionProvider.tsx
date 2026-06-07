@@ -70,10 +70,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const init = useCallback(async () => {
     setIsLoading(true);
-    const { data } = await supabase.auth.getSession();
-    setSession(data.session);
-    await loadProfile(data.session);
-    setIsLoading(false);
+    try {
+      // If the stored refresh token is dead (e.g. the account was removed),
+      // auth-js clears it internally and getSession resolves to a null session
+      // — we land on /login. The try/finally just guarantees the splash never
+      // hangs on `isLoading` if a startup call ever throws.
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+      await loadProfile(data.session);
+    } catch {
+      setSession(null);
+      setAppUser(null);
+      setRoles([]);
+    } finally {
+      setIsLoading(false);
+    }
   }, [loadProfile]);
 
   useEffect(() => {

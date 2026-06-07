@@ -1,4 +1,5 @@
 import "react-native-url-polyfill/auto";
+import "./auth-log-filter";
 import { createClient } from "@supabase/supabase-js";
 import { env } from "./env";
 import { secureStorage } from "./secure-store";
