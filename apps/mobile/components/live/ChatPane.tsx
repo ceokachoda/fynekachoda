@@ -33,12 +33,8 @@ export function MessageBubble({
   onLongPress?: () => void;
 }) {
   const isStaff = msg.author_role === "teacher" || msg.author_role === "admin";
-  return (
-    <Pressable
-      onLongPress={onLongPress}
-      delayLongPress={350}
-      className="mb-3 flex-row"
-    >
+  const inner = (
+    <>
       <View
         className={`w-7 h-7 rounded-full items-center justify-center mr-2 mt-0.5 ${
           isStaff ? "bg-emerald-100" : "bg-blue-100"
@@ -74,6 +70,19 @@ export function MessageBubble({
         </View>
         <Text className="text-slate-700 text-sm leading-5">{msg.body}</Text>
       </View>
+    </>
+  );
+
+  // Only moderators get a Pressable (long-press to moderate). For everyone else
+  // a plain View means a tap on a message isn't "handled", so the list's
+  // keyboardShouldPersistTaps="handled" dismisses the keyboard — you can tap the
+  // chat to put the keyboard away and get back to watching.
+  if (!onLongPress) {
+    return <View className="mb-3 flex-row">{inner}</View>;
+  }
+  return (
+    <Pressable onLongPress={onLongPress} delayLongPress={350} className="mb-3 flex-row">
+      {inner}
     </Pressable>
   );
 }

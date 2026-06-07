@@ -2,9 +2,23 @@
 // Lobby countdown -> wrapped player + watermark + chat + raise-hand + pinned
 // banner. The end-of-class signal arrives as a kind='system' chat message; we
 // then offer the recording.
+//
+// Orientation (web-parity, 2026-06):
+//   • Portrait            → video on top, chat below.
+//   • Landscape           → video + chat SIDE BY SIDE (read chat while watching).
+//   • Fullscreen (button) → immersive video only; tap again to return.
+// The media + chat each stay at a STABLE tree position — rotating only toggles
+// their wrapper style, so the player never reloads (low-end perf rule).
 
 import { useEffect, useMemo, useRef } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, Text, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -32,6 +46,7 @@ export default function LiveScreen() {
   const navigation = useNavigation();
   const { sessionId } = useLocalSearchParams<{ sessionId: string }>();
   const { appUser } = useSession();
+  const { width } = useWindowDimensions();
 
   const { session, isLoading, error, reload } = useLiveSession(sessionId, {
     pollWhileNotLive: true,
@@ -43,8 +58,13 @@ export default function LiveScreen() {
   const chat = useChatChannel(sessionId, { trackPresence: true });
   const hand = useRaiseHand(sessionId);
   const { isBanned } = useSessionState(sessionId);
-  const { isLandscape } = useVideoOrientation();
+  const { isLandscape, immersive, toggleFullscreen } = useVideoOrientation();
   const playerRef = useRef<WrappedYtPlayerHandle | null>(null);
+
+  // Side-by-side in landscape; immersive hides the chat entirely.
+  const wide = isLandscape && !immersive;
+  const chrome = !(isLandscape || immersive); // show header + status bar
+  const chatW = Math.min(Math.max(Math.round(width * 0.36), 300), 400);
 
   const pinned = useMemo(() => {
     const ann = chat.messages.filter((m) => m.kind === "announcement" && !m.is_deleted);
@@ -152,27 +172,23 @@ export default function LiveScreen() {
   const live = isLive && sign.signed;
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={isLandscape ? [] : ["top"]}>
-      <StatusBar hidden={isLandscape} />
-      {!isLandscape ? <Header title={session ? sessionDisplayName(session.title, session.subject_name) : "Live class"} /> : null}
+    <SafeAreaView className="flex-1 bg-slate-50" edges={chrome ? ["top"] : []}>
+      <StatusBar hidden={!chrome} />
+      {chrome ? (
+        <Header title={session ? sessionDisplayName(session.title, session.subject_name) : "Live class"} />
+      ) : null}
 
-      {/* Media stays at a STABLE tree position so rotating never reloads the
-          player — only its wrapper style toggles inline ↔ fullscreen. */}
+      {/* Media — STABLE node; style decides placement so rotating never reloads
+          the player. Immersive = full screen; landscape = left of the chat. */}
       <View
         style={
-          isLandscape
-            ? {
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: "#000",
-                zIndex: 50,
-              }
-            : live
-              ? { backgroundColor: "#000" }
-              : { height: 220 }
+          immersive
+            ? { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#000", zIndex: 50 }
+            : wide
+              ? { position: "absolute", top: 0, left: 0, bottom: 0, right: chatW, backgroundColor: "#000", zIndex: 10 }
+              : live
+                ? { backgroundColor: "#000" }
+                : { height: 220 }
         }
       >
         {live ? (
@@ -181,7 +197,9 @@ export default function LiveScreen() {
             videoId={sign.signed!.video_id}
             watermark={sign.signed!.watermark}
             live
-            fill={isLandscape}
+            fill={isLandscape || immersive}
+            isFullscreen={immersive}
+            onToggleFullscreen={toggleFullscreen}
           />
         ) : (
           <LobbyCountdown
@@ -191,41 +209,61 @@ export default function LiveScreen() {
         )}
       </View>
 
-      {!isLandscape ? (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+      {/* Chat — STABLE node; in-flow (portrait) ↔ right column (landscape).
+          Hidden only in immersive fullscreen. */}
+      {!immersive ? (
+        <View
+          style={
+            wide
+              ? {
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: chatW,
+                  backgroundColor: "#fff",
+                  zIndex: 20,
+                  borderLeftWidth: 1,
+                  borderLeftColor: "#e2e8f0",
+                }
+              : { flex: 1 }
+          }
         >
-          {pinned ? <PinnedBanner text={pinned.body} byName={pinned.author_name} /> : null}
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
+            {pinned ? <PinnedBanner text={pinned.body} byName={pinned.author_name} /> : null}
 
-          <View className="flex-1 bg-white">
-            <ChatPane messages={chat.messages} currentUserId={appUser?.id} />
-          </View>
+            <View className="flex-1 bg-white">
+              <ChatPane messages={chat.messages} currentUserId={appUser?.id} />
+            </View>
 
-          <View className="flex-row items-center px-4 py-2 bg-white border-t border-slate-100">
-            <RaiseHandButton
-              raised={hand.myHandRaised}
-              busy={hand.isBusy}
-              disabled={!live}
-              onRaise={hand.raise}
-              onLower={hand.lower}
+            <View className="flex-row items-center px-4 py-2 bg-white border-t border-slate-100">
+              <RaiseHandButton
+                raised={hand.myHandRaised}
+                busy={hand.isBusy}
+                disabled={!live}
+                onRaise={hand.raise}
+                onLower={hand.lower}
+              />
+              <View className="flex-1" />
+              {hand.myHandRaised ? (
+                <Text className="text-amber-600 text-xs font-semibold">Hand raised ✋</Text>
+              ) : null}
+            </View>
+
+            <ChatComposer
+              onSend={(t) => chat.post(t)}
+              disabled={isBanned || !live}
+              disabledReason={
+                isBanned
+                  ? "You've been muted by the teacher. You can read but can't send."
+                  : "Chat opens when the class goes live."
+              }
             />
-            <View className="flex-1" />
-            {hand.myHandRaised ? (
-              <Text className="text-amber-600 text-xs font-semibold">Hand raised ✋</Text>
-            ) : null}
-          </View>
-
-          <ChatComposer
-            onSend={(t) => chat.post(t)}
-            disabled={isBanned || !live}
-            disabledReason={
-              isBanned
-                ? "You've been muted by the teacher. You can read but can't send."
-                : "Chat opens when the class goes live."
-            }
-          />
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
       ) : null}
     </SafeAreaView>
   );

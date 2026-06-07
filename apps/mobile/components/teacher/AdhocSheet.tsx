@@ -128,7 +128,9 @@ export function AdhocSheet({
         setError(
           data?.error ?? (status === 403
             ? "You're not assigned to this batch."
-            : "Couldn't create offline class."),
+            : status === 409
+              ? "There's already a class for this batch at that time. Pick a different start time."
+              : "Couldn't create offline class."),
         );
         setSubmitting(false);
         return;

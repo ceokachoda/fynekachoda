@@ -135,7 +135,9 @@ export function ScheduleLiveSheet({
           data?.error ??
             (status === 403
               ? "You're not assigned to this batch."
-              : "Couldn't schedule the live class."),
+              : status === 409
+                ? "There's already a class for this batch at that time. Pick a different start time."
+                : "Couldn't schedule the live class."),
         );
         setSubmitting(false);
         return;

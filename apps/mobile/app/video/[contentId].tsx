@@ -48,7 +48,9 @@ export default function VideoScreen() {
   const [signing, setSigning] = useState(true);
   const [showResume, setShowResume] = useState(false);
   const [resumeApplied, setResumeApplied] = useState(false);
-  const { isLandscape } = useVideoOrientation();
+  const { isLandscape, immersive, toggleFullscreen } = useVideoOrientation();
+  const fsActive = isLandscape || immersive;
+  const chrome = !fsActive;
   const playerRef = useRef<WrappedYtPlayerHandle | null>(null);
 
   useEffect(() => {
@@ -115,9 +117,9 @@ export default function VideoScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50" edges={isLandscape ? [] : ["top"]}>
-      <StatusBar hidden={isLandscape} />
-      {!isLandscape ? (
+    <SafeAreaView className="flex-1 bg-slate-50" edges={chrome ? ["top"] : []}>
+      <StatusBar hidden={!chrome} />
+      {chrome ? (
         <View className="flex-row items-center px-4 py-3">
           <Pressable
             onPress={() => router.back()}
@@ -135,7 +137,7 @@ export default function VideoScreen() {
           style, never remounts the player. */}
       <View
         style={
-          isLandscape
+          fsActive
             ? {
                 position: "absolute",
                 top: 0,
@@ -153,14 +155,16 @@ export default function VideoScreen() {
           videoId={signed.video_id}
           watermark={signed.watermark}
           startSec={resumeApplied ? progress?.position_sec : 0}
-          fill={isLandscape}
+          fill={fsActive}
+          isFullscreen={immersive}
+          onToggleFullscreen={toggleFullscreen}
           onProgress={(pos, dur) => {
             void updateProgress(pos, dur);
           }}
         />
       </View>
 
-      {!isLandscape ? (
+      {chrome ? (
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
           {item.description ? (
             <Text className="text-sm text-slate-700 leading-5">

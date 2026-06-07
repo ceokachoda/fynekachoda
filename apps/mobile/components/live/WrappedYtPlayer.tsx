@@ -1,43 +1,56 @@
-// Phase 5 / 9 — fully wrapped YouTube player (D-040 / D-042).
+// Phase 9 / web-parity (2026-06) — fully wrapped YouTube player (D-040 / D-042).
 //
-// We never let YouTube's own chrome (title, channel, Share, related-video
-// cards, the YT logo, the "Watch on YouTube" link) be SEEN or TAPPED.
-// `controls=0` only removes the bottom bar — YouTube still paints a clickable
-// title bar + related/logo overlay whenever the embed is paused or tapped,
-// which leaks the source video (violates D-042) and looks unbranded. So:
-//   1) a full-cover touch overlay sits ABOVE the iframe and captures every tap,
-//      so no touch ever reaches it — it can't navigate to YouTube and the user
-//      can't summon YouTube's tap-to-show chrome. (The WebView itself stays a
-//      normal interactive child; wrapping it in `pointerEvents:"none"` stops
-//      WKWebView from autoplaying on iOS, so we must NOT do that.)
-//   2) we drive play / pause / seek / rate purely through the IFrame JS API +
-//      props;
+// The institute pays for this content, so a student must NEVER be able to bounce
+// out to youtube.com. We never let YouTube's own chrome (title, channel, Share,
+// related-video cards, the YT logo, the "Watch on YouTube" link) be SEEN or
+// TAPPED. `controls=0` only removes the bottom bar — YouTube still paints a
+// clickable title bar + related/logo overlay whenever the embed is paused or
+// tapped, which leaks the source video (violates D-042). So:
+//   1) onShouldStartLoadWithRequest HARD-BLOCKS every navigation that isn't the
+//      embed host. This is the real guarantee: even if a tap reaches a YouTube
+//      link, the WebView refuses to navigate. It also neutralises the iframe
+//      lib's OWN iOS behaviour, which otherwise calls Linking.openURL() and
+//      kicks the student out into the YouTube app / Safari (a real redirect).
+//   2) a full-cover touch overlay sits ABOVE the iframe and captures every tap
+//      once playback has started, so no touch reaches YouTube's tap-to-show
+//      chrome (the WebView itself stays a normal interactive child; wrapping it
+//      in pointerEvents:"none" stops WKWebView autoplay on iOS, so we don't).
 //   3) opaque scrims mask the load poster (until first play) and the paused
 //      state (where YouTube would otherwise show its chrome);
-//   4) a custom control bar (play/pause + scrubber + time) is rendered by US.
+//   4) our OWN chrome (LIVE pill, mute, fullscreen, play/pause + scrubber) is
+//      rendered by US and auto-hides while playing for a clean, pro look.
 // Autoplay-with-audio rides the WebView's `mediaPlaybackRequiresUserAction:
-// false`, so blocking iframe touches does NOT break playback — no DOM gesture
-// is needed (this refines the Phase-5 D-173 stance, which kept controls=1 only
-// because the native play button was assumed to be the required gesture proxy).
-// `live` hides the control bar/scrubber (you don't scrub a live feed). Single
-// WebView at a time per the low-end perf rule; `pause` ref stops it on blur.
+// false`; before first play we leave the centre clear so the user's tap can
+// reach YouTube's own play button (the iOS audio-unlock gesture — D-173).
+// `live` hides the scrubber (you don't scrub a live feed). Single WebView at a
+// time per the low-end perf rule; `pause()` ref stops it on blur.
 
 import {
   forwardRef,
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
 import {
   Dimensions,
   type GestureResponderEvent,
+  Keyboard,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { Pause, Play } from "lucide-react-native";
+import {
+  Maximize,
+  Minimize,
+  Pause,
+  Play,
+  Volume2,
+  VolumeX,
+} from "lucide-react-native";
+import type { WebViewProps } from "react-native-webview";
 import YoutubePlayer, {
   type YoutubeIframeRef,
 } from "react-native-youtube-iframe";
@@ -59,13 +72,18 @@ export interface WrappedYtPlayerProps {
    *  YouTube chrome is blocked regardless of this flag. Default false →
    *  full controls (play/pause + scrubber + time) for recordings + library. */
   live?: boolean;
-  /** Fullscreen mode: fill the parent and letterbox-contain the 16:9 video
-   *  (used in landscape). Otherwise the player is a full-width 16:9 box. */
+  /** Fill the parent and letterbox-contain the 16:9 video (landscape /
+   *  side-by-side / immersive). Otherwise the player is a full-width 16:9 box. */
   fill?: boolean;
   /** Hide the in-video control bar (the host screen draws its own controls
-   *  OUTSIDE the WebView, where touches are guaranteed). Tap-to-toggle + the
-   *  paused indicator stay. */
+   *  OUTSIDE the WebView, where touches are guaranteed). The top chrome
+   *  (LIVE pill / mute / fullscreen) + paused indicator stay. */
   hideControls?: boolean;
+  /** Reflects the host screen's immersive state (drives the maximise/minimise
+   *  icon). When `onToggleFullscreen` is set, a fullscreen button is shown. */
+  isFullscreen?: boolean;
+  /** Toggle immersive fullscreen (the host screen owns the orientation lock). */
+  onToggleFullscreen?: () => void;
   onProgress?: (sec: number, durationSec: number) => void;
   onDuration?: (durationSec: number) => void;
   /** Frequent (~750ms) position updates for an external scrubber. */
@@ -76,16 +94,18 @@ export interface WrappedYtPlayerProps {
 
 const PROGRESS_INTERVAL_MS = 15_000;
 const POSITION_POLL_MS = 750;
+const CHROME_HIDE_MS = 3200;
+
+// The iframe player page is served from this host. Any document navigation that
+// ISN'T this host (about:blank on first iOS load aside) is a bounce off our
+// paid content — we refuse it so the student can never land on youtube.com.
+const PLAYER_HOST = "https://lonelycpp.github.io/";
 
 // react-native-youtube-iframe@2.4.1 drives play/pause/rate by posting messages
-// to the player page (the REMOTE lonelycpp.github.io/iframe_v2.html, since we
-// don't use useLocalHTML). That page autoplays and does NOT reliably act on the
-// posted `pauseVideo` / `setPlaybackRate` commands — so the video plays but
-// won't pause, and the rate prop is ignored. We make our OWN injected handler
-// the authoritative command bridge: it listens for the same messages and calls
-// the YT player API directly. Runs once on load; `window.player` exists by the
-// time any command arrives (the lib gates messages on player-ready). Double-
-// handling (if the page also acts) is harmless — the calls are idempotent.
+// to the remote player page, which does NOT reliably act on `pauseVideo` /
+// `setPlaybackRate` / mute. We make our OWN injected handler the authoritative
+// command bridge: it listens for the same messages and calls the YT player API
+// directly. Idempotent, so double-handling (if the page also acts) is harmless.
 const COMMAND_BRIDGE_JS = `
 (function () {
   if (window.__ytCmdBridge) return;
@@ -111,6 +131,10 @@ const COMMAND_BRIDGE_JS = `
 true;
 `;
 
+type ShouldStartLoad = NonNullable<
+  WebViewProps["onShouldStartLoadWithRequest"]
+>;
+
 function fmt(s: number): string {
   if (!Number.isFinite(s) || s <= 0) return "0:00";
   const m = Math.floor(s / 60);
@@ -119,6 +143,36 @@ function fmt(s: number): string {
 }
 function clamp01(n: number): number {
   return n < 0 ? 0 : n > 1 ? 1 : n;
+}
+
+/** A round chrome button. Uses the gesture-responder system (claims on
+ *  touch-START) instead of Pressable — WKWebView cancels Pressable's onPress
+ *  mid-gesture, so a Pressable over the WebView blocks tap-through but never
+ *  fires. */
+function ChromeButton({
+  onPress,
+  children,
+}: {
+  onPress: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <View
+      onStartShouldSetResponder={() => true}
+      onResponderRelease={onPress}
+      style={{
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        marginLeft: 10,
+        backgroundColor: "rgba(0,0,0,0.55)",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {children}
+    </View>
+  );
 }
 
 export const WrappedYtPlayer = forwardRef<
@@ -133,6 +187,8 @@ export const WrappedYtPlayer = forwardRef<
     live,
     fill,
     hideControls,
+    isFullscreen,
+    onToggleFullscreen,
     onProgress,
     onDuration,
     onPosition,
@@ -143,6 +199,7 @@ export const WrappedYtPlayer = forwardRef<
 ) {
   const playerRef = useRef<YoutubeIframeRef | null>(null);
   const [playing, setPlaying] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [started, setStarted] = useState(false);
   const [durationSec, setDurationSec] = useState(0);
   const [currentSec, setCurrentSec] = useState(0);
@@ -151,6 +208,7 @@ export const WrappedYtPlayer = forwardRef<
   const [trackW, setTrackW] = useState(0);
   const [width, setWidth] = useState(Dimensions.get("window").width);
   const [containerH, setContainerH] = useState(0);
+  const [chromeVisible, setChromeVisible] = useState(true);
   const seededRef = useRef(false);
 
   useImperativeHandle(ref, () => ({
@@ -175,6 +233,32 @@ export const WrappedYtPlayer = forwardRef<
   useEffect(() => {
     onPlayingChange?.(playing);
   }, [playing, onPlayingChange]);
+
+  // ── auto-hiding chrome ────────────────────────────────────────────────────
+  const playingRef = useRef(playing);
+  playingRef.current = playing;
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleHide = useCallback(() => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => {
+      if (playingRef.current) setChromeVisible(false);
+    }, CHROME_HIDE_MS);
+  }, []);
+  useEffect(() => {
+    if (!started) return;
+    if (playing) {
+      scheduleHide();
+    } else {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+      setChromeVisible(true);
+    }
+  }, [playing, started, scheduleHide]);
+  useEffect(
+    () => () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    },
+    [],
+  );
 
   const onReady = useCallback(async () => {
     const d = await playerRef.current?.getDuration();
@@ -240,18 +324,42 @@ export const WrappedYtPlayer = forwardRef<
     setTimeout(() => setPlaying(true), 50);
   }, []);
 
-  // Recordings/library: tapping anywhere on the video toggles play/pause (a big,
-  // reliable target — the small control-bar button is a backup). The control bar
-  // itself stays visible, so the user never has to hunt for it. Live has no
-  // play/pause (you don't pause a broadcast), so taps are swallowed.
+  // Tapping the surface toggles our chrome (the big, reliable target). Pre-start
+  // it re-issues play instead (so the user's tap doubles as the audio gesture).
+  // Either way, dismiss the chat keyboard first — a tap on the video means "I'm
+  // done typing, let me watch", so the keyboard must get out of the way.
   const handleSurfaceTap = useCallback(() => {
+    Keyboard.dismiss();
     if (!started) {
       retriggerPlay();
       return;
     }
-    if (live) return;
-    setPlaying((p) => !p);
-  }, [started, live, retriggerPlay]);
+    setChromeVisible((v) => {
+      const next = !v;
+      if (next) scheduleHide();
+      return next;
+    });
+  }, [started, retriggerPlay, scheduleHide]);
+
+  // HARD redirect lock: refuse every document navigation that isn't the embed
+  // host. Blocks "Watch on YouTube" / share / channel links AND the iframe
+  // lib's own iOS Linking.openURL bounce. The embed sub-frame reports the host
+  // as mainDocumentURL, so real playback is unaffected.
+  const onShouldStartLoadWithRequest = useCallback<ShouldStartLoad>((req) => {
+    const url = req.mainDocumentURL || req.url || "";
+    if (!url || url === "about:blank") return true;
+    return url.startsWith(PLAYER_HOST);
+  }, []);
+
+  const webViewProps = useMemo<WebViewProps>(
+    () => ({
+      allowsInlineMediaPlayback: true,
+      mediaPlaybackRequiresUserAction: false,
+      injectedJavaScript: COMMAND_BRIDGE_JS,
+      onShouldStartLoadWithRequest,
+    }),
+    [onShouldStartLoadWithRequest],
+  );
 
   const fracFromEvent = useCallback(
     (e: GestureResponderEvent) => {
@@ -285,7 +393,7 @@ export const WrappedYtPlayer = forwardRef<
     [fracFromEvent, durationSec],
   );
 
-  // Video box. Normal: full-width 16:9. Fill (fullscreen/landscape): the largest
+  // Video box. Normal: full-width 16:9. Fill (landscape/immersive): the largest
   // 16:9 box that fits the parent (letterbox), centered.
   let videoW = width;
   let videoH = Math.round((width * 9) / 16);
@@ -302,7 +410,8 @@ export const WrappedYtPlayer = forwardRef<
     (scrubbing ? scrubFrac : durationSec > 0 ? clamp01(currentSec / durationSec) : 0) *
     100;
   const displaySec = scrubbing ? scrubFrac * durationSec : currentSec;
-  const showBar = !live && started && !hideControls;
+  const showBar = !live && started && !hideControls && chromeVisible;
+  const showTopChrome = started && chromeVisible;
 
   return (
     <View
@@ -334,6 +443,7 @@ export const WrappedYtPlayer = forwardRef<
         height={videoH}
         width={videoW}
         play={playing}
+        mute={muted}
         playbackRate={playbackRate ?? 1}
         videoId={videoId}
         onReady={onReady}
@@ -345,22 +455,13 @@ export const WrappedYtPlayer = forwardRef<
           preventFullScreen: true,
           iv_load_policy: 3,
         }}
-        webViewProps={{
-          allowsInlineMediaPlayback: true,
-          mediaPlaybackRequiresUserAction: false,
-          injectedJavaScript: COMMAND_BRIDGE_JS,
-        }}
+        webViewProps={webViewProps}
       />
 
       {/* touch layer — ONLY after playback has started. Before start we leave
           the surface open so the user's tap can reach YouTube's own play button
-          (the audio-start gesture; a programmatic play won't unlock audio on
-          mobile — D-173). Once playing, this captures every tap so nothing
-          reaches the iframe (no chrome, no tap-through to YouTube).
-          Uses the gesture-responder system (claims on touch-START) instead of
-          Pressable: WKWebView cancels Pressable's onPress mid-gesture, so a
-          Pressable here blocks tap-through but never fires — which is why
-          tap-to-pause silently did nothing. */}
+          (the audio-start gesture; D-173). Once playing, this captures every tap
+          (toggles our chrome) so nothing reaches the iframe. */}
       {started ? (
         <View
           style={StyleSheet.absoluteFill}
@@ -413,7 +514,10 @@ export const WrappedYtPlayer = forwardRef<
             { alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.45)" },
           ]}
           onStartShouldSetResponder={() => true}
-          onResponderRelease={() => setPlaying(true)}
+          onResponderRelease={() => {
+            Keyboard.dismiss();
+            setPlaying(true);
+          }}
         >
           <View
             style={{
@@ -435,8 +539,69 @@ export const WrappedYtPlayer = forwardRef<
         </View>
       ) : null}
 
-      {/* our control bar (recordings + library; never for live) — always on
-          while started so play/pause + scrubber are never hidden behind a tap */}
+      {/* top chrome — LIVE pill (left) + mute + fullscreen (right). box-none so
+          taps on empty space fall through to the surface overlay (toggle). */}
+      {showTopChrome ? (
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 40,
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 12,
+            paddingTop: 10,
+          }}
+        >
+          {live ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#dc2626",
+                borderRadius: 6,
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+              }}
+            >
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: "#fff",
+                  marginRight: 6,
+                }}
+              />
+              <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>
+                LIVE
+              </Text>
+            </View>
+          ) : null}
+          <View style={{ flex: 1 }} />
+          <ChromeButton onPress={() => setMuted((m) => !m)}>
+            {muted ? (
+              <VolumeX size={18} color="#fff" />
+            ) : (
+              <Volume2 size={18} color="#fff" />
+            )}
+          </ChromeButton>
+          {onToggleFullscreen ? (
+            <ChromeButton onPress={onToggleFullscreen}>
+              {isFullscreen ? (
+                <Minimize size={18} color="#fff" />
+              ) : (
+                <Maximize size={18} color="#fff" />
+              )}
+            </ChromeButton>
+          ) : null}
+        </View>
+      ) : null}
+
+      {/* our bottom control bar (recordings + library; never for live) */}
       {showBar ? (
         <View
           style={{

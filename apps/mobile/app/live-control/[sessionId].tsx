@@ -84,7 +84,6 @@ export default function LiveControlScreen() {
   });
   const [goingLive, setGoingLive] = useState(false);
   const [ending, setEnding] = useState(false);
-  const [tab, setTab] = useState<"chat" | "hands">("chat");
   const [modTarget, setModTarget] = useState<ChatMessage | null>(null);
   const [pinOpen, setPinOpen] = useState(false);
   const [pinText, setPinText] = useState("");
@@ -408,13 +407,17 @@ export default function LiveControlScreen() {
           </Pressable>
         </ScrollView>
       ) : (
-        <>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           {sign.signed ? (
             <View className="bg-black">
               <WrappedYtPlayer
                 ref={playerRef}
                 videoId={sign.signed.video_id}
                 watermark={sign.signed.watermark}
+                live
               />
             </View>
           ) : (
@@ -426,90 +429,70 @@ export default function LiveControlScreen() {
             </View>
           )}
 
-          <View className="flex-row bg-white border-b border-slate-100">
-            {(["chat", "hands"] as const).map((t) => (
-              <Pressable
-                key={t}
-                onPress={() => setTab(t)}
-                className={`flex-1 py-3 items-center ${
-                  tab === t ? "border-b-2 border-blue-600" : ""
-                }`}
-              >
-                <Text
-                  className={`text-sm font-bold ${
-                    tab === t ? "text-blue-700" : "text-slate-500"
-                  }`}
-                >
-                  {t === "chat" ? "Chat" : `Hands (${hand.queue.length})`}
+          {/* Raised hands — always visible above the chat (no more tabs), so a
+              teacher never misses a hand while reading messages. */}
+          {hand.queue.length > 0 ? (
+            <View className="bg-amber-50 border-b border-amber-100">
+              <View className="flex-row items-center px-4 pt-2.5 pb-1">
+                <Hand size={14} color="#b45309" />
+                <Text className="ml-1.5 text-amber-700 text-xs font-bold">
+                  Raised hands ({hand.queue.length})
                 </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          {tab === "chat" ? (
-            <KeyboardAvoidingView
-              style={{ flex: 1 }}
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-            >
-              <View className="flex-1 bg-white">
-                <ChatPane
-                  messages={chat.messages}
-                  currentUserId={appUser?.id}
-                  canModerate
-                  onModerate={(m) => setModTarget(m)}
-                  emptyHint="No messages yet. Long-press a message to moderate it."
-                />
               </View>
-              <Pressable
-                onPress={() => setPinOpen(true)}
-                className="flex-row items-center justify-center py-2 bg-blue-50 border-t border-blue-100"
+              <ScrollView
+                style={{ maxHeight: 132 }}
+                contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 10 }}
+                showsVerticalScrollIndicator={false}
               >
-                <Pin size={14} color="#1d4ed8" style={{ marginRight: 6 }} />
-                <Text className="text-blue-700 text-xs font-bold">
-                  Pin an announcement
-                </Text>
-              </Pressable>
-              <ChatComposer onSend={(t) => chat.post(t)} placeholder="Message your class…" />
-            </KeyboardAvoidingView>
-          ) : (
-            <ScrollView
-              className="flex-1 bg-white"
-              contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 16 }}
-            >
-              {hand.queue.length === 0 ? (
-                <View className="items-center justify-center py-16">
-                  <Hand size={28} color="#94a3b8" />
-                  <Text className="text-slate-400 text-sm mt-3">
-                    No raised hands right now.
-                  </Text>
-                </View>
-              ) : (
-                hand.queue.map((h, i) => (
+                {hand.queue.map((h, i) => (
                   <View
                     key={h.id}
-                    className="flex-row items-center bg-slate-50 rounded-2xl p-3 mb-2"
+                    className="flex-row items-center bg-white rounded-xl px-3 py-2 mb-1.5 border border-amber-100"
                   >
-                    <View className="w-7 h-7 rounded-full bg-amber-100 items-center justify-center mr-3">
-                      <Text className="text-amber-700 text-xs font-bold">{i + 1}</Text>
+                    <View className="w-6 h-6 rounded-full bg-amber-100 items-center justify-center mr-2.5">
+                      <Text className="text-amber-700 text-[11px] font-bold">{i + 1}</Text>
                     </View>
-                    <Text className="flex-1 text-sm font-semibold text-slate-800">
+                    <Text
+                      className="flex-1 text-sm font-semibold text-slate-800"
+                      numberOfLines={1}
+                    >
                       {h.student_name}
                     </Text>
                     <Pressable
                       onPress={() => hand.resolve(h.id)}
-                      className="flex-row items-center bg-emerald-50 rounded-xl px-3 py-1.5"
+                      className="flex-row items-center bg-emerald-50 rounded-lg px-2.5 py-1"
                     >
-                      <CheckCheck size={14} color="#059669" />
-                      <Text className="ml-1 text-emerald-700 font-bold text-xs">
+                      <CheckCheck size={13} color="#059669" />
+                      <Text className="ml-1 text-emerald-700 font-bold text-[11px]">
                         Resolve
                       </Text>
                     </Pressable>
                   </View>
-                ))
-              )}
-            </ScrollView>
-          )}
-        </>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
+
+          <View className="flex-1 bg-white">
+            <ChatPane
+              messages={chat.messages}
+              currentUserId={appUser?.id}
+              canModerate
+              onModerate={(m) => setModTarget(m)}
+              emptyHint="No messages yet. Long-press a message to moderate it."
+            />
+          </View>
+          <Pressable
+            onPress={() => setPinOpen(true)}
+            className="flex-row items-center justify-center py-2 bg-blue-50 border-t border-blue-100"
+          >
+            <Pin size={14} color="#1d4ed8" style={{ marginRight: 6 }} />
+            <Text className="text-blue-700 text-xs font-bold">
+              Pin an announcement
+            </Text>
+          </Pressable>
+          <ChatComposer onSend={(t) => chat.post(t)} placeholder="Message your class…" />
+        </KeyboardAvoidingView>
       )}
 
       {/* moderation action sheet */}

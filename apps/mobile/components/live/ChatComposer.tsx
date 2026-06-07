@@ -4,13 +4,14 @@
 import { useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   Pressable,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Send } from "lucide-react-native";
+import { ChevronDown, Send } from "lucide-react-native";
 
 export function ChatComposer({
   onSend,
@@ -28,6 +29,12 @@ export function ChatComposer({
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [focused, setFocused] = useState(false);
+
+  const dismiss = () => {
+    inputRef.current?.blur();
+    Keyboard.dismiss();
+  };
 
   const send = async () => {
     if (sending || !text.trim()) return;
@@ -69,6 +76,16 @@ export function ChatComposer({
         className="flex-row items-center px-4 pt-3"
         style={{ paddingBottom: insets.bottom + 12 }}
       >
+        {focused ? (
+          <Pressable
+            onPress={dismiss}
+            hitSlop={8}
+            accessibilityLabel="Hide keyboard"
+            className="w-9 h-9 rounded-full bg-slate-200 items-center justify-center mr-2"
+          >
+            <ChevronDown size={18} color="#475569" />
+          </Pressable>
+        ) : null}
         <View className="flex-1 bg-white min-h-11 rounded-3xl border border-slate-200 flex-row items-center px-4">
           <TextInput
             ref={inputRef}
@@ -77,6 +94,8 @@ export function ChatComposer({
               setText(t);
               if (error) setError(null);
             }}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             placeholder={placeholder ?? "Type a message…"}
             placeholderTextColor="#94a3b8"
             maxLength={500}
