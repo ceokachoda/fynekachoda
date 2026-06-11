@@ -13,6 +13,14 @@ import { AuthError, loadCaller, requireAnyRole } from "../_shared/auth.ts";
 import { AttendanceBulkMarkInputSchema } from "../_shared/schemas.ts";
 import { clientIp, writeAudit } from "../_shared/audit.ts";
 
+// IST calendar day (D-014) of the session — streak credit belongs to the day
+// the students attended, even if the teacher bulk-marks later.
+function istDayOf(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kolkata",
+  });
+}
+
 Deno.serve(async (req: Request) => {
   const preflight = handlePreflight(req);
   if (preflight) return preflight;
@@ -38,7 +46,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: sessionRow, error: sessionErr } = await admin
       .from("sessions")
-      .select("id, batch_id")
+      .select("id, batch_id, scheduled_start")
       .eq("id", session_id)
       .maybeSingle();
     if (sessionErr) {
@@ -113,6 +121,37 @@ Deno.serve(async (req: Request) => {
         );
       }
       inserted = count ?? toInsert.length;
+
+      // Streak + badge parity with QR scans — only "present" earns activity
+      // ("absent" is the opposite of an active day). Best-effort.
+      if (mark_remaining === "present") {
+        const day = istDayOf(sessionRow.scheduled_start as string);
+        const { error: activityErr } = await admin
+          .from("activity_days")
+          .upsert(
+            toInsert.map((r) => ({ student_id: r.student_id, day })),
+            { onConflict: "student_id,day", ignoreDuplicates: true },
+          );
+        if (activityErr) {
+          console.error("activity_days upsert failed:", activityErr.message);
+        }
+
+        const evals = await Promise.allSettled(
+          toInsert.map((r) =>
+            admin.rpc("evaluate_student_badges", {
+              p_student: r.student_id,
+              p_triggers: ["attendance"],
+            }),
+          ),
+        );
+        for (const e of evals) {
+          if (e.status === "rejected") {
+            console.error("badge eval threw:", e.reason);
+          } else if (e.value.error) {
+            console.error("badge eval failed:", e.value.error.message);
+          }
+        }
+      }
     }
 
     await writeAudit(admin, {

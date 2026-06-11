@@ -21,6 +21,15 @@ import { clientIp, writeAudit } from "../_shared/audit.ts";
 
 const ATTENDANCE_UNIQUE_VIOLATION = "23505";
 
+// IST calendar day (D-014) of the SESSION — manual marks can land after the
+// class day (e.g. fixing yesterday's roster), and the streak credit belongs
+// to the day the student actually attended, not the day the teacher tapped.
+function istDayOf(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kolkata",
+  });
+}
+
 Deno.serve(async (req: Request) => {
   const preflight = handlePreflight(req);
   if (preflight) return preflight;
@@ -46,7 +55,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: sessionRow, error: sessionErr } = await admin
       .from("sessions")
-      .select("id, batch_id")
+      .select("id, batch_id, scheduled_start")
       .eq("id", session_id)
       .maybeSingle();
     if (sessionErr) {
@@ -103,6 +112,34 @@ Deno.serve(async (req: Request) => {
       return jsonError(500, "attendance insert failed", origin, insertErr.message);
     }
     const attendanceId = inserted!.id as string;
+
+    // Streak + badge parity with QR scans (a manual "present"/"late" is the
+    // same achievement). "absent" never counts as activity. Best-effort —
+    // a failure here must never block the mark.
+    if (status !== "absent") {
+      const { error: activityErr } = await admin
+        .from("activity_days")
+        .upsert(
+          {
+            student_id,
+            day: istDayOf(sessionRow.scheduled_start as string),
+          },
+          { onConflict: "student_id,day" },
+        );
+      if (activityErr) {
+        console.error("activity_days upsert failed:", activityErr.message);
+      }
+
+      try {
+        const { error: badgeErr } = await admin.rpc("evaluate_student_badges", {
+          p_student: student_id,
+          p_triggers: ["attendance"],
+        });
+        if (badgeErr) console.error("badge eval failed:", badgeErr.message);
+      } catch (e) {
+        console.error("badge eval threw:", e);
+      }
+    }
 
     await writeAudit(admin, {
       actor_user_id: caller.app_user_id,
