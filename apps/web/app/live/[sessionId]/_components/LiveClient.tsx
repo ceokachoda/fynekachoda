@@ -17,6 +17,7 @@ import { ChatComposer } from "@/components/live/ChatComposer";
 import { RaiseHandButton } from "@/components/live/RaiseHandButton";
 import { PinnedBanner } from "@/components/live/PinnedBanner";
 import type { ActiveRole } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 import { formatWatermark } from "@/lib/watermark";
 import { sessionDisplayName } from "@/lib/session-name";
 
@@ -155,17 +156,20 @@ function LiveInner({ sessionId, fullName, activeRole }: LiveClientProps) {
 
   return (
     <div className="flex h-svh flex-col overflow-hidden bg-slate-50">
+      {/* Phone-landscape = OTT theater: header gone, video letterboxed left,
+          chat docked right (rotate back to portrait to navigate away). */}
       <Header
         subject={session ? sessionDisplayName(session.title, session.subject_name) : "Live class"}
         isLive={!!isLive}
+        className="phone-landscape:hidden"
       />
 
       {/* Stage + chat. App-shell: header fixed, video contained on a light
           surface (no black void), chat scrolls. Stacks on mobile, splits on lg+. */}
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col phone-landscape:flex-row lg:flex-row">
         {/* Video stage — light surface, contained 16:9 card (never a black void) */}
-        <div className="flex shrink-0 items-center justify-center bg-slate-100 p-3 sm:p-4 lg:min-h-0 lg:flex-1 lg:p-6">
-          <div className="w-full max-w-[1200px]">
+        <div className="flex shrink-0 items-center justify-center bg-slate-100 p-3 sm:p-4 phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:bg-black phone-landscape:p-0 lg:min-h-0 lg:flex-1 lg:p-6">
+          <div className="w-full max-w-[1200px] phone-landscape:max-w-[calc(100svh*16/9)]">
             {playerReady ? (
               <WrappedYtPlayer
                 live
@@ -198,7 +202,7 @@ function LiveInner({ sessionId, fullName, activeRole }: LiveClientProps) {
         </div>
 
         {/* Chat column */}
-        <aside className="flex min-h-0 flex-1 flex-col border-t border-slate-200 bg-white lg:w-[384px] lg:flex-none lg:border-l lg:border-t-0">
+        <aside className="flex min-h-0 flex-1 flex-col border-t border-slate-200 bg-white phone-landscape:w-[320px] phone-landscape:flex-none phone-landscape:border-l phone-landscape:border-t-0 lg:w-[384px] lg:flex-none lg:border-l lg:border-t-0">
           {pinned ? (
             <PinnedBanner text={pinned.body} byName={pinned.author_name} />
           ) : null}
@@ -240,9 +244,22 @@ function LiveInner({ sessionId, fullName, activeRole }: LiveClientProps) {
   );
 }
 
-function Header({ subject, isLive }: { subject: string; isLive: boolean }) {
+function Header({
+  subject,
+  isLive,
+  className,
+}: {
+  subject: string;
+  isLive: boolean;
+  className?: string;
+}) {
   return (
-    <header className="flex items-center border-b border-slate-200 bg-white px-4 py-3 lg:px-6">
+    <header
+      className={cn(
+        "flex items-center border-b border-slate-200 bg-white px-4 py-3 lg:px-6",
+        className,
+      )}
+    >
       <Link
         href="/classes"
         aria-label="Back to classes"

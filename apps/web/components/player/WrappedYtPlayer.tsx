@@ -164,6 +164,9 @@ export function WrappedYtPlayer({
   const [buffering, setBuffering] = useState(false);
   const [ended, setEnded] = useState(false);
   const [muted, setMuted] = useState(false);
+  // First playback happened — before that the iframe shows YouTube's title
+  // poster, which the veil below must keep fully covered.
+  const [startedOnce, setStartedOnce] = useState(false);
 
   const [pos, setPos] = useState(0);
   const [dur, setDur] = useState(0);
@@ -273,6 +276,7 @@ export function WrappedYtPlayer({
       if (d === 1) {
         setPlaying(true);
         setEnded(false);
+        setStartedOnce(true);
       } else if (d === 0) {
         setPlaying(false);
         setEnded(true);
@@ -490,7 +494,12 @@ export function WrappedYtPlayer({
     <div
       ref={rootRef}
       data-testid="video-player"
-      onMouseMove={revealChrome}
+      // Hover-reveal is a mouse affordance only. On touch, taps synthesize a
+      // trailing mousemove AFTER the click that toggles the chrome — letting it
+      // call revealChrome would make the chrome impossible to dismiss by tap.
+      onPointerMove={(e) => {
+        if (e.pointerType === "mouse") revealChrome();
+      }}
       className={cn(
         "relative w-full select-none overflow-hidden bg-black",
         fullscreenActive
@@ -518,6 +527,22 @@ export function WrappedYtPlayer({
           className="absolute inset-0 size-full"
           iframeClassName="size-full"
         />
+
+        {/* VEIL — hides YouTube's own chrome whenever the iframe would paint
+            it: fully opaque before first play and after the video ends (title
+            poster / related-videos grid), dimmed + blurred while paused (title
+            bar + "Watch on YouTube"). Sits under the shield so taps still work. */}
+        {!startedOnce || ended ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-[5] bg-black"
+          />
+        ) : ready && !playing ? (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-[5] bg-black/60 backdrop-blur-md"
+          />
+        ) : null}
 
         {/* SHIELD — blocks every pointer event from reaching the iframe (no
             click-through to YouTube, no context menu) and kills pinch/double-tap

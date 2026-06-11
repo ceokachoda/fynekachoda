@@ -7,6 +7,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* A phone (or small tablet) held sideways. Keyed on HEIGHT, not width — a
+ * desktop browser window is also "landscape" but never this short. Drives the
+ * OTT-style theater layout on the live / recording / video screens. */
+@custom-variant phone-landscape (@media (orientation: landscape) and (max-height: 560px));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

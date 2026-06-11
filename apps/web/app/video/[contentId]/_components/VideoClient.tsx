@@ -59,7 +59,7 @@ export function VideoClient({ contentId, fullName }: Props) {
 
   return (
     <div className="flex h-[100dvh] flex-col bg-black text-white">
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex items-center gap-3 px-4 py-3 phone-landscape:hidden">
         <Link
           href="/library"
           className="flex size-9 items-center justify-center rounded-full bg-white/10 text-white"
@@ -91,7 +91,7 @@ export function VideoClient({ contentId, fullName }: Props) {
           <div className="flex h-full items-center justify-center">
             {/* Clamp to the viewport height so a wide window never pushes the
                 16:9 box (and its controls) past the visible area. */}
-            <div className="w-full max-w-[min(100%,calc((100dvh-130px)*16/9))]">
+            <div className="w-full max-w-[min(100%,calc((100dvh-130px)*16/9))] phone-landscape:max-w-[calc(100svh*16/9)]">
               <WrappedYtPlayer
                 videoId={playback.data.video_id}
                 watermarkText={watermarkText}
@@ -106,7 +106,7 @@ export function VideoClient({ contentId, fullName }: Props) {
         ) : null}
       </div>
       {item.data?.description ? (
-        <div className="bg-slate-950 px-4 py-4 text-sm text-slate-300">
+        <div className="bg-slate-950 px-4 py-4 text-sm text-slate-300 phone-landscape:hidden">
           <p className="font-semibold text-white">About this video</p>
           <p className="mt-1 text-xs text-slate-400">{item.data.description}</p>
         </div>

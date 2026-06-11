@@ -11,6 +11,7 @@ import { useChatChannel } from "@/features/chat/useChatChannel";
 import { sessionDisplayName } from "@/lib/session-name";
 import { WrappedYtPlayer } from "@/components/player/WrappedYtPlayer";
 import { ChatReplay } from "@/components/live/ChatReplay";
+import { cn } from "@/lib/utils";
 import { formatWatermark } from "@/lib/watermark";
 
 interface RecordingClientProps {
@@ -83,15 +84,20 @@ function RecordingInner({ sessionId, fullName }: RecordingClientProps) {
 
   return (
     <div className="flex h-svh flex-col overflow-hidden bg-slate-50">
-      <Header subject={session?.subject_name ?? "Recording"} />
+      {/* Phone-landscape = OTT theater: header gone, video letterboxed left,
+          chat replay docked right (rotate back to portrait to navigate away). */}
+      <Header
+        subject={session?.subject_name ?? "Recording"}
+        className="phone-landscape:hidden"
+      />
 
       {/* Stage + chat replay. Same app-shell as the live screen: video sits as
           a contained 16:9 card on a light surface (never a black void), chat
           replay scrolls beside it on lg+ and below it on mobile. */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto phone-landscape:flex-row phone-landscape:overflow-hidden lg:flex-row lg:overflow-hidden">
         {/* Video stage */}
-        <div className="flex shrink-0 items-start justify-center bg-slate-100 p-3 sm:p-4 lg:min-h-0 lg:flex-1 lg:items-center lg:p-6">
-          <div className="w-full max-w-[1200px] lg:max-w-[min(1200px,calc((100svh-160px)*16/9))]">
+        <div className="flex shrink-0 items-start justify-center bg-slate-100 p-3 sm:p-4 phone-landscape:min-h-0 phone-landscape:flex-1 phone-landscape:items-center phone-landscape:bg-black phone-landscape:p-0 lg:min-h-0 lg:flex-1 lg:items-center lg:p-6">
+          <div className="w-full max-w-[1200px] phone-landscape:max-w-[calc(100svh*16/9)] lg:max-w-[min(1200px,calc((100svh-160px)*16/9))]">
             <WrappedYtPlayer
               videoId={sign.signed.video_id}
               watermarkText={watermarkText}
@@ -101,7 +107,7 @@ function RecordingInner({ sessionId, fullName }: RecordingClientProps) {
         </div>
 
         {/* Chat replay column */}
-        <div className="flex min-h-[40vh] flex-col border-t border-slate-200 bg-white lg:min-h-0 lg:w-[384px] lg:flex-none lg:border-l lg:border-t-0">
+        <div className="flex min-h-[40vh] flex-col border-t border-slate-200 bg-white phone-landscape:min-h-0 phone-landscape:w-[320px] phone-landscape:flex-none phone-landscape:border-l phone-landscape:border-t-0 lg:min-h-0 lg:w-[384px] lg:flex-none lg:border-l lg:border-t-0">
           <div className="border-b border-slate-200 bg-slate-50/50 px-4 py-2.5">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
               Chat replay
@@ -128,9 +134,20 @@ function RecordingInner({ sessionId, fullName }: RecordingClientProps) {
   );
 }
 
-function Header({ subject }: { subject: string }) {
+function Header({
+  subject,
+  className,
+}: {
+  subject: string;
+  className?: string;
+}) {
   return (
-    <header className="flex items-center border-b border-slate-200 bg-white px-4 py-3 lg:px-6">
+    <header
+      className={cn(
+        "flex items-center border-b border-slate-200 bg-white px-4 py-3 lg:px-6",
+        className,
+      )}
+    >
       <Link
         href="/classes"
         aria-label="Back to classes"
