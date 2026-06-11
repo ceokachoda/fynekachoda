@@ -17,6 +17,21 @@ import { AuthError, loadCaller, requireAnyRole } from "../_shared/auth.ts";
 import { AttendanceUnmarkInputSchema } from "../_shared/schemas.ts";
 import { clientIp, writeAudit } from "../_shared/audit.ts";
 
+function istDayOf(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kolkata",
+  });
+}
+
+// UTC instants bounding an IST calendar day (D-014).
+function istDayBoundsUtc(day: string): { start: string; end: string } {
+  const start = new Date(`${day}T00:00:00+05:30`);
+  return {
+    start: start.toISOString(),
+    end: new Date(start.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+  };
+}
+
 Deno.serve(async (req: Request) => {
   const preflight = handlePreflight(req);
   if (preflight) return preflight;
@@ -42,7 +57,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: sessionRow, error: sessionErr } = await admin
       .from("sessions")
-      .select("id, batch_id")
+      .select("id, batch_id, scheduled_start")
       .eq("id", session_id)
       .maybeSingle();
     if (sessionErr) {
@@ -87,6 +102,72 @@ Deno.serve(async (req: Request) => {
       .eq("id", attendanceId);
     if (delErr) {
       return jsonError(500, "attendance delete failed", origin, delErr.message);
+    }
+
+    // The mark fed `activity_days` (streaks). Take the day back ONLY if no
+    // other qualifying activity exists for that IST day — the table has no
+    // provenance, and quizzes / exams / video-watching / another class all
+    // write the same (student_id, day) row. Fail-safe: on any doubt or query
+    // error, keep the day (over-crediting a streak beats wrongly breaking one).
+    if (existing.status === "present" || existing.status === "late") {
+      try {
+        const day = istDayOf(sessionRow.scheduled_start as string);
+        const { start, end } = istDayBoundsUtc(day);
+
+        const [otherAttendance, quiz, exam, video] = await Promise.all([
+          admin
+            .from("attendance")
+            .select("id, sessions!inner(scheduled_start)")
+            .eq("student_id", student_id)
+            .in("status", ["present", "late"])
+            .gte("sessions.scheduled_start", start)
+            .lt("sessions.scheduled_start", end)
+            .limit(1),
+          admin
+            .from("quiz_attempts")
+            .select("id")
+            .eq("student_id", student_id)
+            .gte("submitted_at", start)
+            .lt("submitted_at", end)
+            .limit(1),
+          admin
+            .from("exam_attempts")
+            .select("id")
+            .eq("student_id", student_id)
+            .gte("submitted_at", start)
+            .lt("submitted_at", end)
+            .limit(1),
+          admin
+            .from("video_progress")
+            .select("content_id")
+            .eq("student_id", student_id)
+            .gte("watched_pct", 50)
+            .gte("last_watched_at", start)
+            .lt("last_watched_at", end)
+            .limit(1),
+        ]);
+
+        const anyError =
+          otherAttendance.error || quiz.error || exam.error || video.error;
+        const anyActivity =
+          (otherAttendance.data?.length ?? 0) > 0 ||
+          (quiz.data?.length ?? 0) > 0 ||
+          (exam.data?.length ?? 0) > 0 ||
+          (video.data?.length ?? 0) > 0;
+
+        if (!anyError && !anyActivity) {
+          const { error: actDelErr } = await admin
+            .from("activity_days")
+            .delete()
+            .eq("student_id", student_id)
+            .eq("day", day);
+          if (actDelErr) {
+            console.error("activity_days cleanup failed:", actDelErr.message);
+          }
+        }
+      } catch (e) {
+        console.error("activity_days cleanup threw:", e);
+      }
     }
 
     await writeAudit(admin, {
