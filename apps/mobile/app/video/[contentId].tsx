@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -19,6 +19,8 @@ import { useVideoProgress } from "@/features/library/useVideoProgress";
 import { useVideoOrientation } from "@/features/live/useVideoOrientation";
 import { fetchPlaybackSign } from "@/lib/yt-player";
 import { LoadingScreen } from "@/components/LoadingScreen";
+
+const SPEEDS = [1, 1.25, 1.5, 2] as const;
 
 function fmt(s: number): string {
   if (!isFinite(s) || s <= 0) return "0:00";
@@ -52,6 +54,14 @@ export default function VideoScreen() {
   const fsActive = isLandscape || immersive;
   const chrome = !fsActive;
   const playerRef = useRef<WrappedYtPlayerHandle | null>(null);
+
+  const [rate, setRate] = useState<number>(1);
+  const cycleRate = useCallback(() => {
+    setRate((r) => {
+      const i = SPEEDS.indexOf(r as (typeof SPEEDS)[number]);
+      return SPEEDS[(i + 1) % SPEEDS.length] ?? 1;
+    });
+  }, []);
 
   useEffect(() => {
     if (!contentId) return;
@@ -155,9 +165,11 @@ export default function VideoScreen() {
           videoId={signed.video_id}
           watermark={signed.watermark}
           startSec={resumeApplied ? progress?.position_sec : 0}
+          playbackRate={rate}
           fill={fsActive}
           isFullscreen={immersive}
           onToggleFullscreen={toggleFullscreen}
+          onCycleRate={cycleRate}
           onProgress={(pos, dur) => {
             void updateProgress(pos, dur);
           }}

@@ -11,10 +11,7 @@ import { useChatChannel } from "@/features/chat/useChatChannel";
 import { sessionDisplayName } from "@/lib/session-name";
 import { WrappedYtPlayer } from "@/components/player/WrappedYtPlayer";
 import { ChatReplay } from "@/components/live/ChatReplay";
-import { cn } from "@/lib/utils";
 import { formatWatermark } from "@/lib/watermark";
-
-const SPEEDS = [1, 1.5, 2] as const;
 
 interface RecordingClientProps {
   sessionId: string;
@@ -37,7 +34,6 @@ function RecordingInner({ sessionId, fullName }: RecordingClientProps) {
   const sign = useLivePlaybackSign(sessionId, "recording", true);
   const chat = useChatChannel(sessionId);
 
-  const [rate, setRate] = useState<number>(1);
   const [posSec, setPosSec] = useState(0);
 
   const startedAt = session?.started_at ?? session?.scheduled_start ?? null;
@@ -86,46 +82,26 @@ function RecordingInner({ sessionId, fullName }: RecordingClientProps) {
   }
 
   return (
-    <div className="flex min-h-svh flex-col bg-slate-50">
+    <div className="flex h-svh flex-col overflow-hidden bg-slate-50">
       <Header subject={session?.subject_name ?? "Recording"} />
 
-      <div className="lg:flex lg:flex-1 lg:overflow-hidden">
-        {/* Player + speed controls */}
-        <div className="bg-black lg:w-[min(70vw,1100px)]">
-          <WrappedYtPlayer
-            videoId={sign.signed.video_id}
-            watermarkText={watermarkText}
-            playbackRate={rate}
-            onPosition={(sec) => setPosSec(sec)}
-            className="rounded-none shadow-none ring-0"
-          />
-
-          <div className="flex items-center justify-end gap-1.5 border-t border-slate-200 bg-white px-3 py-2.5">
-            <span className="mr-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Speed
-            </span>
-            {SPEEDS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                data-testid={`speed-${s}x`}
-                onClick={() => setRate(s)}
-                aria-pressed={rate === s}
-                className={cn(
-                  "rounded-full px-3 py-1 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1",
-                  rate === s
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200",
-                )}
-              >
-                {s}×
-              </button>
-            ))}
+      {/* Stage + chat replay. Same app-shell as the live screen: video sits as
+          a contained 16:9 card on a light surface (never a black void), chat
+          replay scrolls beside it on lg+ and below it on mobile. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+        {/* Video stage */}
+        <div className="flex shrink-0 items-start justify-center bg-slate-100 p-3 sm:p-4 lg:min-h-0 lg:flex-1 lg:items-center lg:p-6">
+          <div className="w-full max-w-[1200px] lg:max-w-[min(1200px,calc((100svh-160px)*16/9))]">
+            <WrappedYtPlayer
+              videoId={sign.signed.video_id}
+              watermarkText={watermarkText}
+              onPosition={(sec) => setPosSec(sec)}
+            />
           </div>
         </div>
 
         {/* Chat replay column */}
-        <div className="flex min-h-[40vh] flex-1 flex-col bg-white lg:border-l lg:border-slate-200">
+        <div className="flex min-h-[40vh] flex-col border-t border-slate-200 bg-white lg:min-h-0 lg:w-[384px] lg:flex-none lg:border-l lg:border-t-0">
           <div className="border-b border-slate-200 bg-slate-50/50 px-4 py-2.5">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
               Chat replay

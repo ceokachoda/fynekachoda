@@ -21,7 +21,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { ChevronLeft, Pause, Play } from "lucide-react-native";
+import {
+  ChevronLeft,
+  FastForward,
+  Pause,
+  Play,
+  Rewind,
+} from "lucide-react-native";
 import {
   WrappedYtPlayer,
   type WrappedYtPlayerHandle,
@@ -107,6 +113,23 @@ export default function RecordingScreen() {
     if (isPlaying) playerRef.current?.pause();
     else playerRef.current?.play();
   }, [isPlaying]);
+
+  const skip = useCallback(
+    (delta: number) => {
+      const cap = durationSec > 0 ? Math.max(0, durationSec - 0.5) : Infinity;
+      const target = Math.min(Math.max(0, posSec + delta), cap);
+      playerRef.current?.seekTo(target);
+      setPosSec(target);
+    },
+    [posSec, durationSec],
+  );
+
+  const cycleRate = useCallback(() => {
+    setRate((r) => {
+      const i = SPEEDS.indexOf(r as (typeof SPEEDS)[number]);
+      return SPEEDS[(i + 1) % SPEEDS.length] ?? 1;
+    });
+  }, []);
 
   const startedAt = session?.started_at ?? session?.scheduled_start ?? null;
   const displaySec = dragging ? dragFrac * durationSec : posSec;
@@ -211,6 +234,7 @@ export default function RecordingScreen() {
           hideControls={chrome}
           isFullscreen={immersive}
           onToggleFullscreen={toggleFullscreen}
+          onCycleRate={cycleRate}
           onPlayingChange={setIsPlaying}
           onDuration={(d) => setDurationSec(d)}
           onPosition={(sec, dur) => {
@@ -226,15 +250,31 @@ export default function RecordingScreen() {
           <View className="bg-white border-b border-slate-100 px-3 pt-2.5 pb-2.5">
             <View className="flex-row items-center">
               <Pressable
+                onPress={() => skip(-10)}
+                hitSlop={8}
+                accessibilityLabel="Rewind 10 seconds"
+                className="w-9 h-9 rounded-full bg-slate-100 items-center justify-center mr-2"
+              >
+                <Rewind size={16} color="#334155" />
+              </Pressable>
+              <Pressable
                 onPress={togglePlay}
                 hitSlop={10}
-                className="w-11 h-11 rounded-full bg-blue-600 items-center justify-center mr-3"
+                className="w-11 h-11 rounded-full bg-blue-600 items-center justify-center"
               >
                 {isPlaying ? (
                   <Pause size={20} color="#fff" fill="#fff" />
                 ) : (
                   <Play size={20} color="#fff" fill="#fff" style={{ marginLeft: 2 }} />
                 )}
+              </Pressable>
+              <Pressable
+                onPress={() => skip(10)}
+                hitSlop={8}
+                accessibilityLabel="Forward 10 seconds"
+                className="w-9 h-9 rounded-full bg-slate-100 items-center justify-center ml-2 mr-3"
+              >
+                <FastForward size={16} color="#334155" />
               </Pressable>
 
               <Text

@@ -43,10 +43,12 @@ import {
   View,
 } from "react-native";
 import {
+  FastForward,
   Maximize,
   Minimize,
   Pause,
   Play,
+  Rewind,
   Volume2,
   VolumeX,
 } from "lucide-react-native";
@@ -84,6 +86,9 @@ export interface WrappedYtPlayerProps {
   isFullscreen?: boolean;
   /** Toggle immersive fullscreen (the host screen owns the orientation lock). */
   onToggleFullscreen?: () => void;
+  /** Cycle playback speed (host owns the rate state — shown as e.g. "1.5×"
+   *  in the in-video bar; recordings + library only). */
+  onCycleRate?: () => void;
   onProgress?: (sec: number, durationSec: number) => void;
   onDuration?: (durationSec: number) => void;
   /** Frequent (~750ms) position updates for an external scrubber. */
@@ -189,6 +194,7 @@ export const WrappedYtPlayer = forwardRef<
     hideControls,
     isFullscreen,
     onToggleFullscreen,
+    onCycleRate,
     onProgress,
     onDuration,
     onPosition,
@@ -391,6 +397,17 @@ export const WrappedYtPlayer = forwardRef<
       setScrubbing(false);
     },
     [fracFromEvent, durationSec],
+  );
+
+  const skipBy = useCallback(
+    (delta: number) => {
+      const cap = durationSec > 0 ? Math.max(0, durationSec - 0.5) : Infinity;
+      const target = Math.min(Math.max(0, currentSec + delta), cap);
+      playerRef.current?.seekTo(target, true);
+      setCurrentSec(target);
+      scheduleHide();
+    },
+    [currentSec, durationSec, scheduleHide],
   );
 
   // Video box. Normal: full-width 16:9. Fill (landscape/immersive): the largest
@@ -620,13 +637,28 @@ export const WrappedYtPlayer = forwardRef<
           <View
             onStartShouldSetResponder={() => true}
             onResponderRelease={() => setPlaying((p) => !p)}
-            style={{ marginRight: 10, paddingVertical: 4, paddingRight: 6 }}
+            style={{ marginRight: 6, paddingVertical: 4, paddingRight: 4 }}
           >
             {playing ? (
               <Pause size={20} color="#fff" fill="#fff" />
             ) : (
               <Play size={20} color="#fff" fill="#fff" />
             )}
+          </View>
+
+          <View
+            onStartShouldSetResponder={() => true}
+            onResponderRelease={() => skipBy(-10)}
+            style={{ marginRight: 6, padding: 4 }}
+          >
+            <Rewind size={18} color="#fff" />
+          </View>
+          <View
+            onStartShouldSetResponder={() => true}
+            onResponderRelease={() => skipBy(10)}
+            style={{ marginRight: 10, padding: 4 }}
+          >
+            <FastForward size={18} color="#fff" />
           </View>
 
           <View
@@ -665,6 +697,24 @@ export const WrappedYtPlayer = forwardRef<
           <Text style={{ color: "#fff", fontSize: 11 }}>
             {fmt(displaySec)} / {fmt(durationSec)}
           </Text>
+
+          {onCycleRate ? (
+            <View
+              onStartShouldSetResponder={() => true}
+              onResponderRelease={onCycleRate}
+              style={{
+                marginLeft: 10,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 999,
+                backgroundColor: "rgba(255,255,255,0.18)",
+              }}
+            >
+              <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
+                {playbackRate ?? 1}×
+              </Text>
+            </View>
+          ) : null}
         </View>
       ) : null}
 

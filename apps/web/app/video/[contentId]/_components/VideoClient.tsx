@@ -89,15 +89,19 @@ export function VideoClient({ contentId, fullName }: Props) {
           </div>
         ) : playerReady && playback.data ? (
           <div className="flex h-full items-center justify-center">
-            <WrappedYtPlayer
-              videoId={playback.data.video_id}
-              watermarkText={watermarkText}
-              startSeconds={startSeconds}
-              onProgress={(pos, dur) => {
-                void progress.update(pos, dur);
-              }}
-              className="rounded-none shadow-none ring-0"
-            />
+            {/* Clamp to the viewport height so a wide window never pushes the
+                16:9 box (and its controls) past the visible area. */}
+            <div className="w-full max-w-[min(100%,calc((100dvh-130px)*16/9))]">
+              <WrappedYtPlayer
+                videoId={playback.data.video_id}
+                watermarkText={watermarkText}
+                startSeconds={startSeconds}
+                onProgress={(pos, dur) => {
+                  void progress.update(pos, dur);
+                }}
+                className="rounded-none shadow-none ring-0"
+              />
+            </div>
           </div>
         ) : null}
       </div>

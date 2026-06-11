@@ -37,7 +37,9 @@ import {
   type ReactNode,
 } from "react";
 import {
+  Check,
   FastForward,
+  Gauge,
   Loader2,
   Maximize,
   Minimize,
@@ -77,6 +79,7 @@ const PLAYER_OPTS = {
 
 const SKIP_SECONDS = 10;
 const CHROME_HIDE_MS = 3200;
+const RATES = [0.75, 1, 1.25, 1.5, 2] as const;
 
 interface WrappedYtPlayerProps {
   videoId: string;
@@ -171,6 +174,11 @@ export function WrappedYtPlayer({
   const [chromeVisible, setChromeVisible] = useState(true);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [rate, setRate] = useState<number>(playbackRate ?? 1);
+  const [rateMenuOpen, setRateMenuOpen] = useState(false);
+  const rateRef = useRef(rate);
+  rateRef.current = rate;
+
   // Mirror `playing` into a ref so the auto-hide timer reads the latest value
   // without re-creating the timer each render.
   const playingRef = useRef(playing);
@@ -238,7 +246,7 @@ export function WrappedYtPlayer({
         /* ignore */
       }
       try {
-        if (playbackRate) e.target.setPlaybackRate(playbackRate);
+        if (rateRef.current !== 1) e.target.setPlaybackRate(rateRef.current);
       } catch {
         /* ignore */
       }
@@ -254,7 +262,7 @@ export function WrappedYtPlayer({
         /* ignore */
       }
     },
-    [startSeconds, playbackRate],
+    [startSeconds],
   );
 
   const onStateChange = useCallback(
@@ -277,14 +285,20 @@ export function WrappedYtPlayer({
     [flush],
   );
 
+  // Apply speed whenever it changes (also re-applied on ready).
   useEffect(() => {
-    if (!playbackRate || !ready) return;
+    if (!ready) return;
     try {
-      playerRef.current?.setPlaybackRate(playbackRate);
+      playerRef.current?.setPlaybackRate(rate);
     } catch {
       /* ignore */
     }
-  }, [playbackRate, ready]);
+  }, [rate, ready]);
+
+  // Consumers that still drive speed from outside stay in control.
+  useEffect(() => {
+    if (playbackRate) setRate(playbackRate);
+  }, [playbackRate]);
 
   // ── transport ─────────────────────────────────────────────────────────────
   const togglePlay = useCallback(() => {
@@ -456,6 +470,11 @@ export function WrappedYtPlayer({
       scheduleHide();
     }
   }, [playing, scheduleHide]);
+
+  // The speed menu lives inside the chrome — never leave it orphaned.
+  useEffect(() => {
+    if (!chromeVisible) setRateMenuOpen(false);
+  }, [chromeVisible]);
 
   useEffect(
     () => () => {
@@ -630,6 +649,55 @@ export function WrappedYtPlayer({
             )}
 
             <div className="flex-1" />
+
+            {seekable ? (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRateMenuOpen((o) => !o);
+                    revealChrome();
+                  }}
+                  aria-label="Playback speed"
+                  aria-haspopup="menu"
+                  aria-expanded={rateMenuOpen}
+                  className="flex h-9 items-center gap-1 rounded-lg px-2 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                >
+                  <Gauge className="size-5" />
+                  <span className="text-xs font-bold tabular-nums">
+                    {rate}×
+                  </span>
+                </button>
+                {rateMenuOpen ? (
+                  <div
+                    role="menu"
+                    aria-label="Playback speed"
+                    className="absolute bottom-11 right-0 z-40 min-w-[104px] overflow-hidden rounded-xl bg-black/90 p-1 ring-1 ring-white/15 backdrop-blur-sm"
+                  >
+                    {RATES.map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={rate === r}
+                        onClick={() => {
+                          setRate(r);
+                          setRateMenuOpen(false);
+                          revealChrome();
+                        }}
+                        className={cn(
+                          "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-xs font-semibold text-white transition-colors hover:bg-white/15",
+                          rate === r && "bg-white/10",
+                        )}
+                      >
+                        <span className="tabular-nums">{r}×</span>
+                        {rate === r ? <Check className="size-3.5" /> : null}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             <ControlButton
               onClick={toggleMute}
