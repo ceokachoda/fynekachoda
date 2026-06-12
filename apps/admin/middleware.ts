@@ -10,6 +10,10 @@ const PUBLIC_PATH_PREFIXES = [
   // Public privacy policy — Google Play requires a publicly reachable,
   // non-login-gated URL (a login wall here is a top app-rejection cause).
   "/privacy",
+  // Public account-&-data deletion instructions — Google Play Data safety
+  // requires a publicly reachable URL that spells out the deletion steps and
+  // what data is removed vs. retained. Must NOT sit behind the login wall.
+  "/delete-account",
 ];
 
 // Routes that an in-progress (not-yet-fully-authenticated) admin can land on
