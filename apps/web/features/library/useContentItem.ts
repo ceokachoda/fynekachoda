@@ -14,7 +14,7 @@ export function useContentItem(contentId: string | undefined) {
       const { data, error } = await supabase
         .from("content_items")
         .select(
-          "id, title, kind, description, duration_sec, yt_video_id, file_path, is_published, topic_id, chapter_id, subject_id, batch_id, course_id, created_at",
+          "id, title, kind, description, duration_sec, yt_video_id, file_path, is_published, topic_id, batch_id, course_id, created_at",
         )
         .eq("id", contentId!)
         .maybeSingle();

@@ -10,8 +10,6 @@ export interface ContentItem {
   file_path: string | null;
   is_published: boolean;
   topic_id: string;
-  chapter_id: string;
-  subject_id: string;
   batch_id: string | null;
   course_id: string;
   created_at: string;
