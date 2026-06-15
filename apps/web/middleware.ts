@@ -28,15 +28,15 @@ function startsWithAny(pathname: string, prefixes: readonly string[]): boolean {
 function inGroup(pathname: string, group: "student" | "teacher"): boolean {
   // App Router route-groups don't appear in the URL — the surface paths the
   // (student) group renders are the student-only tabs: /, /classes, /library,
-  // /attendance, /leaderboard, /profile. Teacher-only: /scan, /content,
-  // /quizzes, /exams, /batch. /classes + /profile + /library overlap, so we
-  // arbitrate via the active-role cookie when ambiguous.
+  // /practice, /attendance, /leaderboard, /profile. Teacher-only: /scan,
+  // /content, /quizzes, /exams, /batch. /classes + /profile + /library overlap,
+  // so we arbitrate via the active-role cookie when ambiguous.
   //
   // Phase 4 Track 4B adds 6 top-level teacher-only routes OUTSIDE
   // `(protected)` (FocusLayout, no side-rail). /live/{id} + /recording/{id}
   // stay open to BOTH roles (Track 4A — student joins live + watches
   // recordings; teacher uses /live-control for the broadcast operator view).
-  const studentOnly = ["/attendance", "/leaderboard"];
+  const studentOnly = ["/practice", "/attendance", "/leaderboard"];
   const teacherOnly = [
     "/scan",
     "/content",

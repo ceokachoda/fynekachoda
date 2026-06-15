@@ -6,30 +6,16 @@ import { loginAsStudent } from "./helpers";
 // been refreshed.
 
 test.describe("Quiz — attempt → submit → solution", () => {
-  test("library lists at least one quiz row", async ({ page }) => {
+  test("practice tab lists at least one quiz row", async ({ page }) => {
     await loginAsStudent(page);
-    // Open library and drill into the first topic that lists a quiz row.
-    await page.goto("/library");
-    // The library home shows Subjects → drill down until we find a topic
-    // with a `Practice quizzes` block. We click the first subject card,
-    // then the first chapter, then the first topic.
-    const subjectButtons = page.locator("button:has-text('items')");
-    const subjectCount = await subjectButtons.count();
-    test.skip(subjectCount === 0, "No subjects available in this environment");
-    await subjectButtons.first().click();
-    const chapterButtons = page.locator("button:has-text('items')");
-    if ((await chapterButtons.count()) > 0) {
-      await chapterButtons.first().click();
-    }
-    const topicButtons = page.locator(
-      "button:has(p:has-text('quiz available'))",
-    );
-    test.skip(
-      (await topicButtons.count()) === 0,
-      "No topic with a published quiz",
-    );
-    await topicButtons.first().click();
+    // The dedicated Quiz tab (/practice) lists every published quiz visible to
+    // the student — no library drill-down needed.
+    await page.goto("/practice");
     const quizLinks = page.getByTestId("quiz-link");
+    test.skip(
+      (await quizLinks.count()) === 0,
+      "No published quiz visible in this environment",
+    );
     await expect(quizLinks.first()).toBeVisible();
   });
 

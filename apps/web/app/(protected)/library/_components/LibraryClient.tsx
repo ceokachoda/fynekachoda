@@ -12,12 +12,10 @@ import {
   PlayCircle,
   FileText,
   StickyNote,
-  GraduationCap,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLibraryTree } from "@/features/library/useLibraryTree";
-import { useStudentQuizDiscovery } from "@/features/quiz/useStudentQuizDiscovery";
 import type { Subject, Chapter, Topic, ContentItem } from "@/features/library/types";
 
 interface Props {
@@ -66,7 +64,6 @@ export function LibraryClient({
   }, [urlQuery]);
 
   const tree = useLibraryTree(debouncedQuery);
-  const quizzes = useStudentQuizDiscovery();
 
   const syncDebounced = useDebouncedCallback((v: string) => {
     setDebouncedQuery(v);
@@ -235,33 +232,29 @@ export function LibraryClient({
           </p>
         ) : (
           <ul className="space-y-2">
-            {chapter!.topics.map((t) => {
-              const hasQuizzes = (quizzes.data?.byTopic.get(t.id)?.length ?? 0) > 0;
-              return (
-                <li key={t.id}>
-                  <button
-                    type="button"
-                    onClick={() => setNav(subjectId, chapterId, t.id)}
-                    disabled={t.items.length === 0 && !hasQuizzes}
-                    className="flex w-full items-center rounded-2xl border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:hover:bg-white"
-                  >
-                    <div className="mr-3 flex size-10 items-center justify-center rounded-2xl bg-blue-50">
-                      <BookOpen className="size-4 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-slate-900">
-                        {t.name}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {t.items.length} item{t.items.length === 1 ? "" : "s"}
-                        {hasQuizzes ? " · quiz available" : ""}
-                      </p>
-                    </div>
-                    <ChevronRight className="size-4 text-slate-400" />
-                  </button>
-                </li>
-              );
-            })}
+            {chapter!.topics.map((t) => (
+              <li key={t.id}>
+                <button
+                  type="button"
+                  onClick={() => setNav(subjectId, chapterId, t.id)}
+                  disabled={t.items.length === 0}
+                  className="flex w-full items-center rounded-2xl border border-slate-200 bg-white p-4 text-left transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:hover:bg-white"
+                >
+                  <div className="mr-3 flex size-10 items-center justify-center rounded-2xl bg-blue-50">
+                    <BookOpen className="size-4 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-slate-900">
+                      {t.name}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {t.items.length} item{t.items.length === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <ChevronRight className="size-4 text-slate-400" />
+                </button>
+              </li>
+            ))}
           </ul>
         )
       ) : (
@@ -319,36 +312,6 @@ export function LibraryClient({
               })}
             </ul>
           )}
-          {(quizzes.data?.byTopic.get(topic!.id) ?? []).length > 0 ? (
-            <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-4">
-              <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-amber-700">
-                <GraduationCap className="size-4" />
-                Practice quizzes
-              </p>
-              <ul className="space-y-1">
-                {(quizzes.data?.byTopic.get(topic!.id) ?? []).map((q) => (
-                  <li key={q.id}>
-                    <Link
-                      href={`/quiz/${q.id}`}
-                      data-testid="quiz-link"
-                      className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5 transition-colors hover:bg-amber-100/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-1"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {q.title}
-                        </p>
-                        <p className="text-xs font-medium text-slate-500">
-                          {q.duration_min} min · +{q.marks_correct}/{q.marks_wrong}/{q.marks_skip}
-                          {q.attempt_count > 0 ? ` · attempted ${q.attempt_count}×` : ""}
-                        </p>
-                      </div>
-                      <ChevronRight className="size-4 text-slate-400" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
         </div>
       )}
     </div>

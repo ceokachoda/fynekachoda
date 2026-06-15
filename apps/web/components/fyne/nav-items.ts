@@ -21,6 +21,7 @@ export const STUDENT_NAV: readonly NavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Classes", href: "/classes", icon: Video },
   { label: "Library", href: "/library", icon: BookOpen },
+  { label: "Quiz", href: "/practice", icon: ListChecks },
   { label: "Attendance", href: "/attendance", icon: QrCode },
   { label: "Ranks", href: "/leaderboard", icon: Trophy },
   { label: "Profile", href: "/profile", icon: User },

@@ -1,6 +1,14 @@
 import { useEffect } from "react";
 import { Tabs, useRouter } from "expo-router";
-import { Home, Video, BookOpen, QrCode, Trophy, User } from "lucide-react-native";
+import {
+  Home,
+  Video,
+  BookOpen,
+  ListChecks,
+  QrCode,
+  Trophy,
+  User,
+} from "lucide-react-native";
 import { useSession } from "@/features/auth/useSession";
 import { useRole } from "@/features/auth/useRole";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -75,6 +83,13 @@ export default function StudentTabsLayout() {
           options={{
             title: "Library",
             tabBarIcon: ({ color }) => <BookOpen size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="practice"
+          options={{
+            title: "Quiz",
+            tabBarIcon: ({ color }) => <ListChecks size={24} color={color} />,
           }}
         />
         <Tabs.Screen
