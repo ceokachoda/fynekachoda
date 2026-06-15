@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { BatchOpt, CourseOpt, QuizRow } from "./page";
 import { deleteQuizAction, togglePublishQuizAction } from "./actions";
 
@@ -233,6 +234,12 @@ export function QuizzesClient({ rows, courses, batches, filters }: Props) {
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-2">
+                      <Link
+                        href={`/quizzes/${r.id}`}
+                        className="rounded border border-blue-300 bg-white px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-50"
+                      >
+                        Results
+                      </Link>
                       <button
                         type="button"
                         disabled={pending}
