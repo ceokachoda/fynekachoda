@@ -2,8 +2,7 @@ import { useCallback, useState } from "react";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
-import { Bell } from "lucide-react-native";
-import { FyneStudyLogo } from "../../components/FyneStudyLogo";
+import { StudentHeader } from "../../components/StudentHeader";
 import { Skeleton } from "../../components/ui/skeleton";
 import { NextCard } from "@/components/dashboard/NextCard";
 import { StatsStrip } from "@/components/dashboard/StatsStrip";
@@ -57,18 +56,6 @@ function firstName(fullName: string | null | undefined): string {
   return fullName.split(/\s+/)[0] ?? "there";
 }
 
-function initials(fullName: string | null | undefined): string {
-  return (
-    (fullName ?? "?")
-      .split(/\s+/)
-      .map((p) => p[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "?"
-  );
-}
-
 function SectionHeader({ title }: { title: string }) {
   return <Text className="text-xl font-bold text-blue-900 mb-3">{title}</Text>;
 }
@@ -106,15 +93,7 @@ export default function StudentHomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onPullRefresh} tintColor="#2563EB" />
         }
       >
-        <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
-          <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center">
-            <Text className="text-xs font-bold text-blue-800">{initials(appUser?.full_name)}</Text>
-          </View>
-          <FyneStudyLogo variant="header" />
-          <TouchableOpacity className="w-10 h-10 items-end justify-center">
-            <Bell size={24} color="#1e3a8a" />
-          </TouchableOpacity>
-        </View>
+        <StudentHeader />
 
         <View className="px-6 mt-4 mb-5 flex-row items-center justify-between">
           <View className="flex-1 pr-3">

@@ -169,6 +169,10 @@ export default function RootLayout() {
             options={{ headerShown: false, gestureEnabled: true }}
           />
           <Stack.Screen
+            name="notifications"
+            options={{ headerShown: false, gestureEnabled: true }}
+          />
+          <Stack.Screen
             name="live/[sessionId]"
             options={{ headerShown: false, gestureEnabled: true }}
           />

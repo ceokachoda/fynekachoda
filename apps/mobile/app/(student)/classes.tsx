@@ -2,8 +2,8 @@ import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Bell, CalendarDays, ChevronRight, ClipboardCheck, Play, Radio, Video } from "lucide-react-native";
-import { FyneStudyLogo } from "../../components/FyneStudyLogo";
+import { CalendarDays, ChevronRight, ClipboardCheck, Play, Radio, Video } from "lucide-react-native";
+import { StudentHeader } from "../../components/StudentHeader";
 import { Skeleton } from "../../components/ui/skeleton";
 import { useStudentSchedule, type ScheduleSession } from "@/features/dashboard/useStudentSchedule";
 import { useStudentExams } from "@/features/exam/useStudentExams";
@@ -153,15 +153,7 @@ export default function ClassesScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
-      <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
-        <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center">
-          <Video size={18} color="#1e3a8a" />
-        </View>
-        <FyneStudyLogo variant="header" />
-        <TouchableOpacity className="w-10 h-10 items-end justify-center">
-          <Bell size={24} color="#1e3a8a" />
-        </TouchableOpacity>
-      </View>
+      <StudentHeader />
 
       <ScrollView
         className="flex-1"

@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Bell, CalendarDays, History } from "lucide-react-native";
+import { CalendarDays, History } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FyneStudyLogo } from "@/components/FyneStudyLogo";
+import { StudentHeader } from "@/components/StudentHeader";
 import { QrDisplay } from "@/components/attendance/QrDisplay";
 import { AttendanceHistory } from "@/components/attendance/AttendanceHistory";
 import { AttendanceRing } from "@/components/attendance/AttendanceRing";
@@ -19,7 +19,6 @@ import {
 } from "@/features/attendance/useTodaySessions";
 import { useAttendanceHistory } from "@/features/attendance/useAttendanceHistory";
 import { useAttendanceRealtime } from "@/features/attendance/useAttendanceRealtime";
-import { useSession } from "@/features/auth/useSession";
 import { sessionDisplayName } from "@/lib/session-name";
 
 function formatTime(iso: string): string {
@@ -28,18 +27,6 @@ function formatTime(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function initialsOf(name: string | null | undefined): string {
-  return (
-    (name ?? "?")
-      .split(/\s+/)
-      .map((p) => p[0])
-      .filter(Boolean)
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "?"
-  );
 }
 
 function statusBadge(s: TodaySession): {
@@ -65,7 +52,6 @@ function statusBadge(s: TodaySession): {
 }
 
 export default function AttendanceScreen(): React.ReactElement {
-  const { appUser } = useSession();
   const {
     sessions,
     isLoading: sessionsLoading,
@@ -111,17 +97,7 @@ export default function AttendanceScreen(): React.ReactElement {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
-      <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
-        <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center">
-          <Text className="text-xs font-bold text-blue-800">
-            {initialsOf(appUser?.full_name)}
-          </Text>
-        </View>
-        <FyneStudyLogo variant="header" />
-        <TouchableOpacity className="w-10 h-10 items-end justify-center">
-          <Bell size={24} color="#1e3a8a" />
-        </TouchableOpacity>
-      </View>
+      <StudentHeader />
 
       <ScrollView
         className="flex-1"

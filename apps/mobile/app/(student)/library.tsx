@@ -20,6 +20,7 @@ import {
 } from "lucide-react-native";
 import { useLibraryTree } from "@/features/library/useLibraryTree";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { StudentHeader } from "@/components/StudentHeader";
 
 type LibraryView = "subjects" | "chapters" | "topics" | "items";
 
@@ -69,7 +70,8 @@ export default function LibraryScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
-      <View className="px-5 pt-3 pb-2 flex-row items-center">
+      <StudentHeader />
+      <View className="px-5 pt-1 pb-2 flex-row items-center">
         {view !== "subjects" ? (
           <Pressable
             accessibilityLabel="Back"

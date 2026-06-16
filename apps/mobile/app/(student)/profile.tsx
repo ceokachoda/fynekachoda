@@ -24,6 +24,7 @@ import { useMastery } from "@/features/dashboard/useMastery";
 import { MasteryCard } from "@/components/dashboard/MasteryCard";
 import { BadgeShowcase } from "@/components/gamification/BadgeShowcase";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StudentHeader } from "@/components/StudentHeader";
 
 const ADMIN_CONTACT_EMAIL = "admin@fynestudy.example.com";
 
@@ -66,11 +67,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
-      <View className="flex-row items-center justify-between px-6 pt-4 pb-2">
-        <View className="w-10 h-10" />
-        <Text className="text-xl font-bold italic text-blue-900">My Profile</Text>
-        <View className="w-10 h-10" />
-      </View>
+      <StudentHeader />
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         <View className="bg-white rounded-[32px] mx-6 mt-4 mb-4 p-6 shadow-sm shadow-slate-200/50 border border-slate-100 items-center">

@@ -12,6 +12,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { CheckCircle2, ChevronRight, ListChecks, Search } from "lucide-react-native";
 import { useStudentQuizDiscovery } from "@/features/quiz/useQuizDiscovery";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { StudentHeader } from "@/components/StudentHeader";
 
 export default function PracticeScreen() {
   const router = useRouter();
@@ -43,7 +44,8 @@ export default function PracticeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
-      <View className="px-5 pt-3 pb-2">
+      <StudentHeader />
+      <View className="px-5 pt-1 pb-2">
         <Text className="text-2xl font-extrabold text-blue-900">Quizzes</Text>
         <Text className="text-xs text-slate-500 mt-0.5">
           Practice quizzes for your batch

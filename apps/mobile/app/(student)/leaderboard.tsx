@@ -24,6 +24,7 @@ import {
 } from "@/features/leaderboard/useLeaderboard";
 import { useMyBatch } from "@/features/org/useMyBatch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StudentHeader } from "@/components/StudentHeader";
 
 function flameColor(days: number): string {
   if (days <= 0) return "#94a3b8";
@@ -125,7 +126,8 @@ export default function LeaderboardScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
-      <View className="px-6 pt-4 pb-2">
+      <StudentHeader />
+      <View className="px-6 pt-1 pb-2">
         <View className="flex-row items-center">
           <Trophy size={22} color="#1e3a8a" />
           <Text className="text-xl font-extrabold text-blue-900 ml-2">Leaderboard</Text>
