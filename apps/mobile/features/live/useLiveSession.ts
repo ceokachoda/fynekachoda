@@ -1,6 +1,9 @@
 // Phase 9 CP10 — a single session row for the live / recording / live-control
-// screens. sessions aren't in the Realtime publication, so the lobby opts into
-// a 10s poll until the class flips to live or ended.
+// screens. sessions aren't in the Realtime publication, so these screens opt
+// into a 10s poll that runs until the class reaches a terminal state — through
+// both the lobby (waiting for go-live) AND the live phase, so the screen always
+// notices the class ending even when the realtime "Class has ended." signal is
+// missed or the class is auto-ended server-side (end_stale_live_sessions cron).
 
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -107,7 +110,11 @@ export function useLiveSession(
   const status = session?.status;
   useEffect(() => {
     if (!pollWhileNotLive || !status) return;
-    if (status === "live" || status === "ended") return;
+    // Keep polling through 'scheduled' AND 'live'; stop only once the class is
+    // in a terminal state. This is what lets an open live screen self-heal back
+    // to the "ended"/recording view if it never received the realtime end
+    // signal (reconnect) or the class was auto-ended by the server-side cron.
+    if (status === "ended" || status === "cancelled") return;
     const t = setInterval(() => {
       void load();
     }, 10_000);
