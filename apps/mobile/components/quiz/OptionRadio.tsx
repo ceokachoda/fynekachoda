@@ -1,4 +1,5 @@
-import { Image, Pressable, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { Check } from "lucide-react-native";
 import { MathText } from "./MathText";
 
@@ -76,7 +77,10 @@ export function OptionRadio({ letter, text_md, image_url, status, disabled, onPr
         {image_url ? (
           <Image
             source={{ uri: image_url }}
-            style={{ width: "100%", height: 140, borderRadius: 8, marginBottom: 8, resizeMode: "contain", backgroundColor: "#f8fafc" }}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+            transition={150}
+            style={{ width: "100%", height: 140, borderRadius: 8, marginBottom: 8, backgroundColor: "#f8fafc" }}
           />
         ) : null}
         <MathText markdown={text_md} fontSize={15} color="#0f172a" />
@@ -85,7 +89,6 @@ export function OptionRadio({ letter, text_md, image_url, status, disabled, onPr
   );
 }
 
-import { Text } from "react-native";
 function OptLetter({ letter, fg }: { letter: string; fg: string }) {
   return (
     <Text style={{ color: fg, fontWeight: "700", fontSize: 14 }}>{letter}</Text>

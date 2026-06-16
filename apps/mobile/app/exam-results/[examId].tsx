@@ -2,8 +2,12 @@
 //
 // Top-level Stack route per D-169. Reads via `useExamResultsBoard` (RLS
 // scopes); mutations via `exam-release-results` + `exam-regrade` edge fns.
+//
+// Roster + question-analysis render through a single windowed FlatList (a
+// discriminated-union row model) so a 60-student / 180-question full mock no
+// longer mounts every row eagerly on a 2 GB device.
 
-import { useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -18,10 +22,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import {
   AlertTriangle,
-  Check,
   CheckCircle2,
   ChevronLeft,
-  ListChecks,
   Megaphone,
   ShieldAlert,
 } from "lucide-react-native";
@@ -30,6 +32,7 @@ import { supabase } from "@/lib/supabase";
 import { withTimeout } from "@/features/auth/network-errors";
 import {
   type QuestionAnalysisRow,
+  type ResultsBoardAttempt,
   useExamResultsBoard,
 } from "@/features/exam/useExamResultsBoard";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -41,6 +44,91 @@ interface RegradeQuestion {
   prompt_md: string;
   options: Array<{ id: string; text_md: string; is_correct: boolean; sort_order: number }>;
 }
+
+type ListRow =
+  | { t: "roster"; r: ResultsBoardAttempt }
+  | { t: "rosterEmpty" }
+  | { t: "qHeader" }
+  | { t: "question"; qa: QuestionAnalysisRow; index: number }
+  | { t: "qEmpty" };
+
+const RosterResultRow = memo(function RosterResultRow({ r }: { r: ResultsBoardAttempt }) {
+  const pct =
+    r.score !== null && r.max_score && r.max_score > 0
+      ? Math.round((r.score / r.max_score) * 100)
+      : 0;
+  return (
+    <View className="bg-white rounded-2xl p-3 border border-slate-200 mb-2 flex-row items-center">
+      <View className="w-9 h-9 rounded-full bg-blue-100 items-center justify-center mr-3">
+        <Text className="text-blue-700 font-bold">{r.student_name.slice(0, 1).toUpperCase()}</Text>
+      </View>
+      <View className="flex-1">
+        <Text className="text-slate-900 font-semibold" numberOfLines={1}>{r.student_name}</Text>
+        <Text className="text-xs text-slate-500">
+          {r.correct_count ?? 0}✓ · {r.wrong_count ?? 0}✗ · {r.skipped_count ?? 0} skipped
+          {r.auto_submitted ? "  · auto" : ""}
+        </Text>
+      </View>
+      <View className="items-end">
+        <Text className="text-lg font-extrabold text-blue-700">
+          {r.score !== null ? Math.round(r.score) : "—"}
+          <Text className="text-xs text-slate-400">/{r.max_score ? Math.round(r.max_score) : 0}</Text>
+        </Text>
+        <Text className="text-xs text-slate-500">{pct}%</Text>
+        {r.tab_switch_count > 0 ? (
+          <View className="flex-row items-center mt-0.5">
+            <ShieldAlert size={10} color={r.tab_switch_count >= 3 ? "#dc2626" : "#92400e"} />
+            <Text className="ml-1 text-xs font-bold" style={{ color: r.tab_switch_count >= 3 ? "#dc2626" : "#92400e" }}>
+              tab×{r.tab_switch_count}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+});
+
+const QuestionAnalysisItem = memo(function QuestionAnalysisItem({
+  qa,
+  index,
+  onRegrade,
+}: {
+  qa: QuestionAnalysisRow;
+  index: number;
+  onRegrade: (qa: QuestionAnalysisRow) => void;
+}) {
+  return (
+    <View className="bg-white rounded-2xl p-3 border border-slate-200 mb-2">
+      <View className="flex-row items-start">
+        <Text className="text-slate-500 font-bold mr-2 mt-0.5">Q{index + 1}</Text>
+        <Text className="flex-1 text-slate-800" numberOfLines={2}>{qa.prompt_md}</Text>
+      </View>
+      <View className="flex-row items-center mt-2">
+        <View className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <View
+            style={{
+              width: `${qa.pct_correct}%`,
+              backgroundColor: qa.pct_correct >= 70 ? "#16a34a" : qa.pct_correct >= 40 ? "#f59e0b" : "#dc2626",
+              height: "100%",
+            }}
+          />
+        </View>
+        <Text className="text-sm font-bold ml-3 text-slate-700" style={{ width: 48, textAlign: "right" }}>
+          {qa.pct_correct}%
+        </Text>
+        <Pressable
+          onPress={() => onRegrade(qa)}
+          className="ml-2 bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5"
+        >
+          <Text className="text-slate-700 font-semibold text-xs">Regrade</Text>
+        </Pressable>
+      </View>
+      <Text className="text-xs text-slate-500 mt-1">
+        {qa.correct_attempts}/{qa.total_attempts} correct
+      </Text>
+    </View>
+  );
+});
 
 export default function ExamResultsScreen() {
   const router = useRouter();
@@ -95,7 +183,7 @@ export default function ExamResultsScreen() {
     );
   };
 
-  const openRegrade = async (qa: QuestionAnalysisRow) => {
+  const openRegrade = useCallback(async (qa: QuestionAnalysisRow) => {
     // Load full options for the question.
     const r = await withTimeout(
       supabase
@@ -119,7 +207,7 @@ export default function ExamResultsScreen() {
     );
     setReason("");
     setRegradeOpen(true);
-  };
+  }, []);
 
   const submitRegrade = async () => {
     if (!id || !regradeQuestion) return;
@@ -159,6 +247,56 @@ export default function ExamResultsScreen() {
     }
   };
 
+  const submittedRoster = useMemo(
+    () => board.roster.filter((r) => r.submitted_at !== null),
+    [board.roster],
+  );
+
+  const listData = useMemo<ListRow[]>(() => {
+    const rows: ListRow[] = [];
+    if (submittedRoster.length === 0) {
+      rows.push({ t: "rosterEmpty" });
+    } else {
+      for (const r of submittedRoster) rows.push({ t: "roster", r });
+    }
+    rows.push({ t: "qHeader" });
+    if (board.questions.length === 0) {
+      rows.push({ t: "qEmpty" });
+    } else {
+      board.questions.forEach((qa, index) => rows.push({ t: "question", qa, index }));
+    }
+    return rows;
+  }, [submittedRoster, board.questions]);
+
+  const keyExtractor = useCallback((item: ListRow, index: number) => {
+    switch (item.t) {
+      case "roster":
+        return `r:${item.r.attempt_id}`;
+      case "question":
+        return `q:${item.qa.question_id}`;
+      default:
+        return `${item.t}:${index}`;
+    }
+  }, []);
+
+  const renderListItem = useCallback(
+    ({ item }: { item: ListRow }) => {
+      switch (item.t) {
+        case "roster":
+          return <RosterResultRow r={item.r} />;
+        case "rosterEmpty":
+          return <Text className="text-slate-500 italic">No submitted attempts yet.</Text>;
+        case "qHeader":
+          return <Text className="text-base font-bold text-blue-900 mt-5 mb-2">Question analysis</Text>;
+        case "question":
+          return <QuestionAnalysisItem qa={item.qa} index={item.index} onRegrade={openRegrade} />;
+        case "qEmpty":
+          return <Text className="text-slate-500 italic">No questions in this exam.</Text>;
+      }
+    },
+    [openRegrade],
+  );
+
   if (!id) {
     return (
       <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
@@ -188,7 +326,7 @@ export default function ExamResultsScreen() {
     );
   }
 
-  const submittedRoster = board.roster.filter((r) => r.submitted_at !== null);
+  const exam = board.exam;
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50" edges={["top"]}>
@@ -201,116 +339,54 @@ export default function ExamResultsScreen() {
           <ChevronLeft size={20} color="#0f172a" />
         </Pressable>
         <Text className="text-lg font-bold text-blue-900 ml-3 flex-1" numberOfLines={1}>
-          {board.exam.title}
+          {exam.title}
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 80 }}>
-        <View className="bg-white rounded-2xl p-4 border border-slate-200">
-          <Text className="text-xs text-slate-500">
-            {board.roster.length} attempt{board.roster.length === 1 ? "" : "s"} · {submittedRoster.length} submitted · {board.questions.length} questions
-          </Text>
-          <View className="flex-row items-center mt-1">
-            <View
-              className="w-2.5 h-2.5 rounded-full mr-2"
-              style={{ backgroundColor: released ? "#059669" : "#f59e0b" }}
-            />
-            <Text className="text-sm font-semibold" style={{ color: released ? "#059669" : "#92400e" }}>
-              {released ? `Results released ${new Date(board.exam.results_released_at!).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })}` : "Results NOT released"}
-            </Text>
-          </View>
-          {!released ? (
-            <Pressable
-              disabled={releasing}
-              onPress={() => void onRelease()}
-              className="bg-blue-600 rounded-2xl py-3 mt-3 items-center flex-row justify-center"
-              style={{ opacity: releasing ? 0.6 : 1 }}
-            >
-              <Megaphone size={16} color="#ffffff" />
-              <Text className="ml-2 text-white font-bold">
-                {releasing ? "Releasing…" : "Release Results to Students"}
+      <FlatList
+        data={listData}
+        keyExtractor={keyExtractor}
+        renderItem={renderListItem}
+        contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+        removeClippedSubviews
+        initialNumToRender={12}
+        maxToRenderPerBatch={10}
+        windowSize={11}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <>
+            <View className="bg-white rounded-2xl p-4 border border-slate-200">
+              <Text className="text-xs text-slate-500">
+                {board.roster.length} attempt{board.roster.length === 1 ? "" : "s"} · {submittedRoster.length} submitted · {board.questions.length} questions
               </Text>
-            </Pressable>
-          ) : null}
-        </View>
-
-        <Text className="text-base font-bold text-blue-900 mt-5 mb-2">Roster</Text>
-        {submittedRoster.length === 0 ? (
-          <Text className="text-slate-500 italic">No submitted attempts yet.</Text>
-        ) : (
-          submittedRoster.map((r) => {
-            const pct = r.score !== null && r.max_score && r.max_score > 0
-              ? Math.round((r.score / r.max_score) * 100)
-              : 0;
-            return (
-              <View key={r.attempt_id} className="bg-white rounded-2xl p-3 border border-slate-200 mb-2 flex-row items-center">
-                <View className="w-9 h-9 rounded-full bg-blue-100 items-center justify-center mr-3">
-                  <Text className="text-blue-700 font-bold">{r.student_name.slice(0, 1).toUpperCase()}</Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-slate-900 font-semibold" numberOfLines={1}>{r.student_name}</Text>
-                  <Text className="text-xs text-slate-500">
-                    {r.correct_count ?? 0}✓ · {r.wrong_count ?? 0}✗ · {r.skipped_count ?? 0} skipped
-                    {r.auto_submitted ? "  · auto" : ""}
-                  </Text>
-                </View>
-                <View className="items-end">
-                  <Text className="text-lg font-extrabold text-blue-700">
-                    {r.score !== null ? Math.round(r.score) : "—"}
-                    <Text className="text-xs text-slate-400">/{r.max_score ? Math.round(r.max_score) : 0}</Text>
-                  </Text>
-                  <Text className="text-xs text-slate-500">{pct}%</Text>
-                  {r.tab_switch_count > 0 ? (
-                    <View className="flex-row items-center mt-0.5">
-                      <ShieldAlert size={10} color={r.tab_switch_count >= 3 ? "#dc2626" : "#92400e"} />
-                      <Text className="ml-1 text-xs font-bold" style={{ color: r.tab_switch_count >= 3 ? "#dc2626" : "#92400e" }}>
-                        tab×{r.tab_switch_count}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-              </View>
-            );
-          })
-        )}
-
-        <Text className="text-base font-bold text-blue-900 mt-5 mb-2">Question analysis</Text>
-        {board.questions.length === 0 ? (
-          <Text className="text-slate-500 italic">No questions in this exam.</Text>
-        ) : (
-          board.questions.map((qa, i) => (
-            <View key={qa.question_id} className="bg-white rounded-2xl p-3 border border-slate-200 mb-2">
-              <View className="flex-row items-start">
-                <Text className="text-slate-500 font-bold mr-2 mt-0.5">Q{i + 1}</Text>
-                <Text className="flex-1 text-slate-800" numberOfLines={2}>{qa.prompt_md}</Text>
-              </View>
-              <View className="flex-row items-center mt-2">
-                <View className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <View
-                    style={{
-                      width: `${qa.pct_correct}%`,
-                      backgroundColor: qa.pct_correct >= 70 ? "#16a34a" : qa.pct_correct >= 40 ? "#f59e0b" : "#dc2626",
-                      height: "100%",
-                    }}
-                  />
-                </View>
-                <Text className="text-sm font-bold ml-3 text-slate-700" style={{ width: 48, textAlign: "right" }}>
-                  {qa.pct_correct}%
+              <View className="flex-row items-center mt-1">
+                <View
+                  className="w-2.5 h-2.5 rounded-full mr-2"
+                  style={{ backgroundColor: released ? "#059669" : "#f59e0b" }}
+                />
+                <Text className="text-sm font-semibold" style={{ color: released ? "#059669" : "#92400e" }}>
+                  {released ? `Results released ${new Date(exam.results_released_at!).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false })}` : "Results NOT released"}
                 </Text>
-                <Pressable
-                  onPress={() => void openRegrade(qa)}
-                  className="ml-2 bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5"
-                >
-                  <Text className="text-slate-700 font-semibold text-xs">Regrade</Text>
-                </Pressable>
               </View>
-              <Text className="text-xs text-slate-500 mt-1">
-                {qa.correct_attempts}/{qa.total_attempts} correct
-              </Text>
+              {!released ? (
+                <Pressable
+                  disabled={releasing}
+                  onPress={() => void onRelease()}
+                  className="bg-blue-600 rounded-2xl py-3 mt-3 items-center flex-row justify-center"
+                  style={{ opacity: releasing ? 0.6 : 1 }}
+                >
+                  <Megaphone size={16} color="#ffffff" />
+                  <Text className="ml-2 text-white font-bold">
+                    {releasing ? "Releasing…" : "Release Results to Students"}
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
-          ))
-        )}
-      </ScrollView>
+
+            <Text className="text-base font-bold text-blue-900 mt-5 mb-2">Roster</Text>
+          </>
+        }
+      />
 
       <Modal
         visible={regradeOpen}

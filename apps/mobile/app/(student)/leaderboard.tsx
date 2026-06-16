@@ -122,6 +122,13 @@ export default function LeaderboardScreen() {
     setCardLoading(false);
   }, []);
 
+  const renderRow = useCallback(
+    ({ item }: { item: LeaderRow }) => (
+      <RankRow row={item} onPress={(r) => void onRowPress(r)} />
+    ),
+    [onRowPress],
+  );
+
   const batchName = batch.isLoading ? "…" : batch.data?.batch_name ?? "your batch";
 
   return (
@@ -140,7 +147,7 @@ export default function LeaderboardScreen() {
       <FlatList
         data={rows}
         keyExtractor={(r) => r.student_id}
-        renderItem={({ item }) => <RankRow row={item} onPress={() => void onRowPress(item)} />}
+        renderItem={renderRow}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 110 }}
         showsVerticalScrollIndicator={false}
         refreshControl={

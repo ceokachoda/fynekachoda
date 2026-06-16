@@ -1,4 +1,5 @@
-import { Image, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { Image } from "expo-image";
 import { MathText } from "./MathText";
 
 interface Props {
@@ -56,12 +57,14 @@ export function QuestionCard({
         {prompt_image_url ? (
           <Image
             source={{ uri: prompt_image_url }}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+            transition={150}
             style={{
               width: "100%",
               height: 220,
               borderRadius: 12,
               marginTop: 10,
-              resizeMode: "contain",
               backgroundColor: "#f8fafc",
             }}
           />

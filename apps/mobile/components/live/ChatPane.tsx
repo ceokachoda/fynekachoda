@@ -3,7 +3,7 @@
 // messages drop out automatically when the Realtime UPDATE flips is_deleted.
 // Teachers can long-press a message to moderate it.
 
-import { useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { FlatList, Platform, Pressable, Text, View } from "react-native";
 import type { ChatMessage } from "@/features/chat/useChatChannel";
 
@@ -23,16 +23,22 @@ function timeOf(iso: string): string {
   });
 }
 
-export function MessageBubble({
+export const MessageBubble = memo(function MessageBubble({
   msg,
   isOwn,
-  onLongPress,
+  canModerate,
+  onModerate,
 }: {
   msg: ChatMessage;
   isOwn?: boolean;
-  onLongPress?: () => void;
+  canModerate?: boolean;
+  onModerate?: (msg: ChatMessage) => void;
 }) {
   const isStaff = msg.author_role === "teacher" || msg.author_role === "admin";
+  // Built from stable props so this stays referentially constant across
+  // re-renders — that's what lets memo() skip every existing bubble when a new
+  // message arrives during an active class.
+  const onLongPress = canModerate && onModerate ? () => onModerate(msg) : undefined;
   const inner = (
     <>
       <View
@@ -85,7 +91,7 @@ export function MessageBubble({
       {inner}
     </Pressable>
   );
-}
+});
 
 export function ChatPane({
   messages,
@@ -101,7 +107,22 @@ export function ChatPane({
   emptyHint?: string;
 }) {
   const listRef = useRef<FlatList<ChatMessage>>(null);
-  const data = messages.filter((m) => m.kind === "chat" && !m.is_deleted);
+  const data = useMemo(
+    () => messages.filter((m) => m.kind === "chat" && !m.is_deleted),
+    [messages],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: ChatMessage }) => (
+      <MessageBubble
+        msg={item}
+        isOwn={item.author_id === currentUserId}
+        canModerate={canModerate}
+        onModerate={onModerate}
+      />
+    ),
+    [currentUserId, canModerate, onModerate],
+  );
 
   useEffect(() => {
     if (data.length > 0) {
@@ -134,13 +155,7 @@ export function ChatPane({
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-      renderItem={({ item }) => (
-        <MessageBubble
-          msg={item}
-          isOwn={item.author_id === currentUserId}
-          onLongPress={canModerate ? () => onModerate?.(item) : undefined}
-        />
-      )}
+      renderItem={renderItem}
     />
   );
 }

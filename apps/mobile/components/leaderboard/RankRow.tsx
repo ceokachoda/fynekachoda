@@ -10,12 +10,12 @@ export const RankRow = memo(function RankRow({
   onPress,
 }: {
   row: LeaderRow;
-  onPress?: () => void;
+  onPress?: (row: LeaderRow) => void;
 }) {
   const phone = row.phone_last2 ? `••${row.phone_last2}` : "";
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={onPress ? () => onPress(row) : undefined}
       activeOpacity={0.7}
       accessibilityLabel={`Rank ${row.rank}, ${row.is_me ? "you" : row.full_name}, composite ${row.composite.toFixed(2)}`}
       className={`flex-row items-center px-4 py-3 rounded-2xl mb-2 border ${
