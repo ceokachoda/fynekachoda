@@ -21,8 +21,18 @@ function TeacherGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isLoading) return;
-    if (!session || !appUser) {
+    if (!session) {
+      // Genuinely signed out (explicit sign-out or a truly dead session).
       router.replace("/login");
+      return;
+    }
+    if (!appUser) {
+      // Session is valid but the profile isn't loaded yet — e.g. a transient
+      // fetch hiccup right after a token refresh. Do NOT treat this as a logout;
+      // that would throw a signed-in teacher to /login mid-session. Hand off to
+      // the central router, which waits for the profile and only shows the
+      // neutral retry screen if it truly never resolves.
+      router.replace("/");
       return;
     }
     if (!appUser.is_active) {

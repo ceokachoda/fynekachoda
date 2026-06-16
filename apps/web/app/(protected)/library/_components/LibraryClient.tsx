@@ -266,25 +266,11 @@ export function LibraryClient({
           ) : (
             <ul className="space-y-2">
               {topic!.items.map((item) => {
-                const href = item.kind === "pdf" ? `/pdf/${item.id}` : `/video/${item.id}`;
-                if (item.kind === "note") {
-                  return (
-                    <li
-                      key={item.id}
-                      className="flex items-center rounded-2xl border border-slate-100 bg-white p-4 opacity-70"
-                    >
-                      <div className="mr-3 flex size-10 items-center justify-center rounded-2xl bg-slate-100">
-                        {iconForKind(item.kind)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-slate-900">
-                          {item.title}
-                        </p>
-                        <p className="text-xs text-slate-500">Note · coming soon</p>
-                      </div>
-                    </li>
-                  );
-                }
+                // Notes are PDF-backed files (uploaded as application/pdf) and are
+                // served by the same content-pdf-sign + PDF viewer as `pdf`. Only
+                // true videos go to /video — everything else opens in the PDF reader.
+                const href =
+                  item.kind === "video" ? `/video/${item.id}` : `/pdf/${item.id}`;
                 return (
                   <li key={item.id}>
                     <Link

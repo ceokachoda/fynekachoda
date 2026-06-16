@@ -46,16 +46,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setRoles([]);
       return;
     }
-    const { data: au } = await supabase
+    const { data: au, error } = await supabase
       .from("app_users")
       .select("id, full_name, email, phone, dob, is_active, must_change_password")
       .eq("auth_user_id", s.user.id)
       .maybeSingle();
-    if (!au) {
-      setAppUser(null);
-      setRoles([]);
-      return;
-    }
+    // A transient network / RLS / token-not-yet-ready hiccup must NOT blank a
+    // profile we already resolved. The session is still valid, so blanking it
+    // would yank a signed-in student/teacher to /login (the tab gates treat a
+    // null appUser as logged-out) or to /account-issue on cold start — the exact
+    // "logged out / couldn't load account" symptoms. Keep the current value and
+    // let a later auth event refresh it. Only an explicit sign-out (s === null,
+    // handled above) clears the profile. (Web SessionProvider already does this.)
+    if (error || !au) return;
     const { data: roleRows } = await supabase
       .from("user_roles")
       .select("role")

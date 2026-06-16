@@ -78,11 +78,24 @@ export async function middleware(req: NextRequest) {
   // FUNNEL_PATH_PREFIXES is intentionally exported for tests + future branches.
   void FUNNEL_PATH_PREFIXES;
 
-  const { data: userData } = await supabase.auth.getUser();
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
   const user = userData.user;
 
   if (!user) {
     if (isPublic) return response;
+    // Distinguish "definitely signed out" from "couldn't verify right now". A
+    // transient auth hiccup — or a token refresh that lost a rotation race on a
+    // hard page refresh — must NOT log a valid user out. If the request still
+    // carries a Supabase auth cookie and getUser *errored* (rather than cleanly
+    // reporting no session), let it through: the protected layout's own
+    // server-side session check is the authority and will redirect if the
+    // session is genuinely gone, while RLS + each edge function's own getUser
+    // remain the real security boundary regardless. Only bounce to /login when
+    // there's no auth cookie at all (a genuine signed-out / first visit).
+    const hasAuthCookie = req.cookies
+      .getAll()
+      .some((c) => c.name.includes("auth-token"));
+    if (userErr && hasAuthCookie) return response;
     return redirectTo((url) => {
       url.pathname = "/login";
       if (pathname !== "/") url.searchParams.set("next", pathname);
@@ -90,11 +103,15 @@ export async function middleware(req: NextRequest) {
   }
 
   // Authed in Supabase. Resolve our `app_users` row + roles.
-  const { data: appUser } = await supabase
+  const { data: appUser, error: appUserErr } = await supabase
     .from("app_users")
     .select("id, is_active, must_change_password")
     .eq("auth_user_id", user.id)
     .maybeSingle();
+  // A transient read failure for a user we just confirmed is authenticated must
+  // not bounce them to the not-provisioned trapdoor. Let the request through —
+  // the protected layout re-resolves the profile authoritatively.
+  if (appUserErr) return response;
   if (!appUser) {
     // Authed but not provisioned in our schema — same trapdoor as mobile.
     if (pathname === "/admin-redirect") return response;
@@ -103,10 +120,13 @@ export async function middleware(req: NextRequest) {
     });
   }
 
-  const { data: roleRows } = await supabase
+  const { data: roleRows, error: rolesErr } = await supabase
     .from("user_roles")
     .select("role")
     .eq("user_id", appUser.id);
+  // Same transient-tolerance: never make role-based routing decisions on a
+  // failed read — that could strip a valid user of their role and misroute them.
+  if (rolesErr) return response;
   const roles = (roleRows ?? []).map((r) => r.role);
   const isStudent = roles.includes("student");
   const isTeacher = roles.includes("teacher");

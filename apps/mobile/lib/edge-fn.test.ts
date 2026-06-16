@@ -97,6 +97,23 @@ describe("invokeEdgeFn", () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
+  it("on 401 with a TRANSIENT refresh failure does NOT sign out (stays logged in)", async () => {
+    // A network/timeout failure during the refresh is retryable — it must never
+    // be mistaken for a dead session and log the user out.
+    global.fetch = jest.fn(async () => res(401, { error: "invalid token" })) as unknown as typeof fetch;
+    mockRefreshSession.mockResolvedValue({
+      data: { session: null },
+      error: new TypeError("Network request failed"),
+    });
+
+    const r = await invokeEdgeFn("yt-playback-sign", {});
+
+    expect(r.status).toBe(401);
+    expect(mockRefreshSession).toHaveBeenCalledTimes(1);
+    expect(mockSignOut).not.toHaveBeenCalled();
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
   it("de-dupes concurrent 401s into a single refresh", async () => {
     global.fetch = jest.fn(async (...call: unknown[]) =>
       authOf(call) === "Bearer fresh" ? res(200, { ok: true }) : res(401, {}),

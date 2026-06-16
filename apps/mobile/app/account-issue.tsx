@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,15 +11,43 @@ import { LoadingDots } from "@/components/LoadingDots";
 // admin-redirect "Admin account" card, which a student on flaky wifi could hit.
 export default function AccountIssueScreen() {
   const router = useRouter();
-  const { refresh } = useSession();
+  const { refresh, session, appUser } = useSession();
   const [retrying, setRetrying] = useState(false);
+
+  // Auto-recover: the user landed here because the first profile load lost a
+  // race with a flaky network. Try once on mount — and the moment the profile
+  // actually resolves (this retry, or a background token refresh), leave the
+  // card so they're never stranded staring at it. If the session itself is gone
+  // they belong on /login. While a retry is in flight we stay put.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setRetrying(true);
+      await refresh();
+      if (!cancelled) setRetrying(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refresh]);
+
+  useEffect(() => {
+    if (retrying) return;
+    if (session && appUser) {
+      router.replace("/");
+    } else if (!session) {
+      router.replace("/login");
+    }
+  }, [retrying, session, appUser, router]);
 
   async function handleRetry() {
     if (retrying) return;
     setRetrying(true);
     await refresh();
     setRetrying(false);
-    router.replace("/");
+    // Navigation is handled by the effect above once state settles: → "/" when
+    // the profile resolves, → /login if signed out, otherwise stay so the user
+    // can try again.
   }
 
   async function handleSignOut() {

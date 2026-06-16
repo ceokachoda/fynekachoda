@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { time12h } from "@/lib/time";
 
 export function round15(d: Date): Date {
   const fifteen = 15 * 60 * 1000;
@@ -48,7 +49,6 @@ export function ClassDateTimePicker({
     nd.setHours(h, m, 0, 0);
     setPickedDate(nd);
   };
-  const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
 
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
@@ -108,9 +108,9 @@ export function ClassDateTimePicker({
             })}
           </ScrollView>
           <Text style={{ fontSize: 13, color: "#475569", marginBottom: 6 }}>
-            Time (IST, 15-min slots)
+            Time (IST)
           </Text>
-          <ScrollView style={{ maxHeight: 240 }}>
+          <ScrollView style={{ maxHeight: 260 }}>
             <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
               {times.map(({ h, m }) => {
                 const isSel = pickedDate.getHours() === h && pickedDate.getMinutes() === m;
@@ -119,21 +119,24 @@ export function ClassDateTimePicker({
                     key={`${h}:${m}`}
                     onPress={() => setTimePart(h, m)}
                     style={{
-                      paddingHorizontal: 10,
-                      paddingVertical: 6,
+                      width: "30%",
+                      marginHorizontal: "1.5%",
+                      marginVertical: 4,
+                      paddingVertical: 9,
                       borderRadius: 10,
+                      alignItems: "center",
                       backgroundColor: isSel ? "#2563EB" : "#f1f5f9",
-                      margin: 3,
                     }}
                   >
                     <Text
                       style={{
                         color: isSel ? "#ffffff" : "#0f172a",
                         fontWeight: "700",
+                        fontSize: 13,
                         fontVariant: ["tabular-nums"],
                       }}
                     >
-                      {pad(h)}:{pad(m)}
+                      {time12h(h, m)}
                     </Text>
                   </Pressable>
                 );

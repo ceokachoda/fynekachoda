@@ -32,12 +32,14 @@ import {
   X,
 } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
+import { time12h } from "@/lib/time";
 import { withTimeout } from "@/features/auth/network-errors";
 import { useSession } from "@/features/auth/useSession";
 import { useTeacherBatches } from "@/features/exam/useTeacherBatches";
 import { useExamBuilder } from "@/features/exam/useTeacherExamBuilder";
 import { useQuestionBank } from "@/features/quiz/useQuestionBank";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { PickerSheet } from "@/components/ui/PickerSheet";
 
 type Picker = "batch" | "duration" | "release" | "date" | null;
 
@@ -48,9 +50,9 @@ function fmtIstShort(iso: string | null): string {
     weekday: "short",
     day: "2-digit",
     month: "short",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
-    hour12: false,
+    hour12: true,
   });
 }
 
@@ -467,13 +469,14 @@ export default function ExamBuilderScreen() {
         </Pressable>
       </ScrollView>
 
-      <PickerModal
+      <PickerSheet
         title="Choose batch"
         visible={picker === "batch"}
         onClose={() => setPicker(null)}
-        items={teacherBatches.batches.map((b) => ({
+        options={teacherBatches.batches.map((b) => ({
           key: b.batch_id,
-          label: `${b.batch_name} · ${b.course_code}`,
+          label: b.batch_name,
+          sublabel: b.course_code,
         }))}
         selectedKey={batchId}
         onSelect={(k) => {
@@ -481,11 +484,11 @@ export default function ExamBuilderScreen() {
           setPicker(null);
         }}
       />
-      <PickerModal
+      <PickerSheet
         title="Duration"
         visible={picker === "duration"}
         onClose={() => setPicker(null)}
-        items={DURATION_PRESETS.map((m) => ({
+        options={DURATION_PRESETS.map((m) => ({
           key: String(m),
           label: `${m} minutes`,
         }))}
@@ -495,11 +498,11 @@ export default function ExamBuilderScreen() {
           setPicker(null);
         }}
       />
-      <PickerModal
+      <PickerSheet
         title="Result release"
         visible={picker === "release"}
         onClose={() => setPicker(null)}
-        items={[
+        options={[
           { key: "manual", label: "Manual (teacher releases later)" },
           { key: "instant", label: "Instant (release on submit)" },
         ]}
@@ -622,70 +625,6 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-function PickerModal({
-  title,
-  visible,
-  onClose,
-  items,
-  selectedKey,
-  onSelect,
-}: {
-  title: string;
-  visible: boolean;
-  onClose: () => void;
-  items: Array<{ key: string; label: string }>;
-  selectedKey: string | null;
-  onSelect: (k: string) => void;
-}) {
-  return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
-      <Pressable
-        onPress={onClose}
-        style={{
-          flex: 1,
-          backgroundColor: "rgba(15,23,42,0.45)",
-          justifyContent: "center",
-          paddingHorizontal: 24,
-        }}
-      >
-        <Pressable
-          onPress={(e) => e.stopPropagation()}
-          style={{ backgroundColor: "#fff", borderRadius: 18, padding: 16, maxHeight: "70%" }}
-        >
-          <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>
-            {title}
-          </Text>
-          <ScrollView>
-            {items.map((it) => (
-              <Pressable
-                key={it.key}
-                onPress={() => onSelect(it.key)}
-                style={{
-                  paddingVertical: 10,
-                  paddingHorizontal: 8,
-                  borderRadius: 10,
-                  backgroundColor: selectedKey === it.key ? "#eff6ff" : "transparent",
-                  flexDirection: "row",
-                  alignItems: "center",
-                }}
-              >
-                {selectedKey === it.key ? (
-                  <Check size={16} color="#2563EB" />
-                ) : (
-                  <View style={{ width: 16 }} />
-                )}
-                <Text style={{ marginLeft: 8, color: "#0f172a", fontSize: 15 }}>
-                  {it.label}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
 // Minimal date + time picker — uses ScrollViews of buttons because react-
 // native-datetimepicker would add a native module dep. 15-min steps;
 // horizon = today + 30 days.
@@ -787,33 +726,35 @@ function StartDatePicker({
             })}
           </ScrollView>
           <Text style={{ fontSize: 13, color: "#475569", marginBottom: 6 }}>
-            Time (IST, 15-min slots)
+            Time (IST)
           </Text>
-          <ScrollView style={{ maxHeight: 240 }}>
+          <ScrollView style={{ maxHeight: 260 }}>
             <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
               {times.map(({ h, m }) => {
                 const isSel = pickedDate.getHours() === h && pickedDate.getMinutes() === m;
-                const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
                 return (
                   <Pressable
                     key={`${h}:${m}`}
                     onPress={() => setTimePart(h, m)}
                     style={{
-                      paddingHorizontal: 10,
-                      paddingVertical: 6,
+                      width: "30%",
+                      marginHorizontal: "1.5%",
+                      marginVertical: 4,
+                      paddingVertical: 9,
                       borderRadius: 10,
+                      alignItems: "center",
                       backgroundColor: isSel ? "#2563EB" : "#f1f5f9",
-                      margin: 3,
                     }}
                   >
                     <Text
                       style={{
                         color: isSel ? "#ffffff" : "#0f172a",
                         fontWeight: "700",
+                        fontSize: 13,
                         fontVariant: ["tabular-nums"],
                       }}
                     >
-                      {pad(h)}:{pad(m)}
+                      {time12h(h, m)}
                     </Text>
                   </Pressable>
                 );

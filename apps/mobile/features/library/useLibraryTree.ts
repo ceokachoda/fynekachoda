@@ -34,7 +34,6 @@ export interface ContentRow {
   title: string;
   description: string | null;
   duration_sec: number | null;
-  yt_video_id: string | null;
   file_path: string | null;
   topic_id: string;
   batch_id: string | null;
@@ -75,7 +74,7 @@ export function useLibraryAccessibleItems(): State<ContentRow[]> {
         supabase
           .from("content_items")
           .select(
-            "id, kind, title, description, duration_sec, yt_video_id, file_path, topic_id, batch_id, created_at",
+            "id, kind, title, description, duration_sec, file_path, topic_id, batch_id, created_at",
           )
           .order("created_at", { ascending: false }),
       );

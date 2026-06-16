@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -21,6 +20,7 @@ import {
   withTimeout,
 } from "@/features/auth/network-errors";
 import { ClassDateTimePicker, round15 } from "@/components/teacher/ClassDateTimePicker";
+import { PickerSheet } from "@/components/ui/PickerSheet";
 import type { AssignedBatch } from "@/features/org/useAssignedBatches";
 
 interface Props {
@@ -47,8 +47,9 @@ function formatStart(d: Date): string {
   });
   const time = d.toLocaleTimeString("en-IN", {
     timeZone: "Asia/Kolkata",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
+    hour12: true,
   });
   return `${day} · ${time}`;
 }
@@ -56,8 +57,9 @@ function formatStart(d: Date): string {
 function formatTimeIst(d: Date): string {
   return d.toLocaleTimeString("en-IN", {
     timeZone: "Asia/Kolkata",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
+    hour12: true,
   });
 }
 
@@ -192,7 +194,7 @@ export function ScheduleLiveSheet({
             Batch
           </Text>
           <TouchableOpacity
-            onPress={() => setShowBatchPicker((v) => !v)}
+            onPress={() => setShowBatchPicker(true)}
             className="border border-slate-200 rounded-2xl px-4 py-3 flex-row items-center justify-between bg-slate-50"
           >
             <Text className="text-sm font-semibold text-slate-900 flex-1" numberOfLines={1}>
@@ -202,29 +204,6 @@ export function ScheduleLiveSheet({
             </Text>
             <ChevronDown size={16} color="#64748b" />
           </TouchableOpacity>
-
-          {showBatchPicker ? (
-            <ScrollView
-              className="mt-2 border border-slate-100 rounded-2xl bg-white"
-              style={{ maxHeight: 180 }}
-            >
-              {batches.map((b) => (
-                <TouchableOpacity
-                  key={b.batch_id}
-                  onPress={() => {
-                    setSelectedBatchId(b.batch_id);
-                    setShowBatchPicker(false);
-                  }}
-                  className="px-4 py-3 border-b border-slate-50"
-                >
-                  <Text className="text-sm font-semibold text-slate-900">{b.batch_name}</Text>
-                  <Text className="text-[11px] text-slate-500 mt-0.5">
-                    {b.course_code} · {b.course_name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          ) : null}
 
           <Text className="text-[11px] font-bold uppercase text-slate-500 mt-4 mb-1.5">
             Starts
@@ -290,6 +269,22 @@ export function ScheduleLiveSheet({
           </TouchableOpacity>
         </View>
       </View>
+
+      <PickerSheet
+        visible={showBatchPicker}
+        title="Choose batch"
+        options={batches.map((b) => ({
+          key: b.batch_id,
+          label: b.batch_name,
+          sublabel: `${b.course_code} · ${b.course_name}`,
+        }))}
+        selectedKey={selectedBatchId}
+        onSelect={(k) => {
+          setSelectedBatchId(k);
+          setShowBatchPicker(false);
+        }}
+        onClose={() => setShowBatchPicker(false)}
+      />
 
       <ClassDateTimePicker
         visible={showDatePicker}

@@ -12,7 +12,6 @@ export interface ContentItemDetail {
   title: string;
   description: string | null;
   duration_sec: number | null;
-  yt_video_id: string | null;
   file_path: string | null;
   topic_id: string;
   course_id: string;
@@ -46,7 +45,7 @@ export function useContentItem(contentId: string | undefined): State {
         supabase
           .from("content_items")
           .select(
-            "id, kind, title, description, duration_sec, yt_video_id, file_path, topic_id, course_id, batch_id, is_published, created_at",
+            "id, kind, title, description, duration_sec, file_path, topic_id, course_id, batch_id, is_published, created_at",
           )
           .eq("id", contentId)
           .maybeSingle(),

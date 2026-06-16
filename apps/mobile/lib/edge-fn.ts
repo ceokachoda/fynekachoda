@@ -18,7 +18,39 @@
 
 import { supabase } from "./supabase";
 import { env } from "./env";
-import { withTimeout } from "@/features/auth/network-errors";
+import { isNetworkError, withTimeout } from "@/features/auth/network-errors";
+
+// A refresh can fail two very different ways. Only a genuinely dead session —
+// the refresh token was revoked, reused, not found, or the user no longer
+// exists — should log the user out. A network/timeout failure is transient and
+// must NOT sign them out: the still-valid session will work again on the next
+// call. We sign out ONLY on these known-fatal signatures (anything unrecognised
+// is treated as transient, erring toward keeping the user signed in).
+const FATAL_AUTH = new RegExp(
+  [
+    "invalid refresh token",
+    "refresh token not found",
+    "refresh_token_not_found",
+    "refresh_token_already_used",
+    "session[ _]not[ _]found",
+    "session_not_found",
+    "user[ _]not[ _]found",
+    "user_not_found",
+    "user_banned",
+    "bad_jwt",
+  ].join("|"),
+  "i",
+);
+
+function isFatalAuthError(error: unknown): boolean {
+  if (!error) return false;
+  // A network/timeout failure is retryable, never fatal.
+  if (isNetworkError(error)) return false;
+  const e = error as { message?: unknown; code?: unknown };
+  const code = typeof e.code === "string" ? e.code : "";
+  const msg = typeof e.message === "string" ? e.message : "";
+  return FATAL_AUTH.test(code) || FATAL_AUTH.test(msg);
+}
 
 const FUNCTIONS_BASE = `${env.supabaseUrl.replace(/\/+$/, "")}/functions/v1`;
 
@@ -63,9 +95,14 @@ let inflightRecovery: Promise<string | null> | null = null;
 async function recover(): Promise<string | null> {
   const { data, error } = await supabase.auth.refreshSession();
   if (!error && data.session?.access_token) return data.session.access_token;
-  // Session is unrecoverable — clear local state so the auth router routes to
-  // /login. `scope: 'local'` skips the (doomed) server round-trip.
-  await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+  // Only a genuinely dead session warrants a local sign-out (→ auth router sends
+  // the user to /login; `scope: 'local'` skips the doomed server round-trip). A
+  // transient network failure during the refresh must NOT log the user out — we
+  // return null so this one edge call fails and the next call retries against
+  // the still-valid session.
+  if (isFatalAuthError(error)) {
+    await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+  }
   return null;
 }
 

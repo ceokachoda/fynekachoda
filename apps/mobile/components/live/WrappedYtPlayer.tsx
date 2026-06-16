@@ -42,6 +42,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   FastForward,
   Maximize,
@@ -153,23 +154,28 @@ function clamp01(n: number): number {
 /** A round chrome button. Uses the gesture-responder system (claims on
  *  touch-START) instead of Pressable — WKWebView cancels Pressable's onPress
  *  mid-gesture, so a Pressable over the WebView blocks tap-through but never
- *  fires. */
+ *  fires. 44×44 so it clears the platform minimum touch target on both iOS and
+ *  Android (the old 38px was hard to hit one-handed, especially in landscape). */
 function ChromeButton({
   onPress,
+  label,
   children,
 }: {
   onPress: () => void;
+  label: string;
   children: React.ReactNode;
 }) {
   return (
     <View
+      accessibilityRole="button"
+      accessibilityLabel={label}
       onStartShouldSetResponder={() => true}
       onResponderRelease={onPress}
       style={{
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        marginLeft: 10,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        marginLeft: 8,
         backgroundColor: "rgba(0,0,0,0.55)",
         alignItems: "center",
         justifyContent: "center",
@@ -203,6 +209,7 @@ export const WrappedYtPlayer = forwardRef<
   },
   ref,
 ) {
+  const insets = useSafeAreaInsets();
   const playerRef = useRef<YoutubeIframeRef | null>(null);
   const [playing, setPlaying] = useState(true);
   const [muted, setMuted] = useState(false);
@@ -427,8 +434,41 @@ export const WrappedYtPlayer = forwardRef<
     (scrubbing ? scrubFrac : durationSec > 0 ? clamp01(currentSec / durationSec) : 0) *
     100;
   const displaySec = scrubbing ? scrubFrac * durationSec : currentSec;
-  const showBar = !live && started && !hideControls && chromeVisible;
-  const showTopChrome = started && chromeVisible;
+  // All controls live at the BOTTOM (the reachable thumb zone) — the top-right
+  // fullscreen button was unreachable one-handed, especially in landscape. The
+  // full bar shows whenever the host hasn't taken over the transport itself
+  // (`hideControls`); in that case we still float mute + fullscreen bottom-right
+  // so the student can always reach fullscreen/minimise.
+  const showBottomBar = started && !hideControls && chromeVisible;
+  const showCornerControls = started && hideControls && chromeVisible;
+  // Keep the bar clear of the notch (landscape), status bar and the Android
+  // gesture pill / nav bar so every control is tappable on every device. The
+  // device insets only matter when the player reaches the screen edges (`fill`:
+  // landscape / immersive). Inline (portrait) the player is a 16:9 box mid-
+  // screen, so a flat 8/12px keeps the controls hugging the video, not the OS.
+  const sideL = fill ? Math.max(insets.left, 12) : 12;
+  const sideR = fill ? Math.max(insets.right, 12) : 12;
+  const barBottom = fill ? Math.max(insets.bottom, 8) : 8;
+  const fsButton = onToggleFullscreen ? (
+    <ChromeButton
+      label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+      onPress={onToggleFullscreen}
+    >
+      {isFullscreen ? (
+        <Minimize size={20} color="#fff" />
+      ) : (
+        <Maximize size={20} color="#fff" />
+      )}
+    </ChromeButton>
+  ) : null;
+  const muteButton = (
+    <ChromeButton
+      label={muted ? "Unmute" : "Mute"}
+      onPress={() => setMuted((m) => !m)}
+    >
+      {muted ? <VolumeX size={20} color="#fff" /> : <Volume2 size={20} color="#fff" />}
+    </ChromeButton>
+  );
 
   return (
     <View
@@ -556,70 +596,11 @@ export const WrappedYtPlayer = forwardRef<
         </View>
       ) : null}
 
-      {/* top chrome — LIVE pill (left) + mute + fullscreen (right). box-none so
-          taps on empty space fall through to the surface overlay (toggle). */}
-      {showTopChrome ? (
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 40,
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 12,
-            paddingTop: 10,
-          }}
-        >
-          {live ? (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#dc2626",
-                borderRadius: 6,
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-              }}
-            >
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: "#fff",
-                  marginRight: 6,
-                }}
-              />
-              <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>
-                LIVE
-              </Text>
-            </View>
-          ) : null}
-          <View style={{ flex: 1 }} />
-          <ChromeButton onPress={() => setMuted((m) => !m)}>
-            {muted ? (
-              <VolumeX size={18} color="#fff" />
-            ) : (
-              <Volume2 size={18} color="#fff" />
-            )}
-          </ChromeButton>
-          {onToggleFullscreen ? (
-            <ChromeButton onPress={onToggleFullscreen}>
-              {isFullscreen ? (
-                <Minimize size={18} color="#fff" />
-              ) : (
-                <Maximize size={18} color="#fff" />
-              )}
-            </ChromeButton>
-          ) : null}
-        </View>
-      ) : null}
-
-      {/* our bottom control bar (recordings + library; never for live) */}
-      {showBar ? (
+      {/* Bottom control bar — the single home for all controls. Everything sits
+          in the reachable thumb zone and clears the device safe areas. For live
+          it's just LIVE + mute + fullscreen; for recordings/library it adds the
+          scrubber, play/pause, ±10s and speed. */}
+      {showBottomBar ? (
         <View
           style={{
             position: "absolute",
@@ -627,94 +608,160 @@ export const WrappedYtPlayer = forwardRef<
             right: 0,
             bottom: 0,
             zIndex: 30,
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            flexDirection: "row",
-            alignItems: "center",
+            paddingLeft: sideL,
+            paddingRight: sideR,
+            paddingTop: 8,
+            paddingBottom: barBottom,
             backgroundColor: "rgba(0,0,0,0.55)",
           }}
         >
-          <View
-            onStartShouldSetResponder={() => true}
-            onResponderRelease={() => setPlaying((p) => !p)}
-            style={{ marginRight: 6, paddingVertical: 4, paddingRight: 4 }}
-          >
-            {playing ? (
-              <Pause size={20} color="#fff" fill="#fff" />
-            ) : (
-              <Play size={20} color="#fff" fill="#fff" />
-            )}
-          </View>
-
-          <View
-            onStartShouldSetResponder={() => true}
-            onResponderRelease={() => skipBy(-10)}
-            style={{ marginRight: 6, padding: 4 }}
-          >
-            <Rewind size={18} color="#fff" />
-          </View>
-          <View
-            onStartShouldSetResponder={() => true}
-            onResponderRelease={() => skipBy(10)}
-            style={{ marginRight: 10, padding: 4 }}
-          >
-            <FastForward size={18} color="#fff" />
-          </View>
-
-          <View
-            onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}
-            onStartShouldSetResponder={() => true}
-            onMoveShouldSetResponder={() => true}
-            onResponderGrant={onSeekGrant}
-            onResponderMove={onSeekMove}
-            onResponderRelease={onSeekRelease}
-            onResponderTerminate={() => setScrubbing(false)}
-            style={{ flex: 1, height: 24, justifyContent: "center", marginRight: 10 }}
-          >
-            <View style={{ height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" }}>
+          {/* scrubber (recordings + library; never for a live feed) */}
+          {!live ? (
+            <View
+              onLayout={(e) => setTrackW(e.nativeEvent.layout.width)}
+              onStartShouldSetResponder={() => true}
+              onMoveShouldSetResponder={() => true}
+              onResponderGrant={onSeekGrant}
+              onResponderMove={onSeekMove}
+              onResponderRelease={onSeekRelease}
+              onResponderTerminate={() => setScrubbing(false)}
+              style={{ height: 28, justifyContent: "center", marginBottom: 2 }}
+            >
+              <View style={{ height: 3, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.3)" }}>
+                <View
+                  style={{
+                    height: 3,
+                    borderRadius: 2,
+                    backgroundColor: "#3b82f6",
+                    width: `${fillPct}%`,
+                  }}
+                />
+              </View>
               <View
                 style={{
-                  height: 3,
-                  borderRadius: 2,
-                  backgroundColor: "#3b82f6",
-                  width: `${fillPct}%`,
+                  position: "absolute",
+                  left: `${fillPct}%`,
+                  width: 14,
+                  height: 14,
+                  borderRadius: 7,
+                  marginLeft: -7,
+                  backgroundColor: "#fff",
                 }}
               />
             </View>
-            <View
-              style={{
-                position: "absolute",
-                left: `${fillPct}%`,
-                width: 12,
-                height: 12,
-                borderRadius: 6,
-                marginLeft: -6,
-                backgroundColor: "#fff",
-              }}
-            />
-          </View>
-
-          <Text style={{ color: "#fff", fontSize: 11 }}>
-            {fmt(displaySec)} / {fmt(durationSec)}
-          </Text>
-
-          {onCycleRate ? (
-            <View
-              onStartShouldSetResponder={() => true}
-              onResponderRelease={onCycleRate}
-              style={{
-                marginLeft: 10,
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                borderRadius: 999,
-                backgroundColor: "rgba(255,255,255,0.18)",
-              }}
-            >
-              <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>
-                {playbackRate ?? 1}×
-              </Text>
-            </View>
           ) : null}
+
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            {!live ? (
+              <>
+                <View
+                  accessibilityRole="button"
+                  accessibilityLabel={playing ? "Pause" : "Play"}
+                  onStartShouldSetResponder={() => true}
+                  onResponderRelease={() => setPlaying((p) => !p)}
+                  style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+                >
+                  {playing ? (
+                    <Pause size={22} color="#fff" fill="#fff" />
+                  ) : (
+                    <Play size={22} color="#fff" fill="#fff" />
+                  )}
+                </View>
+                <View
+                  accessibilityRole="button"
+                  accessibilityLabel="Rewind 10 seconds"
+                  onStartShouldSetResponder={() => true}
+                  onResponderRelease={() => skipBy(-10)}
+                  style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+                >
+                  <Rewind size={20} color="#fff" />
+                </View>
+                <View
+                  accessibilityRole="button"
+                  accessibilityLabel="Forward 10 seconds"
+                  onStartShouldSetResponder={() => true}
+                  onResponderRelease={() => skipBy(10)}
+                  style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", marginRight: 6 }}
+                >
+                  <FastForward size={20} color="#fff" />
+                </View>
+                <Text
+                  style={{ color: "#fff", fontSize: 12, fontVariant: ["tabular-nums"] }}
+                >
+                  {fmt(displaySec)} / {fmt(durationSec)}
+                </Text>
+              </>
+            ) : (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#dc2626",
+                  borderRadius: 6,
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                }}
+              >
+                <View
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: "#fff",
+                    marginRight: 6,
+                  }}
+                />
+                <Text style={{ color: "#fff", fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>
+                  LIVE
+                </Text>
+              </View>
+            )}
+
+            <View style={{ flex: 1 }} />
+
+            {!live && onCycleRate ? (
+              <View
+                accessibilityRole="button"
+                accessibilityLabel="Playback speed"
+                onStartShouldSetResponder={() => true}
+                onResponderRelease={onCycleRate}
+                style={{
+                  height: 36,
+                  paddingHorizontal: 12,
+                  borderRadius: 999,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "rgba(255,255,255,0.18)",
+                }}
+              >
+                <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>
+                  {playbackRate ?? 1}×
+                </Text>
+              </View>
+            ) : null}
+            {muteButton}
+            {fsButton}
+          </View>
+        </View>
+      ) : null}
+
+      {/* Corner controls — when the host screen owns the transport bar itself
+          (e.g. the recording screen in portrait) we still float mute +
+          fullscreen bottom-right so fullscreen/minimise is always one tap away. */}
+      {showCornerControls ? (
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: "absolute",
+            right: sideR,
+            bottom: barBottom,
+            zIndex: 30,
+            flexDirection: "row",
+            alignItems: "center",
+          }}
+        >
+          {muteButton}
+          {fsButton}
         </View>
       ) : null}
 

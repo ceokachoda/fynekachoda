@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+import { TimeSelect } from "@/components/teacher/TimeSelect";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pill } from "@/components/fyne/Pill";
 import { FocusLayout } from "@/components/fyne/FocusLayout";
@@ -38,12 +40,28 @@ interface Props {
 
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120, 180];
 
-function fmtLocalDateTime(iso: string | null): string {
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+// Split / recombine the stored ISO into local-zone date + time fields. Keeps
+// the original datetime-local semantics (the teacher picks a wall-clock time in
+// their own browser zone) while showing the time in 12-hour format.
+function fmtLocalDate(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
-  // datetime-local needs YYYY-MM-DDTHH:MM in the user's local zone.
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function fmtLocalTime(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function combineLocalToIso(dateYmd: string, timeHHMM: string): string | null {
+  if (!dateYmd || !timeHHMM) return null;
+  // No zone suffix → parsed as local wall clock, matching datetime-local.
+  const d = new Date(`${dateYmd}T${timeHHMM}`);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 function nextHalfHourIso(): string {
@@ -231,12 +249,14 @@ function ExamBuilderInner({ examId }: Props) {
           placeholder="e.g. Unit Test 4 — Mechanics"
           data-testid="exam-builder-title"
         />
-        <label className="block text-xs text-slate-500">
-          Batch
-          <select
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold text-slate-500">
+            Batch
+          </span>
+          <NativeSelect
             value={batchId ?? ""}
             onChange={(e) => setBatchId(e.target.value || null)}
-            className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900"
+            aria-label="Batch"
           >
             <option value="">Choose batch</option>
             {(teacherBatches.data ?? []).map((b) => (
@@ -244,50 +264,75 @@ function ExamBuilderInner({ examId }: Props) {
                 {b.batch_name} · {b.course_code}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
-        <label className="block text-xs text-slate-500">
-          Starts at (IST shown in your browser&apos;s local time)
-          <Input
-            type="datetime-local"
-            value={fmtLocalDateTime(startsAt)}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (!v) {
-                setStartsAt(null);
-                return;
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-slate-500">
+              Date
+            </span>
+            <Input
+              type="date"
+              className="h-12 rounded-xl"
+              value={fmtLocalDate(startsAt)}
+              onChange={(e) =>
+                setStartsAt(
+                  combineLocalToIso(
+                    e.target.value,
+                    fmtLocalTime(startsAt) || "09:00",
+                  ),
+                )
               }
-              const d = new Date(v);
-              setStartsAt(d.toISOString());
-            }}
-          />
-        </label>
-        <label className="block text-xs text-slate-500">
-          Duration
-          <select
-            value={durationMin}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-slate-500">
+              Start time
+            </span>
+            <TimeSelect
+              aria-label="Exam start time"
+              value={fmtLocalTime(startsAt)}
+              onChange={(t) =>
+                setStartsAt(
+                  combineLocalToIso(
+                    fmtLocalDate(startsAt) || fmtLocalDate(new Date().toISOString()),
+                    t,
+                  ),
+                )
+              }
+            />
+          </label>
+        </div>
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold text-slate-500">
+            Duration
+          </span>
+          <NativeSelect
+            value={String(durationMin)}
             onChange={(e) => setDurationMin(Number.parseInt(e.target.value, 10))}
-            className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900"
+            aria-label="Duration"
           >
             {DURATION_PRESETS.map((m) => (
               <option key={m} value={m}>
                 {m} minutes
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
-        <label className="block text-xs text-slate-500">
-          Result release
-          <select
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold text-slate-500">
+            Result release
+          </span>
+          <NativeSelect
             value={resultRelease}
             onChange={(e) =>
               setResultRelease(e.target.value as "manual" | "instant")
             }
-            className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900"
+            aria-label="Result release"
           >
             <option value="manual">Manual (teacher releases later)</option>
             <option value="instant">Instant (release on submit)</option>
-          </select>
+          </NativeSelect>
         </label>
       </section>
 

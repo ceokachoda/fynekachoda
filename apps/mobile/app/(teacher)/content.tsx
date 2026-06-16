@@ -14,6 +14,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { invokeEdgeFn } from "@/lib/edge-fn";
 import { useTeacherCurriculum } from "@/features/library/useTeacherCurriculum";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { PickerSheet } from "@/components/ui/PickerSheet";
 
 type Kind = "video" | "pdf" | "note";
 type Scope = "batch" | "suggest";
@@ -487,112 +488,73 @@ export default function TeacherContentUpload() {
         </Pressable>
       </ScrollView>
 
-      {/* Pickers — full-screen modal pattern */}
-      {picker ? (
-        <View className="absolute inset-0 bg-black/40 justify-end">
-          <View
-            style={{ maxHeight: "75%" }}
-            className="bg-white rounded-t-3xl p-5"
-          >
-            <View className="flex-row items-center mb-3">
-              <Text className="text-lg font-bold text-blue-900 flex-1">
-                {picker === "course"
-                  ? "Pick course"
-                  : picker === "subject"
-                  ? "Pick subject"
-                  : picker === "chapter"
-                  ? "Pick chapter"
-                  : picker === "topic"
-                  ? "Pick topic"
-                  : "Pick batch"}
-              </Text>
-              <Pressable
-                onPress={() => setPicker(null)}
-                className="px-3 py-1 rounded-lg bg-slate-100"
-              >
-                <Text className="text-slate-700 font-semibold">Close</Text>
-              </Pressable>
-            </View>
-            <ScrollView>
-              {picker === "course" ? (
-                courses.map((c) => (
-                  <Pressable
-                    key={c.course_id}
-                    onPress={() => {
-                      setCourseId(c.course_id);
-                      setSubjectId(null);
-                      setChapterId(null);
-                      setTopicId(null);
-                      setBatchId(null);
-                      setPicker(null);
-                    }}
-                    className="py-3 border-b border-slate-100"
-                  >
-                    <Text className="text-base text-slate-900 font-semibold">
-                      {c.course_code} · {c.course_name}
-                    </Text>
-                  </Pressable>
-                ))
-              ) : picker === "subject" ? (
-                (selectedCourse?.subjects ?? []).map((s) => (
-                  <Pressable
-                    key={s.id}
-                    onPress={() => {
-                      setSubjectId(s.id);
-                      setChapterId(null);
-                      setTopicId(null);
-                      setPicker(null);
-                    }}
-                    className="py-3 border-b border-slate-100"
-                  >
-                    <Text className="text-base text-slate-900">{s.name}</Text>
-                  </Pressable>
-                ))
-              ) : picker === "chapter" ? (
-                (selectedSubject?.chapters ?? []).map((c) => (
-                  <Pressable
-                    key={c.id}
-                    onPress={() => {
-                      setChapterId(c.id);
-                      setTopicId(null);
-                      setPicker(null);
-                    }}
-                    className="py-3 border-b border-slate-100"
-                  >
-                    <Text className="text-base text-slate-900">{c.name}</Text>
-                  </Pressable>
-                ))
-              ) : picker === "topic" ? (
-                (selectedChapter?.topics ?? []).map((t) => (
-                  <Pressable
-                    key={t.id}
-                    onPress={() => {
-                      setTopicId(t.id);
-                      setPicker(null);
-                    }}
-                    className="py-3 border-b border-slate-100"
-                  >
-                    <Text className="text-base text-slate-900">{t.name}</Text>
-                  </Pressable>
-                ))
-              ) : (
-                (selectedCourse?.batches ?? []).map((b) => (
-                  <Pressable
-                    key={b.batch_id}
-                    onPress={() => {
-                      setBatchId(b.batch_id);
-                      setPicker(null);
-                    }}
-                    className="py-3 border-b border-slate-100"
-                  >
-                    <Text className="text-base text-slate-900">{b.batch_name}</Text>
-                  </Pressable>
-                ))
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      ) : null}
+      {/* Curriculum + batch picker (shared bottom sheet) */}
+      <PickerSheet
+        visible={picker !== null}
+        title={
+          picker === "course"
+            ? "Choose course"
+            : picker === "subject"
+            ? "Choose subject"
+            : picker === "chapter"
+            ? "Choose chapter"
+            : picker === "topic"
+            ? "Choose topic"
+            : "Choose batch"
+        }
+        options={
+          picker === "course"
+            ? courses.map((c) => ({
+                key: c.course_id,
+                label: c.course_name,
+                sublabel: c.course_code,
+              }))
+            : picker === "subject"
+            ? (selectedCourse?.subjects ?? []).map((s) => ({ key: s.id, label: s.name }))
+            : picker === "chapter"
+            ? (selectedSubject?.chapters ?? []).map((c) => ({ key: c.id, label: c.name }))
+            : picker === "topic"
+            ? (selectedChapter?.topics ?? []).map((t) => ({ key: t.id, label: t.name }))
+            : picker === "batch"
+            ? (selectedCourse?.batches ?? []).map((b) => ({ key: b.batch_id, label: b.batch_name }))
+            : []
+        }
+        selectedKey={
+          picker === "course"
+            ? courseId
+            : picker === "subject"
+            ? subjectId
+            : picker === "chapter"
+            ? chapterId
+            : picker === "topic"
+            ? topicId
+            : picker === "batch"
+            ? batchId
+            : null
+        }
+        onSelect={(key) => {
+          if (picker === "course") {
+            setCourseId(key);
+            setSubjectId(null);
+            setChapterId(null);
+            setTopicId(null);
+            setBatchId(null);
+          } else if (picker === "subject") {
+            setSubjectId(key);
+            setChapterId(null);
+            setTopicId(null);
+          } else if (picker === "chapter") {
+            setChapterId(key);
+            setTopicId(null);
+          } else if (picker === "topic") {
+            setTopicId(key);
+          } else if (picker === "batch") {
+            setBatchId(key);
+          }
+          setPicker(null);
+        }}
+        onClose={() => setPicker(null)}
+      />
     </SafeAreaView>
   );
 }

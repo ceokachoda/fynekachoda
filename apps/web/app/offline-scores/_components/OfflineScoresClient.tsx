@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Pill } from "@/components/fyne/Pill";
 import { FocusLayout } from "@/components/fyne/FocusLayout";
@@ -149,9 +150,11 @@ function OfflineInner() {
       </header>
 
       <section className="space-y-3 rounded-2xl border border-slate-100 bg-white p-4">
-        <label className="block text-xs text-slate-500">
-          Batch
-          <select
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold text-slate-500">
+            Batch
+          </span>
+          <NativeSelect
             value={batchId ?? ""}
             onChange={(e) => {
               setBatchId(e.target.value || null);
@@ -159,8 +162,8 @@ function OfflineInner() {
               setScores({});
               setNotes({});
             }}
-            className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900"
             data-testid="offline-batch"
+            aria-label="Batch"
           >
             <option value="">Choose batch</option>
             {(teacherBatches.data ?? []).map((b) => (
@@ -168,41 +171,52 @@ function OfflineInner() {
                 {b.batch_name} · {b.course_code}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
-        <label className="block text-xs text-slate-500">
-          Test name
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold text-slate-500">
+            Test name
+          </span>
           <Input
+            className="h-12 rounded-xl"
             value={testName}
             onChange={(e) => setTestName(e.target.value)}
             placeholder="e.g. Weekly Test 12"
           />
         </label>
         <div className="grid grid-cols-2 gap-3">
-          <label className="block text-xs text-slate-500">
-            Date
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-slate-500">
+              Date
+            </span>
             <Input
               type="date"
+              className="h-12 rounded-xl"
               value={testDate}
               onChange={(e) => setTestDate(e.target.value)}
             />
           </label>
-          <label className="block text-xs text-slate-500">
-            Max score
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-slate-500">
+              Max score
+            </span>
             <Input
               type="number"
+              className="h-12 rounded-xl"
               value={maxScore}
               onChange={(e) => setMaxScore(e.target.value)}
             />
           </label>
         </div>
-        <label className="block text-xs text-slate-500">
-          Subject (optional)
-          <select
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold text-slate-500">
+            Subject (optional)
+          </span>
+          <NativeSelect
             value={subjectId ?? ""}
             onChange={(e) => setSubjectId(e.target.value || null)}
             disabled={!batchId}
-            className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 disabled:bg-slate-50 disabled:text-slate-400"
+            aria-label="Subject"
           >
             <option value="">None</option>
             {(subjects.data ?? []).map((s) => (
@@ -210,7 +224,7 @@ function OfflineInner() {
                 {s.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </label>
       </section>
 

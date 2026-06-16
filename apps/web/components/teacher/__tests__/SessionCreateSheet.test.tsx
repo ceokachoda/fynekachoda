@@ -134,9 +134,10 @@ describe("SessionCreateSheet", () => {
       target: { value: "16:00" },
     });
     fireEvent.click(screen.getByRole("button", { name: "90 min" }));
-    // Switch to the second batch via the picker.
-    fireEvent.click(screen.getByRole("button", { name: /Select a batch|Batch A/ }));
-    fireEvent.click(screen.getByRole("option", { name: /Batch B/ }));
+    // Switch to the second batch via the native select.
+    fireEvent.change(screen.getByLabelText("Batch"), {
+      target: { value: "b2" },
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Create class" }));
 

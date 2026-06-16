@@ -2,11 +2,12 @@
 
 // Phase 4 Track 4B — cascading Course → Subject → Chapter → Topic + optional
 // Batch picker. Used by the content upload form + the quiz builder scope.
-// Renders 4-5 plain `<select>`s for keyboard accessibility (mobile uses bottom
-// sheets; web has native selects that work everywhere and are touch-friendly
-// without an extra Radix dep).
+// Built on NativeSelect (styled native <select>s) — keyboard-accessible, touch-
+// friendly, and immune to the clipping a custom popover hits inside a scroll
+// container. Each select stays disabled until its parent is chosen.
 
 import { useMemo } from "react";
+import { NativeSelect } from "@/components/ui/native-select";
 import type {
   CurriculumCourse,
   CurriculumSubject,
@@ -61,83 +62,76 @@ export function CurriculumPicker({
     <div className="grid gap-3">
       {courses.length > 1 ? (
         <Field label="Course">
-          <select
-            className={fieldClass}
+          <NativeSelect
             value={courseId ?? ""}
-            onChange={(e) => {
-              const id = e.target.value || null;
+            onChange={(e) =>
               onChange({
-                courseId: id,
+                courseId: e.target.value || null,
                 subjectId: null,
                 chapterId: null,
                 topicId: null,
                 batchId: null,
-              });
-            }}
+              })
+            }
           >
-            <option value="">Tap to choose</option>
+            <option value="">Select course</option>
             {courses.map((c) => (
               <option key={c.course_id} value={c.course_id}>
                 {c.course_code} · {c.course_name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </Field>
       ) : null}
 
       <Field label="Subject">
-        <select
-          className={fieldClass}
+        <NativeSelect
           value={subjectId ?? ""}
           disabled={!selectedCourse}
-          onChange={(e) => {
-            const id = e.target.value || null;
+          onChange={(e) =>
             onChange({
               courseId,
-              subjectId: id,
+              subjectId: e.target.value || null,
               chapterId: null,
               topicId: null,
               batchId,
-            });
-          }}
+            })
+          }
         >
-          <option value="">Tap to choose</option>
+          <option value="">Select subject</option>
           {(selectedCourse?.subjects ?? []).map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </Field>
 
       <Field label="Chapter">
-        <select
-          className={fieldClass}
+        <NativeSelect
           value={chapterId ?? ""}
           disabled={!selectedSubject}
-          onChange={(e) => {
-            const id = e.target.value || null;
+          onChange={(e) =>
             onChange({
               courseId,
               subjectId,
-              chapterId: id,
+              chapterId: e.target.value || null,
               topicId: null,
               batchId,
-            });
-          }}
+            })
+          }
         >
-          <option value="">Tap to choose</option>
+          <option value="">Select chapter</option>
           {(selectedSubject?.chapters ?? []).map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </Field>
 
       <Field label="Topic">
-        <select
-          className={fieldClass}
+        <NativeSelect
           value={topicId ?? ""}
           disabled={!selectedChapter}
           onChange={(e) =>
@@ -150,19 +144,18 @@ export function CurriculumPicker({
             })
           }
         >
-          <option value="">Tap to choose</option>
+          <option value="">Select topic</option>
           {(selectedChapter?.topics ?? []).map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </Field>
 
       {showBatch ? (
         <Field label={batchLabel}>
-          <select
-            className={fieldClass}
+          <NativeSelect
             value={batchId ?? (allowCourseWide ? "__cw__" : "")}
             disabled={!selectedCourse}
             onChange={(e) => {
@@ -179,22 +172,19 @@ export function CurriculumPicker({
             {allowCourseWide ? (
               <option value="__cw__">Course-wide (no batch)</option>
             ) : (
-              <option value="">Tap to choose</option>
+              <option value="">Select batch</option>
             )}
             {(selectedCourse?.batches ?? []).map((b) => (
               <option key={b.batch_id} value={b.batch_id}>
                 {b.batch_name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </Field>
       ) : null}
     </div>
   );
 }
-
-const fieldClass =
-  "block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400";
 
 function Field({
   label,

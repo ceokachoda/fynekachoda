@@ -594,12 +594,25 @@ export function WrappedYtPlayer({
           </div>
         ) : null}
 
-        {/* Bottom control bar. */}
+        {/* Bottom control bar. In fullscreen the player root is `fixed inset-0`
+            at the real device edges, so we add the safe-area insets there to
+            keep every control above the iOS home indicator / Android gesture bar
+            and clear of a landscape notch (env() is device-global, so we must
+            NOT add it to an inline card that sits mid-page). */}
         <div
           className={cn(
             "absolute inset-x-0 bottom-0 z-30 flex flex-col gap-1.5 bg-gradient-to-t from-black/85 via-black/35 to-transparent px-3 pb-2.5 pt-10 transition-opacity duration-200",
             chromeVisible ? "opacity-100" : "pointer-events-none opacity-0",
           )}
+          style={
+            fullscreenActive
+              ? {
+                  paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+                  paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+                  paddingBottom: "max(0.625rem, env(safe-area-inset-bottom))",
+                }
+              : undefined
+          }
         >
           {seekable ? (
             <input
@@ -756,12 +769,14 @@ function ControlButton({
   label: string;
   children: ReactNode;
 }) {
+  // 44px on touch devices (phones/tablets — reachable in any orientation),
+  // 36px for a fine pointer (mouse) so the desktop bar stays compact.
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="flex size-9 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+      className="flex size-9 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 pointer-coarse:size-11"
     >
       {children}
     </button>

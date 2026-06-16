@@ -9,20 +9,19 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Check, ChevronDown, ChevronLeft, Save } from "lucide-react-native";
+import { ChevronDown, ChevronLeft, Save } from "lucide-react-native";
 import { invokeEdgeFn } from "@/lib/edge-fn";
 import { useTeacherBatches } from "@/features/exam/useTeacherBatches";
 import { useBatchSubjects } from "@/features/exam/useBatchSubjects";
 import { useOfflineScores } from "@/features/exam/useOfflineScores";
+import { PickerSheet } from "@/components/ui/PickerSheet";
 
 type Picker = "batch" | "subject" | "date" | null;
 
@@ -54,6 +53,19 @@ export default function OfflineScoresScreen() {
   const [scores, setScores] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+
+  // Last 30 days + today + next 30 days (IST) as picker options.
+  const dateOptions = useMemo(() => {
+    const today = new Date();
+    const out: { key: string; label: string }[] = [];
+    for (let i = -30; i <= 30; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      const iso = d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+      out.push({ key: iso, label: fmtDateShort(iso) });
+    }
+    return out;
+  }, []);
 
   // Hydrate existing scores when a saved test is found. Merge into any
   // in-progress typing (existing wins for those students) and never clobber
@@ -294,13 +306,14 @@ export default function OfflineScoresScreen() {
         </Pressable>
       </View>
 
-      <PickerModal
+      <PickerSheet
         title="Choose batch"
         visible={picker === "batch"}
         onClose={() => setPicker(null)}
-        items={teacherBatches.batches.map((b) => ({
+        options={teacherBatches.batches.map((b) => ({
           key: b.batch_id,
-          label: `${b.batch_name} · ${b.course_code}`,
+          label: b.batch_name,
+          sublabel: b.course_code,
         }))}
         selectedKey={batchId}
         onSelect={(k) => {
@@ -309,22 +322,24 @@ export default function OfflineScoresScreen() {
           setPicker(null);
         }}
       />
-      <PickerModal
+      <PickerSheet
         title="Subject"
         visible={picker === "subject"}
         onClose={() => setPicker(null)}
-        items={[{ key: "", label: "None" }, ...subjects.subjects.map((s) => ({ key: s.id, label: s.name }))]}
+        options={[{ key: "", label: "None" }, ...subjects.subjects.map((s) => ({ key: s.id, label: s.name }))]}
         selectedKey={subjectId ?? ""}
         onSelect={(k) => {
           setSubjectId(k || null);
           setPicker(null);
         }}
       />
-      <DatePicker
+      <PickerSheet
+        title="Test date"
         visible={picker === "date"}
-        currentIso={testDate}
         onClose={() => setPicker(null)}
-        onChange={(iso) => {
+        options={dateOptions}
+        selectedKey={testDate}
+        onSelect={(iso) => {
           setTestDate(iso);
           setPicker(null);
         }}
@@ -389,111 +404,3 @@ const ScoreRow = memo(function ScoreRow({
   );
 });
 
-function PickerModal({
-  title,
-  visible,
-  onClose,
-  items,
-  selectedKey,
-  onSelect,
-}: {
-  title: string;
-  visible: boolean;
-  onClose: () => void;
-  items: Array<{ key: string; label: string }>;
-  selectedKey: string | null;
-  onSelect: (k: string) => void;
-}) {
-  return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
-      <Pressable
-        onPress={onClose}
-        style={{ flex: 1, backgroundColor: "rgba(15,23,42,0.45)", justifyContent: "center", paddingHorizontal: 24 }}
-      >
-        <Pressable
-          onPress={(e) => e.stopPropagation()}
-          style={{ backgroundColor: "#fff", borderRadius: 18, padding: 16, maxHeight: "70%" }}
-        >
-          <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>{title}</Text>
-          <ScrollView>
-            {items.map((it) => (
-              <Pressable
-                key={it.key}
-                onPress={() => onSelect(it.key)}
-                style={{
-                  paddingVertical: 10,
-                  paddingHorizontal: 8,
-                  borderRadius: 10,
-                  backgroundColor: selectedKey === it.key ? "#eff6ff" : "transparent",
-                  flexDirection: "row",
-                  alignItems: "center",
-                }}
-              >
-                {selectedKey === it.key ? <Check size={16} color="#2563EB" /> : <View style={{ width: 16 }} />}
-                <Text style={{ marginLeft: 8, color: "#0f172a", fontSize: 15 }}>{it.label}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
-function DatePicker({
-  visible,
-  currentIso,
-  onClose,
-  onChange,
-}: {
-  visible: boolean;
-  currentIso: string;
-  onClose: () => void;
-  onChange: (iso: string) => void;
-}) {
-  // Last 30 days + today + next 30 days, IST dates.
-  const today = new Date();
-  const days: string[] = [];
-  for (let i = -30; i <= 30; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() + i);
-    days.push(d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
-  }
-  return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
-      <Pressable
-        onPress={onClose}
-        style={{ flex: 1, backgroundColor: "rgba(15,23,42,0.45)", justifyContent: "center", paddingHorizontal: 24 }}
-      >
-        <Pressable
-          onPress={(e) => e.stopPropagation()}
-          style={{ backgroundColor: "#fff", borderRadius: 18, padding: 16, maxHeight: "70%" }}
-        >
-          <Text style={{ fontSize: 16, fontWeight: "700", color: "#0f172a", marginBottom: 12 }}>Test date</Text>
-          <ScrollView>
-            {days.map((iso) => {
-              const sel = iso === currentIso;
-              return (
-                <Pressable
-                  key={iso}
-                  onPress={() => onChange(iso)}
-                  style={{
-                    paddingVertical: 10,
-                    paddingHorizontal: 8,
-                    borderRadius: 10,
-                    backgroundColor: sel ? "#eff6ff" : "transparent",
-                    flexDirection: "row",
-                    alignItems: "center",
-                  }}
-                >
-                  {sel ? <Check size={16} color="#2563EB" /> : <View style={{ width: 16 }} />}
-                  <Text style={{ marginLeft: 8, color: "#0f172a", fontSize: 15 }}>{fmtDateShort(iso)}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}

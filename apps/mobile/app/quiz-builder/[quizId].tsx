@@ -37,6 +37,7 @@ import { useTeacherCurriculum } from "@/features/library/useTeacherCurriculum";
 import { useQuizBuilder } from "@/features/quiz/useTeacherQuizBuilder";
 import { useQuestionBank } from "@/features/quiz/useQuestionBank";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { PickerSheet } from "@/components/ui/PickerSheet";
 
 type Picker = "course" | "subject" | "chapter" | "topic" | "batch" | null;
 
@@ -515,54 +516,71 @@ export default function QuizBuilderScreen() {
         </View>
       </ScrollView>
 
-      {/* Picker modal */}
-      <PickerModal
+      {/* Curriculum picker (shared bottom sheet) */}
+      <PickerSheet
         visible={picker !== null}
         title={
           picker === "course"
-            ? "Pick course"
+            ? "Choose course"
             : picker === "subject"
-            ? "Pick subject"
+            ? "Choose subject"
             : picker === "chapter"
-            ? "Pick chapter"
+            ? "Choose chapter"
             : picker === "topic"
-            ? "Pick topic"
-            : "Pick batch"
+            ? "Choose topic"
+            : "Choose batch"
         }
         options={
           picker === "course"
-            ? curriculum.courses.map((c) => ({ id: c.course_id, label: `${c.course_code} · ${c.course_name}` }))
+            ? curriculum.courses.map((c) => ({
+                key: c.course_id,
+                label: c.course_name,
+                sublabel: c.course_code,
+              }))
             : picker === "subject"
-            ? (selectedCourse?.subjects.map((s) => ({ id: s.id, label: s.name })) ?? [])
+            ? (selectedCourse?.subjects.map((s) => ({ key: s.id, label: s.name })) ?? [])
             : picker === "chapter"
-            ? (selectedSubject?.chapters.map((c) => ({ id: c.id, label: c.name })) ?? [])
+            ? (selectedSubject?.chapters.map((c) => ({ key: c.id, label: c.name })) ?? [])
             : picker === "topic"
-            ? (selectedChapter?.topics.map((t) => ({ id: t.id, label: t.name })) ?? [])
+            ? (selectedChapter?.topics.map((t) => ({ key: t.id, label: t.name })) ?? [])
             : picker === "batch"
             ? [
-                { id: "__null__", label: "Course-wide (no batch)" },
-                ...(selectedCourse?.batches.map((b) => ({ id: b.batch_id, label: b.batch_name })) ?? []),
+                { key: "__null__", label: "Course-wide (no batch)" },
+                ...(selectedCourse?.batches.map((b) => ({ key: b.batch_id, label: b.batch_name })) ?? []),
               ]
             : []
         }
-        onPick={(opt) => {
+        selectedKey={
+          picker === "course"
+            ? courseId
+            : picker === "subject"
+            ? subjectId
+            : picker === "chapter"
+            ? chapterId
+            : picker === "topic"
+            ? topicId
+            : picker === "batch"
+            ? batchId ?? "__null__"
+            : null
+        }
+        onSelect={(key) => {
           if (picker === "course") {
-            setCourseId(opt.id);
+            setCourseId(key);
             setSubjectId(null);
             setChapterId(null);
             setTopicId(null);
             setBatchId(null);
           } else if (picker === "subject") {
-            setSubjectId(opt.id);
+            setSubjectId(key);
             setChapterId(null);
             setTopicId(null);
           } else if (picker === "chapter") {
-            setChapterId(opt.id);
+            setChapterId(key);
             setTopicId(null);
           } else if (picker === "topic") {
-            setTopicId(opt.id);
+            setTopicId(key);
           } else if (picker === "batch") {
-            setBatchId(opt.id === "__null__" ? null : opt.id);
+            setBatchId(key === "__null__" ? null : key);
           }
           setPicker(null);
         }}
@@ -749,47 +767,6 @@ function PickerRow({ label, value, onPress, disabled }: { label: string; value: 
       </View>
       <ChevronDown size={18} color="#94a3b8" />
     </Pressable>
-  );
-}
-
-function PickerModal({
-  visible,
-  title,
-  options,
-  onPick,
-  onClose,
-}: {
-  visible: boolean;
-  title: string;
-  options: { id: string; label: string }[];
-  onPick: (o: { id: string; label: string }) => void;
-  onClose: () => void;
-}) {
-  return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose} transparent>
-      <View className="flex-1 justify-end bg-black/40">
-        <View className="bg-white rounded-t-3xl max-h-[80%]">
-          <View className="flex-row items-center px-5 py-4 border-b border-slate-100">
-            <Text className="text-lg font-bold text-blue-900 flex-1">{title}</Text>
-            <Pressable onPress={onClose}>
-              <X size={20} color="#0f172a" />
-            </Pressable>
-          </View>
-          <FlatList
-            data={options}
-            keyExtractor={(o) => o.id}
-            renderItem={({ item }) => (
-              <Pressable onPress={() => onPick(item)} className="px-5 py-4 border-b border-slate-100">
-                <Text className="text-base text-slate-900">{item.label}</Text>
-              </Pressable>
-            )}
-            ListEmptyComponent={
-              <Text className="text-slate-500 text-center py-8">No options.</Text>
-            }
-          />
-        </View>
-      </View>
-    </Modal>
   );
 }
 

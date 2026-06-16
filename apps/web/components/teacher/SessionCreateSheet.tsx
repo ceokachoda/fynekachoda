@@ -7,14 +7,7 @@
 // teacher's first assigned batch (Phase-10 carry-over).
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  AlertCircle,
-  CalendarPlus,
-  Check,
-  ChevronDown,
-  Clock,
-  Radio,
-} from "lucide-react";
+import { AlertCircle, CalendarPlus, Clock, Radio } from "lucide-react";
 import {
   Sheet,
   SheetClose,
@@ -26,6 +19,8 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+import { TimeSelect } from "@/components/teacher/TimeSelect";
 import { cn } from "@/lib/utils";
 import { useCreateAdHocSession } from "@/features/teacher/mutations";
 import {
@@ -50,8 +45,9 @@ const TITLE_MAX = 120;
 function formatTimeIst(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-IN", {
     timeZone: "Asia/Kolkata",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
+    hour12: true,
   });
 }
 
@@ -81,12 +77,10 @@ export function SessionCreateSheet({
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [durationMin, setDurationMin] = useState<number>(60);
-  const [showBatchPicker, setShowBatchPicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fall back to the first batch so the teacher always has a default selected.
   const selectedBatchId = pickedBatchId ?? batches[0]?.batch_id ?? null;
-  const selectedBatch = batches.find((b) => b.batch_id === selectedBatchId);
 
   useEffect(() => {
     if (open) {
@@ -97,7 +91,6 @@ export function SessionCreateSheet({
       setDurationMin(60);
       setError(null);
       setPickedBatchId(null);
-      setShowBatchPicker(false);
     }
   }, [open]);
 
@@ -218,64 +211,24 @@ export function SessionCreateSheet({
             </div>
 
             <div>
-              <p className={LABEL_CLASS}>Batch</p>
-              <button
-                type="button"
-                onClick={() => setShowBatchPicker((v) => !v)}
-                aria-haspopup="listbox"
-                aria-expanded={showBatchPicker}
-                className={cn(
-                  "flex h-12 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 text-left shadow-sm transition-colors hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                )}
+              <label htmlFor="class-batch" className={LABEL_CLASS}>
+                Batch
+              </label>
+              <NativeSelect
+                id="class-batch"
+                value={selectedBatchId ?? ""}
+                onChange={(e) => setPickedBatchId(e.target.value || null)}
+                aria-label="Batch"
               >
-                <span className="truncate text-base font-semibold text-slate-900">
-                  {selectedBatch
-                    ? `${selectedBatch.course_code} · ${selectedBatch.batch_name}`
-                    : "Select a batch"}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "size-4 shrink-0 text-slate-400 transition-transform",
-                    showBatchPicker && "rotate-180",
-                  )}
-                />
-              </button>
-              {showBatchPicker ? (
-                <ul
-                  role="listbox"
-                  className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
-                >
-                  {batches.map((b) => {
-                    const isSel = b.batch_id === selectedBatchId;
-                    return (
-                      <li key={b.batch_id}>
-                        <button
-                          type="button"
-                          role="option"
-                          aria-selected={isSel}
-                          onClick={() => {
-                            setPickedBatchId(b.batch_id);
-                            setShowBatchPicker(false);
-                          }}
-                          className="flex w-full items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 text-left last:border-b-0 hover:bg-slate-50"
-                        >
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-semibold text-slate-900">
-                              {b.batch_name}
-                            </span>
-                            <span className="block truncate text-xs text-slate-500">
-                              {b.course_code} · {b.course_name}
-                            </span>
-                          </span>
-                          {isSel ? (
-                            <Check className="size-4 shrink-0 text-primary" />
-                          ) : null}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : null}
+                {batches.length === 0 ? (
+                  <option value="">No assigned batches</option>
+                ) : null}
+                {batches.map((b) => (
+                  <option key={b.batch_id} value={b.batch_id}>
+                    {b.course_code} · {b.batch_name}
+                  </option>
+                ))}
+              </NativeSelect>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -296,13 +249,7 @@ export function SessionCreateSheet({
                 <label htmlFor="class-time" className={LABEL_CLASS}>
                   Start time
                 </label>
-                <Input
-                  id="class-time"
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className={FIELD_CLASS}
-                />
+                <TimeSelect id="class-time" value={time} onChange={setTime} />
               </div>
             </div>
 

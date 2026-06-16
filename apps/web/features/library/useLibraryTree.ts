@@ -25,7 +25,6 @@ interface RawItem {
   kind: "video" | "pdf" | "note";
   description: string | null;
   duration_sec: number | null;
-  yt_video_id: string | null;
   file_path: string | null;
   is_published: boolean;
   topic_id: string;
@@ -126,7 +125,7 @@ export function useLibraryTree(searchQuery = "") {
         supabase
           .from("content_items")
           .select(
-            "id, title, kind, description, duration_sec, yt_video_id, file_path, is_published, topic_id, batch_id, course_id, created_at",
+            "id, title, kind, description, duration_sec, file_path, is_published, topic_id, batch_id, course_id, created_at",
           )
           .eq("is_published", true)
           .or(`batch_id.eq.${batch!.batch_id},batch_id.is.null`)

@@ -6,7 +6,6 @@ export interface ContentItem {
   kind: ContentKind;
   description: string | null;
   duration_sec: number | null;
-  yt_video_id: string | null;
   file_path: string | null;
   is_published: boolean;
   topic_id: string;
