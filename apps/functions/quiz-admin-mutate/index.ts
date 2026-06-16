@@ -17,6 +17,7 @@ import { getServiceRoleClient } from "../_shared/supabase.ts";
 import { AuthError, adminRoleFor, loadCaller } from "../_shared/auth.ts";
 import { QuizAdminMutateInputSchema } from "../_shared/schemas.ts";
 import { clientIp, writeAudit } from "../_shared/audit.ts";
+import { notifyStudents } from "../_shared/notify.ts";
 
 function isAdmin(roles: string[]): boolean {
   return roles.includes("owner_admin") || roles.includes("staff_admin");
@@ -81,6 +82,17 @@ Deno.serve(async (req: Request) => {
           ip_address: ip,
           user_agent: ua,
         });
+        // First publish -> tell students a new practice quiz is available.
+        if (is_published && !before.is_published) {
+          notifyStudents(
+            after.batch_id ? { batch_id: after.batch_id } : { course_id: after.course_id },
+            {
+              title: "New practice quiz",
+              body: `"${after.title}" is ready. Tap to attempt it.`,
+              data: { type: "new_quiz", id: quiz_id },
+            },
+          );
+        }
         return json(200, { quiz: after }, origin);
       }
 

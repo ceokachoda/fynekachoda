@@ -54,6 +54,13 @@
           "cameraPermission": "FyneStudy needs camera access to scan attendance QR codes.",
           "recordAudioAndroid": false
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#2563EB"
+        }
       ]
     ],
     "experiments": {

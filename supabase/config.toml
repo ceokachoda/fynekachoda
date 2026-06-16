@@ -43,3 +43,21 @@ image_transformation = { enabled = false }
 
 [realtime]
 enabled = true
+
+# Public edge functions (no user JWT). Declared here so the CI deploy
+# (deploy-functions.yml, which runs `functions deploy` without --no-verify-jwt
+# for everything except health) keeps them callable by their own auth gate:
+#   - health / server-time : intentionally public endpoints
+#   - push-dispatch        : internal sender, gated by X-Internal-Key
+#   - push-class-reminders : cron target, gated by X-Cron-Secret
+[functions.health]
+verify_jwt = false
+
+[functions.server-time]
+verify_jwt = false
+
+[functions.push-dispatch]
+verify_jwt = false
+
+[functions.push-class-reminders]
+verify_jwt = false

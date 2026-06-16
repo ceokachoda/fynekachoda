@@ -20,6 +20,7 @@ import {
 } from "../_shared/auth.ts";
 import { YtBroadcastGoliveInputSchema } from "../_shared/schemas.ts";
 import { clientIp, writeAudit } from "../_shared/audit.ts";
+import { notifyStudents } from "../_shared/notify.ts";
 import {
   getBroadcast,
   transitionBroadcast,
@@ -122,6 +123,16 @@ Deno.serve(async (req: Request) => {
       ip_address: clientIp(req),
       user_agent: req.headers.get("user-agent"),
     });
+
+    // Notify the batch's students that the class is live now (fire-and-forget).
+    notifyStudents(
+      { batch_id: session.batch_id as string },
+      {
+        title: "🔴 Live class started",
+        body: "Your class is live now. Tap to join.",
+        data: { type: "live_started", session_id },
+      },
+    );
 
     return json(
       200,

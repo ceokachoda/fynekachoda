@@ -21,6 +21,7 @@ import {
 } from "../_shared/auth.ts";
 import { ExamReleaseResultsInputSchema } from "../_shared/schemas.ts";
 import { clientIp, writeAudit } from "../_shared/audit.ts";
+import { notifyStudents } from "../_shared/notify.ts";
 
 function isAdmin(roles: string[]): boolean {
   return roles.includes("owner_admin") || roles.includes("staff_admin");
@@ -130,6 +131,16 @@ Deno.serve(async (req: Request) => {
       ip_address: clientIp(req),
       user_agent: req.headers.get("user-agent"),
     });
+
+    // Fresh release (we just flipped null -> released) -> notify the batch.
+    notifyStudents(
+      { batch_id: after.batch_id },
+      {
+        title: "Exam results are out",
+        body: `Results for "${after.title}" are now available.`,
+        data: { type: "exam_results", id: exam_id },
+      },
+    );
 
     return json(
       200,

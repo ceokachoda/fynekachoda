@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { unregisterForPush } from "@/lib/push";
 import {
   isNetworkError,
   NETWORK_ERROR_MESSAGE,
@@ -129,6 +130,9 @@ export async function setPasswordAfterReset(
 }
 
 export async function signOut(): Promise<void> {
+  // Deregister this device first, while the JWT is still valid, so the user
+  // stops receiving pushes on a device they've logged out of.
+  await unregisterForPush();
   try {
     await withTimeout(supabase.auth.signOut());
   } catch {

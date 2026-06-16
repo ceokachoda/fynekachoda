@@ -21,6 +21,7 @@ import {
 } from "../_shared/auth.ts";
 import { ContentPromoteCoursewideInputSchema } from "../_shared/schemas.ts";
 import { clientIp, writeAudit } from "../_shared/audit.ts";
+import { notifyStudents } from "../_shared/notify.ts";
 
 Deno.serve(async (req: Request) => {
   const preflight = handlePreflight(req);
@@ -95,6 +96,19 @@ Deno.serve(async (req: Request) => {
       ip_address: clientIp(req),
       user_agent: req.headers.get("user-agent"),
     });
+
+    // Approving a course-wide proposal (was unpublished) makes it newly visible
+    // to the whole course -> notify the course audience.
+    if (promote && !prev.is_published) {
+      notifyStudents(
+        { course_id: updated.course_id },
+        {
+          title: "New study material",
+          body: `"${updated.title}" is now available in your library.`,
+          data: { type: "new_content", id: content_id, kind: updated.kind },
+        },
+      );
+    }
 
     return json(200, { content_item: updated }, origin);
   } catch (err) {

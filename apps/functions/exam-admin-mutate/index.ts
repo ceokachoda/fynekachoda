@@ -19,6 +19,7 @@ import { getServiceRoleClient } from "../_shared/supabase.ts";
 import { adminRoleFor, AuthError, loadCaller } from "../_shared/auth.ts";
 import { ExamAdminMutateInputSchema } from "../_shared/schemas.ts";
 import { clientIp, writeAudit } from "../_shared/audit.ts";
+import { notifyStudents } from "../_shared/notify.ts";
 
 function isAdmin(roles: string[]): boolean {
   return roles.includes("owner_admin") || roles.includes("staff_admin");
@@ -83,6 +84,16 @@ Deno.serve(async (req: Request) => {
           ip_address: ip,
           user_agent: ua,
         });
+        if (is_published && !before.is_published) {
+          notifyStudents(
+            { batch_id: after.batch_id },
+            {
+              title: "New exam scheduled",
+              body: `"${after.title}" has been scheduled. Tap for details.`,
+              data: { type: "new_exam", id: exam_id },
+            },
+          );
+        }
         return json(200, { exam: after }, origin);
       }
 
@@ -118,6 +129,17 @@ Deno.serve(async (req: Request) => {
           ip_address: ip,
           user_agent: ua,
         });
+        // Only on the null -> released transition (first release).
+        if (!before.results_released_at && after.results_released_at) {
+          notifyStudents(
+            { batch_id: after.batch_id },
+            {
+              title: "Exam results are out",
+              body: `Results for "${after.title}" are now available.`,
+              data: { type: "exam_results", id: exam_id },
+            },
+          );
+        }
         return json(200, { exam: after }, origin);
       }
 

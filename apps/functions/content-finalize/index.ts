@@ -18,6 +18,7 @@ import { AuthError, loadCaller } from "../_shared/auth.ts";
 import { ContentFinalizeInputSchema } from "../_shared/schemas.ts";
 import { adminRoleFor } from "../_shared/auth.ts";
 import { clientIp, writeAudit } from "../_shared/audit.ts";
+import { notifyStudents } from "../_shared/notify.ts";
 
 const STUDY_BUCKET = "study-materials";
 
@@ -174,6 +175,18 @@ Deno.serve(async (req: Request) => {
       ip_address: clientIp(req),
       user_agent: req.headers.get("user-agent"),
     });
+
+    // New library item is immediately student-visible -> notify its audience.
+    if (is_published) {
+      notifyStudents(
+        batch_id ? { batch_id } : { course_id: courseId },
+        {
+          title: "New study material",
+          body: `"${title}" was added to your library.`,
+          data: { type: "new_content", id: inserted.id, kind },
+        },
+      );
+    }
 
     return json(200, { content_item: inserted }, origin);
   } catch (err) {

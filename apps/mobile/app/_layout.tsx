@@ -20,6 +20,7 @@ import {
   SessionProvider,
   useSessionContext,
 } from "@/features/auth/SessionProvider";
+import { PushGate } from "@/features/notifications/PushGate";
 
 export const unstable_settings = {
   anchor: "index",
@@ -111,6 +112,7 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <SessionProvider>
         <PasswordRecoveryRouter />
+        <PushGate />
         <Stack>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false }} />

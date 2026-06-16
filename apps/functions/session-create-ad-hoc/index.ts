@@ -12,6 +12,7 @@ import { getServiceRoleClient } from "../_shared/supabase.ts";
 import { AuthError, loadCaller, requireAnyRole } from "../_shared/auth.ts";
 import { SessionCreateAdHocInputSchema } from "../_shared/schemas.ts";
 import { clientIp, writeAudit } from "../_shared/audit.ts";
+import { notifyStudents } from "../_shared/notify.ts";
 
 Deno.serve(async (req: Request) => {
   const preflight = handlePreflight(req);
@@ -160,6 +161,16 @@ Deno.serve(async (req: Request) => {
       ip_address: clientIp(req),
       user_agent: req.headers.get("user-agent"),
     });
+
+    // Tell the batch's students a new class has been put on their schedule.
+    notifyStudents(
+      { batch_id },
+      {
+        title: is_live_class ? "New live class scheduled" : "New class scheduled",
+        body: `${title ?? "A class"} has been added to your schedule.`,
+        data: { type: "class_scheduled", session_id: inserted.id as string },
+      },
+    );
 
     return json(
       200,

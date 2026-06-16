@@ -18,6 +18,7 @@ import {
 } from "../_shared/auth.ts";
 import { ContentTogglePublishInputSchema } from "../_shared/schemas.ts";
 import { clientIp, writeAudit } from "../_shared/audit.ts";
+import { notifyStudents } from "../_shared/notify.ts";
 
 Deno.serve(async (req: Request) => {
   const preflight = handlePreflight(req);
@@ -69,6 +70,18 @@ Deno.serve(async (req: Request) => {
       ip_address: clientIp(req),
       user_agent: req.headers.get("user-agent"),
     });
+
+    // Only the unpublished -> published transition is a "new material" moment.
+    if (is_published && !prev.is_published) {
+      notifyStudents(
+        updated.batch_id ? { batch_id: updated.batch_id } : { course_id: updated.course_id },
+        {
+          title: "New study material",
+          body: `"${updated.title}" is now available in your library.`,
+          data: { type: "new_content", id: content_id, kind: updated.kind },
+        },
+      );
+    }
 
     return json(200, { content_item: updated }, origin);
   } catch (err) {

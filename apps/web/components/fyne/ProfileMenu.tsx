@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOutAction } from "@/app/actions/sign-out";
 import { setActiveRoleAction } from "@/app/actions/set-active-role";
+import { unsubscribeWebPush } from "@/lib/web-push";
 import { cn } from "@/lib/utils";
 import type { ActiveRole } from "@/lib/auth";
 
@@ -141,6 +142,10 @@ export function ProfileMenu({
           <DropdownMenuItem asChild>
             <button
               type="submit"
+              onClick={() => {
+                // Best-effort: stop pushes to this browser before the session ends.
+                void unsubscribeWebPush();
+              }}
               className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-semibold text-red-600 focus:bg-red-50 focus:text-red-700"
             >
               <LogOut className="size-4" />

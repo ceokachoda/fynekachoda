@@ -25,6 +25,7 @@ import { getServiceRoleClient } from "../_shared/supabase.ts";
 import { AuthError, adminRoleFor, loadCaller } from "../_shared/auth.ts";
 import { ContentCreateVideoInputSchema } from "../_shared/schemas.ts";
 import { clientIp, writeAudit } from "../_shared/audit.ts";
+import { notifyStudents } from "../_shared/notify.ts";
 import { getVaultSecret, VaultError } from "../_shared/vault.ts";
 import {
   fetchYouTubeVideoMeta,
@@ -239,6 +240,17 @@ Deno.serve(async (req: Request) => {
       ip_address: clientIp(req),
       user_agent: req.headers.get("user-agent"),
     });
+
+    if (is_published) {
+      notifyStudents(
+        batch_id ? { batch_id } : { course_id: courseId },
+        {
+          title: "New video lesson",
+          body: `"${title}" is now in your library. Tap to watch.`,
+          data: { type: "new_content", id: inserted.id, kind: "video" },
+        },
+      );
+    }
 
     return json(200, { content_item: inserted, yt_verified: verified }, origin);
   } catch (err) {

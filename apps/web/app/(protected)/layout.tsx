@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/fyne/AppShell";
 import { SessionProvider } from "@/features/auth/SessionProvider";
+import { WebPushGate } from "@/features/notifications/WebPushGate";
 import { QueryProvider } from "@/lib/query";
 import { loadWebSession } from "@/lib/auth";
 
@@ -39,6 +40,7 @@ export default async function ProtectedLayout({
   return (
     <QueryProvider>
       <SessionProvider initial={initialSession}>
+        <WebPushGate />
         <AppShell
           fullName={session.full_name}
           email={session.email}
