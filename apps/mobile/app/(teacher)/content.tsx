@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ChevronDown, FileText, PlayCircle, StickyNote } from "lucide-react-native";
 import * as DocumentPicker from "expo-document-picker";
-import { supabase } from "@/lib/supabase";
+import { invokeEdgeFn } from "@/lib/edge-fn";
 import { useTeacherCurriculum } from "@/features/library/useTeacherCurriculum";
 import { LoadingScreen } from "@/components/LoadingScreen";
 
@@ -25,6 +25,21 @@ interface PresignResp {
   expires_at: string;
   bucket: string;
   course_id: string;
+}
+
+// Friendly message for a failed edge-fn call. A 401 means the GoTrue session was
+// deleted server-side (poison token) — invokeEdgeFn already tried a silent
+// refresh and, failing that, signed the user out — so tell them to re-login
+// rather than showing the opaque "Edge Function returned a non-2xx status code".
+function edgeErrMessage(res: {
+  status: number;
+  body: { error?: string } | null;
+  error: string | null;
+}): string {
+  if (res.status === 401) {
+    return "Your session expired. Please log out and log back in, then try again.";
+  }
+  return res.body?.error ?? res.error ?? `Server responded ${res.status}.`;
 }
 
 const KIND_LABELS: Record<Kind, string> = {
@@ -191,28 +206,23 @@ export default function TeacherContentUpload() {
           setSubmitting(false);
           return;
         }
-        const { data, error } = await supabase.functions.invoke(
+        const res = await invokeEdgeFn<{ yt_verified?: boolean; error?: string }>(
           "content-create-video",
           {
-            body: {
-              yt_url_or_id: ytUrl.trim(),
-              topic_id: topicId,
-              title: title.trim(),
-              description: description.trim() || undefined,
-              batch_id: effectiveBatch,
-            },
+            yt_url_or_id: ytUrl.trim(),
+            topic_id: topicId,
+            title: title.trim(),
+            description: description.trim() || undefined,
+            batch_id: effectiveBatch,
           },
         );
-        if (error) {
-          Alert.alert(
-            "Upload failed",
-            (error as Error).message ?? "Server rejected the request",
-          );
+        if (res.status !== 200) {
+          Alert.alert("Upload failed", edgeErrMessage(res));
           return;
         }
         Alert.alert(
           "Added",
-          (data as { yt_verified?: boolean })?.yt_verified === false
+          res.body?.yt_verified === false
             ? "Linked. (YT verification is currently disabled — admin will review.)"
             : "Video linked successfully.",
         );
@@ -225,26 +235,22 @@ export default function TeacherContentUpload() {
         Alert.alert("Pick a file", "Choose a PDF to upload.");
         return;
       }
-      const presign = await supabase.functions.invoke<PresignResp>(
+      const presign = await invokeEdgeFn<PresignResp & { error?: string }>(
         "content-presign-upload",
         {
-          body: {
-            kind,
-            topic_id: topicId,
-            title: title.trim(),
-            batch_id: effectiveBatch,
-            content_size_bytes: pickedFile.size,
-            mime_type: pickedFile.mimeType ?? "application/pdf",
-          },
+          kind,
+          topic_id: topicId,
+          title: title.trim(),
+          batch_id: effectiveBatch,
+          content_size_bytes: pickedFile.size,
+          mime_type: pickedFile.mimeType ?? "application/pdf",
         },
       );
-      if (presign.error || !presign.data) {
-        Alert.alert(
-          "Upload failed",
-          (presign.error as Error | null)?.message ?? "presign rejected",
-        );
+      if (presign.status !== 200 || !presign.body) {
+        Alert.alert("Upload failed", edgeErrMessage(presign));
         return;
       }
+      const presignData = presign.body;
       const fileBlob = await (await fetch(pickedFile.uri)).blob();
       // Supabase signed-upload-url is PUT-style; supports XHR with progress.
       await new Promise<void>((resolve, reject) => {
@@ -259,7 +265,7 @@ export default function TeacherContentUpload() {
           else reject(new Error(`upload http ${xhr.status}: ${xhr.responseText}`));
         };
         xhr.onerror = () => reject(new Error("upload network error"));
-        xhr.open("PUT", presign.data!.upload_url, true);
+        xhr.open("PUT", presignData.upload_url, true);
         xhr.setRequestHeader(
           "Content-Type",
           pickedFile.mimeType ?? "application/pdf",
@@ -267,23 +273,21 @@ export default function TeacherContentUpload() {
         xhr.send(fileBlob);
       });
 
-      const fin = await supabase.functions.invoke("content-finalize", {
-        body: {
+      const fin = await invokeEdgeFn<{ content_item?: unknown; error?: string }>(
+        "content-finalize",
+        {
           kind,
           topic_id: topicId,
           title: title.trim(),
           description: description.trim() || undefined,
           batch_id: effectiveBatch,
-          file_path: presign.data.path,
+          file_path: presignData.path,
           file_size_bytes: pickedFile.size,
           mime_type: pickedFile.mimeType ?? "application/pdf",
         },
-      });
-      if (fin.error) {
-        Alert.alert(
-          "Upload failed",
-          (fin.error as Error).message ?? "finalize rejected",
-        );
+      );
+      if (fin.status !== 200) {
+        Alert.alert("Upload failed", edgeErrMessage(fin));
         return;
       }
       Alert.alert("Uploaded", "Content added to library.");
