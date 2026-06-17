@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronsUpDown, LogOut, RefreshCcw, User } from "lucide-react";
+import { Bell, ChevronsUpDown, LogOut, RefreshCcw, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -118,6 +118,16 @@ export function ProfileMenu({
           >
             <User className="size-4 text-slate-500" />
             View profile
+          </Link>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem asChild>
+          <Link
+            href="/notifications"
+            className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm font-medium text-slate-700"
+          >
+            <Bell className="size-4 text-slate-500" />
+            Notifications
           </Link>
         </DropdownMenuItem>
 

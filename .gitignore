@@ -21,6 +21,13 @@ expo-env.d.ts
 *.local.md
 START-HERE.md
 
+# Firebase FCM service-account key (push notifications) — SECRET, upload via
+# `eas credentials`, never commit. NOTE: google-services.json is NOT secret and
+# IS committed (EAS build needs it) — do not add it here.
+*-firebase-adminsdk-*.json
+google-service-account*.json
+fcm-service-account*.json
+
 # ide
 .vscode/
 .idea/

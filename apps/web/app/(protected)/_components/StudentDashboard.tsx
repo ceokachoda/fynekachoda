@@ -15,6 +15,7 @@ import { RecentBadgesStrip } from "@/components/dashboard/RecentBadgesStrip";
 import { StreakFlame } from "@/components/dashboard/StreakFlame";
 import { StreakModal } from "@/components/dashboard/StreakModal";
 import { BadgeEarnedModal } from "@/components/gamification/BadgeEarnedModal";
+import { NotifyNudge } from "@/features/notifications/NotifyNudge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
@@ -74,6 +75,8 @@ export function StudentDashboard({ greeting, dateLabel }: Props) {
           />
         ) : null}
       </div>
+
+      <NotifyNudge />
 
       {dash.error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
