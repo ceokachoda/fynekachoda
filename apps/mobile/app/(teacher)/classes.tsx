@@ -136,6 +136,7 @@ export default function TeacherClassesScreen(): React.ReactElement {
             onScan={() =>
               router.push({
                 pathname: "/(teacher)/scan",
+                params: { sessionId: s.id },
               })
             }
             onRoster={() =>

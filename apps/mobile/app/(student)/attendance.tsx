@@ -176,9 +176,16 @@ export default function AttendanceScreen(): React.ReactElement {
               sessions.map((s, idx) => {
                 const badge = statusBadge(s);
                 const isActive = s.id === activeSessionId;
+                // Only sessions inside their scan window AND not yet marked can
+                // show a QR. Selecting any other row would mount QrDisplay onto a
+                // session the server will reject (closed/already-marked) and
+                // surface a confusing error card, so make those rows inert.
+                const selectable =
+                  s.window === "open" && s.attendance_status === null;
                 return (
                   <TouchableOpacity
                     key={s.id}
+                    disabled={!selectable}
                     onPress={() => setSelectedSessionId(s.id)}
                     className={`flex-row items-center px-5 py-4 ${
                       idx < sessions.length - 1 ? "border-b border-slate-100" : ""

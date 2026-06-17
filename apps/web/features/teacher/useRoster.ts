@@ -154,6 +154,17 @@ export function useRoster(sessionId: string | null) {
 
   useEffect(() => {
     if (!sessionId) return;
+    // Coalesce bursts of attendance changes (e.g. a bulk-mark inserting one row
+    // per student) into a single reload after a short quiet window, so the
+    // roster doesn't re-query + re-sort + replace the whole list per event.
+    // Mirrors the mobile useRoster debounce.
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    const scheduleReload = () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        void load();
+      }, 600);
+    };
     const channel: RealtimeChannel = supabase
       .channel(`teacher-roster-${sessionId}`)
       .on(
@@ -165,11 +176,12 @@ export function useRoster(sessionId: string | null) {
           filter: `session_id=eq.${sessionId}`,
         },
         () => {
-          void load();
+          scheduleReload();
         },
       );
     channel.subscribe();
     return () => {
+      if (debounce) clearTimeout(debounce);
       void supabase.removeChannel(channel);
     };
   }, [sessionId, supabase, load]);

@@ -65,9 +65,13 @@ export function AdhocSheet({
   onCreated,
 }: Props): React.ReactElement {
   const [title, setTitle] = useState("");
-  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(
-    batches[0]?.batch_id ?? null,
-  );
+  const [pickedBatchId, setPickedBatchId] = useState<string | null>(null);
+  // `batches` arrives async (useAssignedBatches), so initialising state from
+  // batches[0] once misses the first batch. Fall back to the first batch until
+  // the teacher explicitly picks one, so the pre-selected UX always holds
+  // (mirrors ScheduleLiveSheet).
+  const selectedBatchId = pickedBatchId ?? batches[0]?.batch_id ?? null;
+  const setSelectedBatchId = setPickedBatchId;
   const [start, setStart] = useState<Date>(() => round15(new Date()));
   const [durationMin, setDurationMin] = useState<number>(60);
   const [submitting, setSubmitting] = useState(false);

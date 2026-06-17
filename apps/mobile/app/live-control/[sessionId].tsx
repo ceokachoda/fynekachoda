@@ -30,6 +30,7 @@ import {
   ChevronLeft,
   Copy,
   Hand,
+  ListChecks,
   Pin,
   Radio,
   Trash2,
@@ -243,6 +244,19 @@ export default function LiveControlScreen() {
             {isLive ? "● Live now" : ended ? "Ended" : "Setup"}
           </Text>
         </View>
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: "/roster/[sessionId]",
+              params: { sessionId: sessionId as string },
+            })
+          }
+          accessibilityLabel="Open roster"
+          className="flex-row items-center bg-blue-50 px-3 py-1.5 rounded-lg mr-2"
+        >
+          <ListChecks size={14} color="#2563EB" />
+          <Text className="text-blue-700 text-xs font-bold ml-1">Roster</Text>
+        </Pressable>
         {isLive ? (
           <View className="flex-row items-center mr-3">
             <Users size={14} color="#475569" />

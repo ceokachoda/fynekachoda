@@ -9,8 +9,9 @@
 // - On decode → useScanVerify (500ms debounce + same-token dedup).
 // - Permission-denied → CTA to the roster of the active session.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Camera,
   CameraOff,
@@ -52,6 +53,8 @@ function sessionLabel(s: TeacherSession): string {
 export function ScanClient() {
   const sessions = useTeacherSessions();
   const verify = useScanVerify();
+  const searchParams = useSearchParams();
+  const sessionIdParam = searchParams.get("sessionId");
   const [cameraOn, setCameraOn] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [resetKey, setResetKey] = useState(0);
@@ -60,7 +63,15 @@ export function ScanClient() {
   );
   const [toast, setToast] = useState<ScanToast | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickedSessionId, setPickedSessionId] = useState<string | null>(null);
+  const [pickedSessionId, setPickedSessionId] = useState<string | null>(
+    sessionIdParam,
+  );
+
+  // Honor the session the teacher tapped "Scan" on from the Classes list, so
+  // the scanner doesn't silently default to a different (nearest) class.
+  useEffect(() => {
+    if (sessionIdParam) setPickedSessionId(sessionIdParam);
+  }, [sessionIdParam]);
 
   const scannable = useMemo(
     () => (sessions.data ?? []).filter((s) => s.bucket !== "past"),
@@ -83,10 +94,19 @@ export function ScanClient() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+    },
+    [],
+  );
+
   const showToast = useCallback((t: ScanToast) => {
     setToast(t);
     setOverlayTone(t.tone === "success" ? "success" : "error");
-    setTimeout(() => setOverlayTone("neutral"), 700);
+    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+    overlayTimerRef.current = setTimeout(() => setOverlayTone("neutral"), 700);
   }, []);
 
   const handleDecode = useCallback(

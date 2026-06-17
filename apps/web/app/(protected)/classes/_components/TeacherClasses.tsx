@@ -91,7 +91,7 @@ export function TeacherClasses() {
             <ClassRow
               key={s.id}
               session={s}
-              onScan={() => router.push("/scan")}
+              onScan={() => router.push(`/scan?sessionId=${s.id}`)}
               onRoster={() => router.push(`/roster/${s.id}`)}
               onLiveControl={() => router.push(`/live-control/${s.id}`)}
             />

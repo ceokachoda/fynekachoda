@@ -9,7 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CameraView } from "expo-camera";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   CheckCircle2,
   ChevronDown,
@@ -52,13 +52,23 @@ function sessionLabel(s: TeacherSession): string {
 
 export default function TeacherScanScreen(): React.ReactElement {
   const router = useRouter();
+  const params = useLocalSearchParams<{ sessionId?: string }>();
   const camera = useCameraPermission();
   const { sessions, isLoading: sessionsLoading } = useTeacherSessions();
   const { verify, busy } = useScanVerify();
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
-    null,
+    typeof params.sessionId === "string" ? params.sessionId : null,
   );
+
+  // Honor the session the teacher tapped "Scan" on from the Classes list. The
+  // Scan tab stays mounted, so a fresh navigation with a new sessionId must
+  // re-seed the selection (a useState initializer alone would only run once).
+  useEffect(() => {
+    if (typeof params.sessionId === "string" && params.sessionId) {
+      setSelectedSessionId(params.sessionId);
+    }
+  }, [params.sessionId]);
   const [showPicker, setShowPicker] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
   const toastOpacity = useRef(new Animated.Value(0)).current;
@@ -135,7 +145,9 @@ export default function TeacherScanScreen(): React.ReactElement {
                     ? "Wrong class"
                     : result.code === "bad_signature"
                       ? "Invalid QR"
-                      : "Couldn't verify",
+                      : result.code === "window_closed"
+                        ? "Scan window closed"
+                        : "Couldn't verify",
           subtitle: result.message,
         });
       }
