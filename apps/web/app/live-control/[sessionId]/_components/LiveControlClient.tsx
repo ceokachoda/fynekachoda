@@ -25,6 +25,7 @@ import {
   ChevronLeft,
   Copy,
   Hand,
+  ListChecks,
   Loader2,
   Pin,
   Radio,
@@ -254,6 +255,15 @@ function LiveControlInner({ sessionId, fullName }: Props) {
             )}
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          onClick={() => router.push(`/roster/${sessionId}`)}
+        >
+          <ListChecks className="mr-1.5 size-4" />
+          Roster
+        </Button>
         {isLive ? (
           <>
             <Pill tone="neutral" className="mr-1">
