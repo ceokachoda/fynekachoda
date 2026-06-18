@@ -22,7 +22,7 @@ export function AuthShell({
   className?: string;
 }) {
   return (
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-slate-50 px-4">
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-slate-50 dark:bg-background px-4">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -34,17 +34,17 @@ export function AuthShell({
           {title || description ? (
             <div className="space-y-1">
               {title ? (
-                <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+                <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
                   {title}
                 </h1>
               ) : null}
               {description ? (
-                <p className="text-sm text-slate-500">{description}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{description}</p>
               ) : null}
             </div>
           ) : null}
         </header>
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-7 shadow-xl shadow-slate-900/[0.05]">
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-card p-7 shadow-xl shadow-slate-900/[0.05] dark:shadow-none">
           {children}
         </div>
         {footer}

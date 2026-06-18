@@ -16,7 +16,7 @@ export function LoginForm({ next }: { next?: string }) {
       {next ? <input type="hidden" name="next" value={next} /> : null}
 
       <div className="space-y-1.5">
-        <label htmlFor="email" className="text-sm font-medium text-slate-700">
+        <label htmlFor="email" className="text-sm font-medium text-slate-700 dark:text-slate-200">
           Email
         </label>
         <Input
@@ -25,16 +25,16 @@ export function LoginForm({ next }: { next?: string }) {
           type="email"
           autoComplete="email"
           required
-          className="h-11"
+          className="h-11 bg-transparent"
           aria-invalid={state.fieldErrors?.email ? "true" : undefined}
         />
         {state.fieldErrors?.email ? (
-          <p className="text-xs text-red-600">{state.fieldErrors.email}</p>
+          <p className="text-xs text-red-600 dark:text-red-400">{state.fieldErrors.email}</p>
         ) : null}
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="password" className="text-sm font-medium text-slate-700">
+        <label htmlFor="password" className="text-sm font-medium text-slate-700 dark:text-slate-200">
           Password
         </label>
         <PasswordInput
@@ -42,16 +42,16 @@ export function LoginForm({ next }: { next?: string }) {
           name="password"
           autoComplete="current-password"
           required
-          className="h-11"
+          className="h-11 bg-transparent"
           aria-invalid={state.fieldErrors?.password ? "true" : undefined}
         />
         {state.fieldErrors?.password ? (
-          <p className="text-xs text-red-600">{state.fieldErrors.password}</p>
+          <p className="text-xs text-red-600 dark:text-red-400">{state.fieldErrors.password}</p>
         ) : null}
       </div>
 
       {state.error ? (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="rounded-md border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/10 px-3 py-2 text-sm text-red-700 dark:text-red-400">
           {state.error}
         </div>
       ) : null}

@@ -28,7 +28,7 @@ export function FyneLogo({ variant = "header", className }: FyneLogoProps) {
       />
       <span
         className={cn(
-          "font-semibold tracking-tight text-slate-900",
+          "font-semibold tracking-tight text-slate-900 dark:text-slate-50",
           isLarge ? "ml-2.5 text-2xl" : "ml-2 text-lg",
         )}
       >

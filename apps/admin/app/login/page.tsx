@@ -12,7 +12,7 @@ export default async function LoginPage({
 }) {
   const { next } = await searchParams;
   return (
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-slate-50 px-4">
+    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-slate-50 dark:bg-background px-4">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -24,12 +24,12 @@ export default async function LoginPage({
       <div className="relative w-full max-w-md space-y-6">
         <header className="flex flex-col items-center space-y-3 text-center">
           <FyneLogo variant="large" />
-          <p className="text-sm text-slate-500">Sign in with your admin email.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Sign in with your admin email.</p>
         </header>
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-7 shadow-xl shadow-slate-900/[0.05]">
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-card p-7 shadow-xl shadow-slate-900/[0.05] dark:shadow-none">
           <LoginForm next={next} />
         </div>
-        <p className="text-center text-xs text-slate-400">
+        <p className="text-center text-xs text-slate-400 dark:text-slate-500">
           Admin accounts are issued by the institute owner. No self-signup.
         </p>
       </div>
