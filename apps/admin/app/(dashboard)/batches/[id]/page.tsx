@@ -4,6 +4,7 @@ import { BatchHeaderForm } from "./batch-header-form";
 import { TeachersSection } from "./teachers-section";
 import { ScheduleSection } from "./schedule-section";
 import { StudentsSection } from "./students-section";
+import { PerformanceSection } from "./performance-section";
 import { PageHeader } from "@/components/page-header";
 import { StatusBadge } from "@/components/status-badge";
 
@@ -198,6 +199,8 @@ export default async function BatchDetailPage({
         students={data.students}
         otherBatches={data.allBatches}
       />
+
+      <PerformanceSection batchId={batch.id} />
     </div>
   );
 }

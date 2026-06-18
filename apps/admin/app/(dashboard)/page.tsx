@@ -108,7 +108,7 @@ export default async function OverviewPage() {
     <div className="space-y-8 animate-in-fade pb-8">
       <div className="flex flex-col gap-1.5">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Welcome back, {session.full_name.split(" ")[0]}
+          Welcome back, {session.full_name.split(" ")[0] || "User"}
         </h1>
         <p className="text-muted-foreground text-sm">
           Here is what&apos;s happening across FyneStudy today.
@@ -244,7 +244,7 @@ export default async function OverviewPage() {
           </section>
         </div>
 
-        <section className="bg-card rounded-2xl border border-border shadow-sm flex flex-col h-[calc(100vh-8rem)] xl:sticky xl:top-24 max-h-[800px]">
+        <section className="bg-card rounded-2xl border border-border shadow-sm flex flex-col h-[500px] xl:h-[calc(100vh-8rem)] xl:sticky xl:top-24 xl:max-h-[800px]">
           <div className="flex items-center justify-between border-b border-border px-6 py-5 shrink-0">
             <h2 className="font-semibold text-foreground flex items-center gap-2">
               <Bell className="w-4 h-4 text-primary" />

@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/auth";
-import { OfflineScoresClient } from "./offline-scores-client";
+import { OfflineScoresClient } from "./performance-client";
 import { PageHeader } from "@/components/page-header";
 
 export const metadata = {

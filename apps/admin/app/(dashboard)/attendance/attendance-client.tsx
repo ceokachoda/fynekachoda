@@ -16,9 +16,6 @@ import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
 } from "@/components/ui/sheet";
 import { correctAttendanceAction, type AttendanceCorrectState } from "./actions";
 import type { AttendanceCell } from "./page";
@@ -26,7 +23,6 @@ import {
   Download,
   Filter,
   BarChart3,
-  Users,
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
@@ -425,7 +421,7 @@ export function AttendanceMatrix({
                  </div>
                  {selectedSessionId && (
                    <div className="text-sm font-medium bg-background px-3 py-1 rounded-full border shadow-sm">
-                     {activeSessions.length === 1 ? sessionName(activeSessions[0]) : "Multiple Sessions"}
+                     {activeSessions.length === 1 && activeSessions[0] ? sessionName(activeSessions[0]) : "Multiple Sessions"}
                    </div>
                  )}
               </div>

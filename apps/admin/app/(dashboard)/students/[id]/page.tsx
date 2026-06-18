@@ -8,6 +8,8 @@ import { ActivityFeedItem } from "../../_components/dashboard-widgets";
 import { User, Mail, GraduationCap, MapPin, ShieldAlert, KeyRound, Clock, UserCog, UserCheck, UserX } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { GenerateReportButton } from "../../performance/report-cards/components/generate-report-button";
+
 interface StudentDetail {
   id: string;
   full_name: string;
@@ -76,10 +78,10 @@ async function fetchStudent(id: string): Promise<StudentDetail | null> {
   return data as unknown as StudentDetail;
 }
 
-type Tab = "identity" | "activity" | "audit";
+type Tab = "identity" | "performance" | "audit";
 
 function tabFromSearch(value: string | undefined): Tab {
-  if (value === "activity" || value === "audit") return value;
+  if (value === "performance" || value === "audit") return value;
   return "identity";
 }
 
@@ -145,7 +147,7 @@ export default async function StudentDetailPage({
       {tab === "identity" ? (
         <IdentityTab student={student} otherBatches={otherBatches} />
       ) : null}
-      {tab === "activity" ? <ActivityTab /> : null}
+      {tab === "performance" ? <PerformanceTab studentId={student.id} batchId={student.students?.batch_id ?? undefined} /> : null}
       {tab === "audit" ? <AuditTab studentId={student.id} /> : null}
     </div>
   );
@@ -154,7 +156,7 @@ export default async function StudentDetailPage({
 function Tabs({ id, active }: { id: string; active: Tab }) {
   const items: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: "identity", label: "Profile Identity", icon: <User className="w-4 h-4" /> },
-    { key: "activity", label: "Activity Metrics", icon: <Clock className="w-4 h-4" /> },
+    { key: "performance", label: "Performance", icon: <Clock className="w-4 h-4" /> },
     { key: "audit", label: "Security & Audit", icon: <ShieldAlert className="w-4 h-4" /> },
   ];
   return (
@@ -263,15 +265,124 @@ function IdentityTab({
   );
 }
 
-function ActivityTab() {
-  return (
-    <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-24 text-center text-sm text-muted-foreground flex flex-col items-center justify-center">
-      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-        <Clock className="w-8 h-8 text-muted-foreground/50" />
+async function PerformanceTab({ studentId, batchId }: { studentId: string; batchId?: string }) {
+  const supabase = await createSupabaseServerClient();
+  const { data: scoresRes } = await supabase
+    .from("offline_test_scores")
+    .select("id, test_name, test_date, score, max_score, subjects(name)")
+    .eq("student_id", studentId)
+    .order("test_date", { ascending: false });
+
+  const scores = (scoresRes || []) as unknown as Array<{ id: string; test_name: string; test_date: string; score: number; max_score: number; subjects: { name: string } | null }>;
+
+  if (scores.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-24 text-center text-sm text-muted-foreground flex flex-col items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+          <Clock className="w-8 h-8 text-muted-foreground/50" />
+        </div>
+        <p className="max-w-sm">
+          No performance records found. Scores entered via the Performance Hub will appear here.
+        </p>
       </div>
-      <p className="max-w-sm">
-        Advanced metrics including Attendance visualizations, quiz analytics, exam scoring, and live-class participation history are rolling out in the next platform phase.
-      </p>
+    );
+  }
+
+  let totalScore = 0;
+  let totalMax = 0;
+  scores.forEach(s => {
+    totalScore += Number(s.score);
+    totalMax += Number(s.max_score);
+  });
+  const overallPercentage = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+
+  // Subject-wise grouping
+  const subjectStats: Record<string, { earned: number; possible: number }> = {};
+  scores.forEach(s => {
+    const subj = s.subjects?.name || "General";
+    let stat = subjectStats[subj];
+    if (!stat) {
+      stat = { earned: 0, possible: 0 };
+      subjectStats[subj] = stat;
+    }
+    stat.earned += Number(s.score);
+    stat.possible += Number(s.max_score);
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold tracking-tight text-foreground">Performance Overview</h2>
+        {batchId && (
+          <GenerateReportButton batchId={batchId} studentId={studentId} variant="outline" />
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="col-span-1 md:col-span-1 bg-card rounded-2xl border border-border shadow-sm p-6 flex flex-col items-center justify-center text-center">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-2">Overall Academic Score</h3>
+          <div className="text-5xl font-bold text-primary mb-2">{overallPercentage}%</div>
+          <p className="text-xs text-muted-foreground">Based on {scores.length} total assessments</p>
+        </div>
+        
+        <div className="col-span-1 md:col-span-2 bg-card rounded-2xl border border-border shadow-sm p-6">
+          <h3 className="text-sm font-semibold mb-4">Subject Performance</h3>
+          <div className="space-y-4">
+            {Object.entries(subjectStats).map(([subj, stats]) => {
+              const pct = stats.possible > 0 ? Math.round((stats.earned / stats.possible) * 100) : 0;
+              return (
+                <div key={subj} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">{subj}</span>
+                    <span className="text-muted-foreground">{pct}% ({stats.earned}/{stats.possible})</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                    <div 
+                      className={cn("h-full rounded-full", pct >= 75 ? "bg-emerald-500" : pct >= 50 ? "bg-amber-500" : "bg-destructive")} 
+                      style={{ width: `${pct}%` }} 
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+          <h3 className="font-semibold text-lg">Test History</h3>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="bg-muted border-b border-border text-left text-[11px] uppercase text-muted-foreground tracking-wide">
+            <tr>
+              <th className="px-6 py-3">Date</th>
+              <th className="px-6 py-3">Test Name</th>
+              <th className="px-6 py-3">Subject</th>
+              <th className="px-6 py-3 text-right">Score</th>
+              <th className="px-6 py-3 text-right">Percentage</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {scores.map((s) => {
+              const pct = s.max_score > 0 ? Math.round((s.score / s.max_score) * 100) : 0;
+              return (
+                <tr key={s.id} className="hover:bg-muted/30">
+                  <td className="px-6 py-3 text-muted-foreground">{s.test_date}</td>
+                  <td className="px-6 py-3 font-medium text-foreground">{s.test_name}</td>
+                  <td className="px-6 py-3">{s.subjects?.name || "—"}</td>
+                  <td className="px-6 py-3 text-right tabular-nums">{s.score} / {s.max_score}</td>
+                  <td className="px-6 py-3 text-right tabular-nums font-medium">
+                    <span className={cn(pct >= 75 ? "text-emerald-600" : pct >= 50 ? "text-amber-600" : "text-destructive")}>
+                      {pct}%
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

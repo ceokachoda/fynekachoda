@@ -99,7 +99,7 @@ function parseCsv(text: string): string[][] {
 
 function toRows(text: string): ParsedRow[] {
   const grid = parseCsv(text);
-  const headerRow = grid[0];
+  const headerRow = grid[0] || [];
   if (!headerRow || grid.length < 2) {
     throw new Error("The file needs a header row and at least one student.");
   }
@@ -162,7 +162,8 @@ function download(content: string, filename: string) {
 }
 
 export function ImportClient({ batches }: { batches: Batch[] }) {
-  const [batchId, setBatchId] = useState(batches[0]?.id ?? "");
+  const firstBatch = batches[0];
+  const [batchId, setBatchId] = useState(firstBatch?.id ?? "");
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [fileName, setFileName] = useState("");
   const [parseError, setParseError] = useState("");

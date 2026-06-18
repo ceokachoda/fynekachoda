@@ -16,7 +16,7 @@ export function FyneLogo({ variant = "header", className }: FyneLogoProps) {
   const size = isLarge ? 40 : 30;
 
   return (
-    <div className={cn("flex flex-row items-center", className)}>
+    <div className={cn("flex flex-row items-center text-slate-900 dark:text-slate-50", className)}>
       <Image
         src="/brand/fyne-mark.png"
         alt=""
@@ -28,7 +28,7 @@ export function FyneLogo({ variant = "header", className }: FyneLogoProps) {
       />
       <span
         className={cn(
-          "font-semibold tracking-tight text-slate-900 dark:text-slate-50",
+          "font-semibold tracking-tight",
           isLarge ? "ml-2.5 text-2xl" : "ml-2 text-lg",
         )}
       >

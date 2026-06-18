@@ -21,7 +21,7 @@ const NAV: readonly NavItem[] = [
   { label: "Content", href: "/content" },
   { label: "Quizzes", href: "/quizzes" },
   { label: "Exams", href: "/exams" },
-  { label: "Offline scores", href: "/offline-scores" },
+  { label: "Performance", href: "/performance" },
   { label: "Question bank", href: "/questions" },
   { label: "Audit log", href: "/audit" },
 ] as const;
