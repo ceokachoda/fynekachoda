@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/auth";
 import { AttendanceMatrix } from "./attendance-client";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata = {
   title: "Attendance · FyneStudy Admin",
@@ -8,9 +9,9 @@ export const metadata = {
 
 interface PageProps {
   searchParams: Promise<{
-    from?: string;
-    to?: string;
+    date?: string;
     batch?: string;
+    session?: string;
   }>;
 }
 
@@ -50,9 +51,9 @@ function todayIso(): string {
   return isoDate(new Date());
 }
 
-function sevenDaysAgoIso(): string {
-  const d = new Date();
-  d.setUTCDate(d.getUTCDate() - 6);
+function thirtyDaysAgoIso(dateStr: string): string {
+  const d = new Date(dateStr);
+  d.setUTCDate(d.getUTCDate() - 30);
   return isoDate(d);
 }
 
@@ -164,25 +165,26 @@ async function loadData(filters: { from: string; to: string; batch?: string }) {
 export default async function AttendancePage({ searchParams }: PageProps) {
   await requireAdmin();
   const params = await searchParams;
-  const from = safeIsoDate(params.from, sevenDaysAgoIso());
-  const to = safeIsoDate(params.to, todayIso());
+  const date = safeIsoDate(params.date, todayIso());
+  const from = thirtyDaysAgoIso(date);
+  const to = date;
+  
   const batch = params.batch && /^[0-9a-f-]{36}$/i.test(params.batch) ? params.batch : undefined;
+  const sessionParam = params.session && /^[0-9a-f-]{36}$/i.test(params.session) ? params.session : undefined;
 
   const { batches, students, sessions, cells } = await loadData({ from, to, batch });
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Attendance</h1>
-        <p className="text-sm text-slate-500">
-          Per-batch matrix · click any cell to correct · export to CSV.
-        </p>
-      </header>
+      <PageHeader 
+        title="Attendance Management" 
+        breadcrumbs={[{ label: "Overview", href: "/" }, { label: "Attendance" }]}
+      />
 
       <AttendanceMatrix
-        from={from}
-        to={to}
+        selectedDate={date}
         selectedBatchId={batch}
+        selectedSessionId={sessionParam}
         batches={batches}
         students={students}
         sessions={sessions}

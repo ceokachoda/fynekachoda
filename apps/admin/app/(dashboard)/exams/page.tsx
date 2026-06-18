@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/auth";
 import { ExamsClient } from "./exams-client";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata = {
   title: "Exams · FyneStudy Admin",
@@ -174,12 +175,10 @@ export default async function ExamsPage({ searchParams }: PageProps) {
   });
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Exams</h1>
-        <p className="text-sm text-slate-500">
-          Moderate graded exams · publish · release · regrade · delete.
-        </p>
-      </header>
+      <PageHeader 
+        title="Exams" 
+        breadcrumbs={[{ label: "Overview", href: "/" }, { label: "Exams" }]}
+      />
       <ExamsClient
         rows={rows}
         courses={courses}

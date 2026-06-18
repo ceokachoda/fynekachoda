@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { NewTeacherForm } from "./new-teacher-form";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata = {
   title: "New teacher · FyneStudy Admin",
@@ -8,18 +8,17 @@ export const metadata = {
 export default function NewTeacherPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/teachers" className="text-xs text-slate-500 hover:text-slate-700">
-          ← Back to teachers
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold text-slate-900">New teacher</h1>
-        <p className="text-sm text-slate-500">
-          Creating the account generates an initial password. After creation,
-          you can assign the teacher to one or more batches from their profile.
-        </p>
-      </div>
+      <PageHeader
+        title="New teacher"
+        breadcrumbs={[
+          { label: "Overview", href: "/" },
+          { label: "Teachers", href: "/teachers" },
+          { label: "New teacher" }
+        ]}
+        description="Creating the account generates an initial password. After creation, you can assign the teacher to one or more batches from their profile."
+      />
 
-      <div className="rounded-lg border border-slate-200 bg-white p-6">
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
         <NewTeacherForm />
       </div>
     </div>

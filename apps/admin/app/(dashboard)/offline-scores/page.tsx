@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/auth";
 import { OfflineScoresClient } from "./offline-scores-client";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata = {
   title: "Offline Scores · FyneStudy Admin",
@@ -108,12 +109,10 @@ export default async function OfflineScoresPage({ searchParams }: PageProps) {
   });
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Offline scores</h1>
-        <p className="text-sm text-slate-500">
-          Paper-test scores entered by teachers · view across batches · delete bad rows.
-        </p>
-      </header>
+      <PageHeader 
+        title="Offline scores" 
+        breadcrumbs={[{ label: "Overview", href: "/" }, { label: "Offline Scores" }]}
+      />
       <OfflineScoresClient
         rows={rows}
         batches={batches}

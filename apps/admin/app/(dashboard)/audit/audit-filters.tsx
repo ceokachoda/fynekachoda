@@ -54,14 +54,14 @@ export function AuditFilters({
         e.preventDefault();
         apply();
       }}
-      className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4"
+      className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4 shadow-sm"
     >
-      <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
         Actor role
         <select
           value={actorRole}
           onChange={(e) => setActorRole(e.target.value)}
-          className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900"
+          className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           <option value="">Any</option>
           {roleOptions.map((r) => (
@@ -72,7 +72,7 @@ export function AuditFilters({
         </select>
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
         Action
         <Input
           value={action}
@@ -82,7 +82,7 @@ export function AuditFilters({
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
         Entity table
         <Input
           value={entity}
@@ -92,7 +92,7 @@ export function AuditFilters({
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
         From
         <Input
           type="date"
@@ -101,7 +101,7 @@ export function AuditFilters({
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+      <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
         To
         <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
       </label>

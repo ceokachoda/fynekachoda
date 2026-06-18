@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/auth";
 import { ContentModerationClient } from "./content-client";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata = {
   title: "Content · FyneStudy Admin",
@@ -162,12 +163,10 @@ export default async function ContentPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Content library</h1>
-        <p className="text-sm text-slate-500">
-          Moderate uploads · promote to course-wide · publish / unpublish.
-        </p>
-      </header>
+      <PageHeader 
+        title="Content library" 
+        breadcrumbs={[{ label: "Overview", href: "/" }, { label: "Content" }]}
+      />
 
       <ContentModerationClient
         items={items}

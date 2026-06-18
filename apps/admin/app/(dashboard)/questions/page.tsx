@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/auth";
 import { QuestionsClient } from "./questions-client";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata = {
   title: "Question bank · FyneStudy Admin",
@@ -128,12 +129,10 @@ export default async function QuestionsPage({ searchParams }: PageProps) {
   });
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Question bank</h1>
-        <p className="text-sm text-slate-500">
-          Archive · delete · review every teacher-authored MCQ.
-        </p>
-      </header>
+      <PageHeader 
+        title="Question bank" 
+        breadcrumbs={[{ label: "Overview", href: "/" }, { label: "Questions" }]}
+      />
       <QuestionsClient
         rows={rows}
         courses={courses}

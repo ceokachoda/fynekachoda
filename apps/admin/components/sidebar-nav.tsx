@@ -79,13 +79,13 @@ export function SidebarNav({
                 active
                   ? "text-primary"
                   : disabled
-                    ? "text-slate-300"
-                    : "text-slate-400 group-hover:text-slate-600",
+                    ? "text-muted-foreground/50"
+                    : "text-muted-foreground group-hover:text-foreground",
               )}
             />
             <span className="flex-1 truncate">{item.label}</span>
             {item.comingPhase ? (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                 {item.comingPhase}
               </span>
             ) : null}
@@ -99,7 +99,7 @@ export function SidebarNav({
           return (
             <span
               key={item.href}
-              className={cn(base, "cursor-not-allowed text-slate-400")}
+              className={cn(base, "cursor-not-allowed text-muted-foreground")}
             >
               {inner}
             </span>
@@ -115,8 +115,9 @@ export function SidebarNav({
             className={cn(
               base,
               active
-                ? "bg-primary/10 font-semibold text-primary"
-                : "font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground"
+                : "font-medium text-muted-foreground hover:bg-muted hover:text-foreground",
+              "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
             )}
           >
             {inner}

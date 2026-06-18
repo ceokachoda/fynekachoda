@@ -8,6 +8,11 @@ import {
   promoteAction,
   togglePublishAction,
 } from "./actions";
+import { DataTableLayout } from "@/components/data-table-layout";
+import { EmptyState } from "@/components/empty-state";
+import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
+import { FileVideo } from "lucide-react";
 
 interface Props {
   items: ContentItem[];
@@ -140,102 +145,108 @@ export function ContentModerationClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-        <div>
-          <label className="block text-[10px] uppercase text-slate-500">
-            Course
-          </label>
-          <select
-            value={filters.course}
-            onChange={(e) => setFilter("course", e.target.value)}
-            className="rounded border-slate-300 px-2 py-1 text-sm"
-          >
-            <option value="">All</option>
-            {courses.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.code} · {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-[10px] uppercase text-slate-500">
-            Batch
-          </label>
-          <select
-            value={filters.batch}
-            onChange={(e) => setFilter("batch", e.target.value)}
-            className="rounded border-slate-300 px-2 py-1 text-sm"
-          >
-            <option value="">All</option>
-            <option value="course-wide">Course-wide (no batch)</option>
-            {batchesForCourse.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-[10px] uppercase text-slate-500">
-            Kind
-          </label>
-          <select
-            value={filters.kind}
-            onChange={(e) => setFilter("kind", e.target.value)}
-            className="rounded border-slate-300 px-2 py-1 text-sm"
-          >
-            <option value="">All</option>
-            <option value="video">Video</option>
-            <option value="pdf">PDF</option>
-            <option value="note">Note</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-[10px] uppercase text-slate-500">
-            Status
-          </label>
-          <select
-            value={filters.status}
-            onChange={(e) => setFilter("status", e.target.value)}
-            className="rounded border-slate-300 px-2 py-1 text-sm"
-          >
-            <option value="">All</option>
-            <option value="published">Published</option>
-            <option value="unpublished">Unpublished</option>
-          </select>
-        </div>
-        <div className="flex-1">
-          <label className="block text-[10px] uppercase text-slate-500">
-            Search
-          </label>
-          <input
-            type="text"
-            placeholder="Title contains…"
-            defaultValue={filters.q}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") setFilter("q", e.currentTarget.value);
-            }}
-            className="w-full rounded border-slate-300 px-2 py-1 text-sm"
-          />
-        </div>
-        <button
-          onClick={exportCsv}
-          className="rounded bg-slate-100 px-3 py-1.5 text-sm hover:bg-slate-200"
-        >
-          Export CSV
-        </button>
-      </div>
-
       {errMsg ? (
-        <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <div className="rounded border border-destructive bg-destructive/15 px-3 py-2 text-sm text-destructive">
           {errMsg}
         </div>
       ) : null}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50">
+      <DataTableLayout
+        filters={
+          <div className="flex flex-wrap items-end gap-3 w-full">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">
+                Course
+              </label>
+              <select
+                value={filters.course}
+                onChange={(e) => setFilter("course", e.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">All courses</option>
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.code} · {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">
+                Batch
+              </label>
+              <select
+                value={filters.batch}
+                onChange={(e) => setFilter("batch", e.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">All batches</option>
+                <option value="course-wide">Course-wide</option>
+                {batchesForCourse.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">
+                Kind
+              </label>
+              <select
+                value={filters.kind}
+                onChange={(e) => setFilter("kind", e.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">All kinds</option>
+                <option value="video">Video</option>
+                <option value="pdf">PDF</option>
+                <option value="note">Note</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">
+                Status
+              </label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilter("status", e.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">All statuses</option>
+                <option value="published">Published</option>
+                <option value="unpublished">Pending</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
+              <label className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">
+                Search
+              </label>
+              <input
+                type="text"
+                placeholder="Title contains…"
+                defaultValue={filters.q}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") setFilter("q", e.currentTarget.value);
+                }}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+            <Button variant="outline" onClick={exportCsv} className="h-9">
+              Export CSV
+            </Button>
+          </div>
+        }
+      >
+        {items.length === 0 ? (
+          <EmptyState
+            icon={FileVideo}
+            title="No content found"
+            description="Adjust your filters or wait for teachers to upload new content."
+          />
+        ) : (
+          <table className="w-full text-left text-sm">
+            <thead className="bg-muted border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-3 py-2 font-semibold">Title</th>
               <th className="px-3 py-2 font-semibold">Kind</th>
@@ -247,77 +258,60 @@ export function ContentModerationClient({
               <th className="px-3 py-2 font-semibold">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
-                  No content matches.
-                </td>
-              </tr>
-            ) : (
-              items.map((it) => (
-                <tr key={it.id} className="border-t border-slate-100 align-top">
-                  <td className="px-3 py-2">
-                    <div className="font-medium text-slate-900">{it.title}</div>
+          <tbody className="divide-y divide-border">
+              {items.map((it) => (
+                <tr key={it.id} className="align-top hover:bg-muted/50 transition-colors">
+                  <td className="px-3 py-3">
+                    <div className="font-medium text-foreground">{it.title}</div>
                     {it.description ? (
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-muted-foreground mt-1">
                         {it.description.slice(0, 120)}
                         {it.description.length > 120 ? "…" : ""}
                       </div>
                     ) : null}
                     {it.yt_video_id ? (
-                      <div className="mt-1 text-[11px] text-slate-400">
+                      <div className="mt-1 text-[11px] text-muted-foreground/70">
                         YT id: <code>{it.yt_video_id}</code>
                       </div>
                     ) : null}
                     {it.file_path ? (
-                      <div className="mt-1 text-[11px] text-slate-400 break-all">
+                      <div className="mt-1 text-[11px] text-muted-foreground/70 break-all">
                         path: <code>{it.file_path}</code>
                       </div>
                     ) : null}
                   </td>
-                  <td className="px-3 py-2 uppercase text-xs text-slate-700">
+                  <td className="px-3 py-3 uppercase text-xs font-semibold text-muted-foreground">
                     {it.kind}
                   </td>
-                  <td className="px-3 py-2 text-xs">
-                    <div>{it.course_code}</div>
-                    <div className="text-slate-500">{it.subject_name}</div>
-                    <div className="text-slate-500">{it.chapter_name}</div>
-                    <div className="text-slate-500">{it.topic_name}</div>
+                  <td className="px-3 py-3 text-xs">
+                    <div className="font-medium text-foreground">{it.course_code}</div>
+                    <div className="text-muted-foreground">{it.subject_name}</div>
+                    <div className="text-muted-foreground">{it.chapter_name}</div>
+                    <div className="text-muted-foreground">{it.topic_name}</div>
                   </td>
-                  <td className="px-3 py-2 text-xs">
+                  <td className="px-3 py-3 text-xs">
                     {it.batch_id
                       ? (
-                        <span className="inline-flex items-center rounded bg-slate-100 px-2 py-0.5 text-slate-700">
+                        <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-foreground font-medium border border-border">
                           {it.batch_name}
                         </span>
                       )
                       : (
-                        <span className="inline-flex items-center rounded bg-emerald-100 px-2 py-0.5 text-emerald-700">
+                        <span className="inline-flex items-center rounded-md bg-primary/10 px-2 py-0.5 text-primary font-medium">
                           course-wide
                         </span>
                       )}
                   </td>
-                  <td className="px-3 py-2 text-xs">{it.uploader_name}</td>
-                  <td className="px-3 py-2 text-xs">
-                    {it.is_published
-                      ? (
-                        <span className="inline-flex rounded bg-green-100 px-2 py-0.5 text-green-700">
-                          Published
-                        </span>
-                      )
-                      : (
-                        <span className="inline-flex rounded bg-amber-100 px-2 py-0.5 text-amber-700">
-                          Pending
-                        </span>
-                      )}
+                  <td className="px-3 py-3 text-xs text-foreground font-medium">{it.uploader_name}</td>
+                  <td className="px-3 py-3 text-xs">
+                    <StatusBadge status={it.is_published ? "Published" : "Pending"} variant={it.is_published ? "success" : "warning"} />
                   </td>
-                  <td className="px-3 py-2 text-xs text-slate-500">
+                  <td className="px-3 py-3 text-xs text-muted-foreground">
                     {new Date(it.created_at).toLocaleString("en-IN", {
                       timeZone: "Asia/Kolkata",
                     })}
                   </td>
-                  <td className="px-3 py-2 space-y-1">
+                  <td className="px-3 py-3 space-y-1.5">
                     <button
                       disabled={pending}
                       onClick={() =>
@@ -325,7 +319,7 @@ export function ContentModerationClient({
                           it.is_published ? "unpublish" : "publish",
                           it.id,
                         )}
-                      className="block w-full rounded bg-slate-100 px-2 py-1 text-xs hover:bg-slate-200"
+                      className="block w-full rounded border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
                     >
                       {it.is_published ? "Unpublish" : "Publish"}
                     </button>
@@ -334,17 +328,17 @@ export function ContentModerationClient({
                         <button
                           disabled={pending}
                           onClick={() => promote("promote", it.id)}
-                          className="block w-full rounded bg-emerald-50 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-100"
+                          className="block w-full rounded bg-primary/10 px-2 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors disabled:opacity-50"
                         >
                           Promote course-wide
                         </button>
                       )
                       : (
-                        <details className="block">
-                          <summary className="cursor-pointer rounded bg-slate-50 px-2 py-1 text-xs text-slate-700 list-none">
+                        <details className="block group">
+                          <summary className="cursor-pointer rounded border border-border bg-card px-2 py-1.5 text-xs font-medium text-foreground list-none hover:bg-muted transition-colors">
                             Scope to batch…
                           </summary>
-                          <div className="mt-1 flex flex-col gap-1">
+                          <div className="mt-1 flex flex-col gap-1 p-1 bg-card border border-border rounded shadow-sm">
                             {batches
                               .filter((b) => b.course_id === it.course_id)
                               .map((b) => (
@@ -353,7 +347,7 @@ export function ContentModerationClient({
                                   disabled={pending}
                                   onClick={() =>
                                     promote("unpromote", it.id, b.id)}
-                                  className="rounded bg-slate-100 px-2 py-0.5 text-xs hover:bg-slate-200"
+                                  className="rounded bg-transparent px-2 py-1 text-xs text-left text-foreground hover:bg-muted transition-colors disabled:opacity-50"
                                 >
                                   {b.name}
                                 </button>
@@ -364,43 +358,43 @@ export function ContentModerationClient({
                     <button
                       disabled={pending}
                       onClick={() => setConfirmDelete(it)}
-                      className="block w-full rounded bg-red-50 px-2 py-1 text-xs text-red-700 hover:bg-red-100"
+                      className="block w-full rounded bg-destructive/10 px-2 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
                     >
                       Delete
                     </button>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </DataTableLayout>
 
       {confirmDelete ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="rounded-xl bg-white p-6 shadow-lg max-w-md">
-            <h2 className="text-lg font-semibold text-slate-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="rounded-xl bg-card border border-border p-6 shadow-xl max-w-md w-full mx-4">
+            <h2 className="text-lg font-semibold text-foreground">
               Delete content?
             </h2>
-            <p className="mt-1 text-sm text-slate-600">
-              This removes <strong>{confirmDelete.title}</strong> permanently
+            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+              This removes <strong className="text-foreground font-medium">{confirmDelete.title}</strong> permanently
               from the library. Storage objects remain (orphaned).
             </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="outline"
                 disabled={pending}
                 onClick={() => setConfirmDelete(null)}
-                className="rounded border border-slate-200 px-3 py-1.5 text-sm"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="destructive"
                 disabled={pending}
                 onClick={() => removeItem(confirmDelete.id)}
-                className="rounded bg-red-600 px-3 py-1.5 text-sm text-white hover:bg-red-700"
               >
                 Delete
-              </button>
+              </Button>
             </div>
           </div>
         </div>

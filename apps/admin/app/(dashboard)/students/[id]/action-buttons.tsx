@@ -71,7 +71,7 @@ export function ActionButtons({
       </Button>
 
       {error ? (
-        <span className="text-xs text-red-600">{error}</span>
+        <span className="text-xs text-destructive">{error}</span>
       ) : null}
 
       <SuspendDialog
@@ -134,15 +134,15 @@ function SuspendDialog({
           <div className="space-y-1">
             <label
               htmlFor="reason"
-              className="text-sm font-medium text-slate-700"
+              className="text-sm font-medium text-foreground"
             >
               Reason{" "}
-              <span className="font-normal text-slate-400">(optional)</span>
+              <span className="font-normal text-muted-foreground">(optional)</span>
             </label>
             <Input id="reason" name="reason" maxLength={500} />
           </div>
           {error ? (
-            <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <div className="rounded-md border border-destructive bg-destructive/15 px-3 py-2 text-xs text-destructive">
               {error}
             </div>
           ) : null}
@@ -212,11 +212,11 @@ function ResetDialog({
 
         {newPassword ? (
           <div className="space-y-2">
-            <span className="text-xs uppercase tracking-wide text-slate-500">
+            <span className="text-xs uppercase tracking-wide text-muted-foreground">
               New initial password
             </span>
             <div className="flex items-center gap-2">
-              <code className="flex-1 break-all rounded bg-slate-100 px-3 py-2 font-mono text-sm text-slate-800">
+              <code className="flex-1 break-all rounded-md border border-border bg-muted/50 px-3 py-2 font-mono text-sm text-foreground">
                 {newPassword}
               </code>
               <button
@@ -226,7 +226,7 @@ function ResetDialog({
                   setCopied(true);
                   setTimeout(() => setCopied(false), 1500);
                 }}
-                className="shrink-0 rounded border border-slate-200 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
+                className="shrink-0 rounded-md border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
               >
                 {copied ? "Copied!" : "Copy"}
               </button>
@@ -235,7 +235,7 @@ function ResetDialog({
         ) : null}
 
         {error ? (
-          <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <div className="rounded-md border border-destructive bg-destructive/15 px-3 py-2 text-xs text-destructive">
             {error}
           </div>
         ) : null}

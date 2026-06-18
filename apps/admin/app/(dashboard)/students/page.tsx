@@ -2,10 +2,18 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { StudentsFilters } from "./students-filters";
+import { PageHeader } from "@/components/page-header";
+import { DataTableLayout } from "@/components/data-table-layout";
+import { EmptyState } from "@/components/empty-state";
+import { StatusBadge } from "@/components/status-badge";
+import { Users, MoreHorizontal, UserPlus, FileUp } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export const metadata = {
   title: "Students · FyneStudy Admin",
 };
+
+export const dynamic = "force-dynamic";
 
 type StatusFilter = "all" | "active" | "suspended" | "must_change";
 
@@ -29,8 +37,6 @@ async function fetchStudents(
   status: StatusFilter,
 ): Promise<StudentListRow[]> {
   const supabase = await createSupabaseServerClient();
-  // FK hints are required because both `user_roles` and `students` have two
-  // foreign keys to `app_users` (user_id + granted_by / parent_consent_by).
   let query = supabase
     .from("app_users")
     .select(
@@ -64,14 +70,18 @@ function statusFromSearch(value: string | undefined): StatusFilter {
   return "all";
 }
 
-function statusBadge(row: StudentListRow): { label: string; tone: string } {
+function statusBadge(row: StudentListRow) {
   if (!row.is_active) {
-    return { label: "Suspended", tone: "bg-red-100 text-red-800" };
+    return "suspended";
   }
   if (row.must_change_password) {
-    return { label: "Pending PW change", tone: "bg-amber-100 text-amber-800" };
+    return "must_change";
   }
-  return { label: "Active", tone: "bg-emerald-100 text-emerald-800" };
+  return "active";
+}
+
+function getInitials(name: string) {
+  return name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2);
 }
 
 export default async function StudentsPage({
@@ -85,90 +95,117 @@ export default async function StudentsPage({
   const rows = await fetchStudents(q, status);
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            Students
-          </h1>
-          <p className="text-sm text-slate-500">
-            {rows.length} {rows.length === 1 ? "result" : "results"}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" asChild>
-            <Link href="/students/import">Import CSV</Link>
+    <div className="space-y-6 animate-in-fade pb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <PageHeader 
+          title="Student Management" 
+          breadcrumbs={[{ label: "Overview", href: "/" }, { label: "Students" }]}
+        />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild className="bg-background">
+            <Link href="/students/import" className="flex items-center gap-2">
+              <FileUp className="w-4 h-4" />
+              Import CSV
+            </Link>
           </Button>
-          <Button asChild>
-            <Link href="/students/new">+ New student</Link>
+          <Button asChild className="shadow-sm">
+            <Link href="/students/new" className="flex items-center gap-2">
+              <UserPlus className="w-4 h-4" />
+              New Student
+            </Link>
           </Button>
         </div>
-      </header>
+      </div>
 
-      <StudentsFilters initialQ={q ?? ""} initialStatus={status} />
-
-      {rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">
-          No students match this view.
-          {q || status !== "all" ? (
-            <>
-              {" "}
-              <Link href="/students" className="text-blue-600 hover:underline">
-                Clear filters.
-              </Link>
-            </>
-          ) : null}
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <DataTableLayout filters={<StudentsFilters initialQ={q ?? ""} initialStatus={status} />}>
+        {rows.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No students found"
+            description={q || status !== "all" ? "No students match the current filters." : "You haven't added any students yet."}
+          >
+            {q || status !== "all" ? (
+              <Button variant="outline" asChild>
+                <Link href="/students">Clear filters</Link>
+              </Button>
+            ) : null}
+          </EmptyState>
+        ) : (
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-muted/50 border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground font-semibold">
               <tr>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Email</th>
-                <th className="px-4 py-3 font-medium">Phone</th>
-                <th className="px-4 py-3 font-medium">Class</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Created</th>
+                <th className="px-6 py-4">Student</th>
+                <th className="px-6 py-4">Contact</th>
+                <th className="px-6 py-4">Class</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Enrolled</th>
+                <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-border bg-card">
               {rows.map((row) => {
-                const badge = statusBadge(row);
+                const s = statusBadge(row);
                 return (
-                  <tr key={row.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/students/${row.id}`}
-                        className="font-medium text-slate-900 hover:text-blue-600 hover:underline"
-                      >
-                        {row.full_name}
-                      </Link>
+                  <tr key={row.id} className="hover:bg-muted/30 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary shadow-sm border border-primary/20">
+                          {getInitials(row.full_name)}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <Link
+                            href={`/students/${row.id}`}
+                            className="font-semibold text-foreground hover:text-primary transition-colors truncate"
+                          >
+                            {row.full_name}
+                          </Link>
+                          <span className="text-xs text-muted-foreground truncate">{row.id.split("-")[0]?.toUpperCase() ?? ""}</span>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{row.email}</td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {row.phone ?? "—"}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-foreground">{row.email}</span>
+                        <span className="text-xs text-muted-foreground">{row.phone ?? "No phone"}</span>
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
-                      {row.students?.current_class ?? "—"}
+                    <td className="px-6 py-4 text-muted-foreground">
+                      {row.students?.current_class ? (
+                        <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
+                          {row.students.current_class}
+                        </span>
+                      ) : "—"}
                     </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${badge.tone}`}
-                      >
-                        {badge.label}
-                      </span>
+                    <td className="px-6 py-4">
+                      <StatusBadge status={s === "must_change" ? "Pending PW" : s} variant={s === "active" ? "success" : s === "suspended" ? "destructive" : "warning"} />
                     </td>
-                    <td className="px-4 py-3 text-slate-500">
-                      {new Date(row.created_at).toLocaleDateString()}
+                    <td className="px-6 py-4 text-muted-foreground text-xs">
+                      {new Date(row.created_at).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:opacity-100" aria-label={`Actions for ${row.full_name}`}>
+                            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[160px]">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/students/${row.id}`}>View Profile</Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/attendance?student=${row.id}`}>View Attendance</Link>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </DataTableLayout>
     </div>
   );
 }

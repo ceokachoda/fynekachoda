@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "514103069140",
+    "project_id": "fynestudy-64b5b",
+    "storage_bucket": "fynestudy-64b5b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:514103069140:android:b130f34dae9dc98e9e6e41",
+        "android_client_info": {
+          "package_name": "com.fynestudy.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4PfZfteis4hjB2EabguYoHU43QmQY11g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

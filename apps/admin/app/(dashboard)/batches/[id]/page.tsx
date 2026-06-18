@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { BatchHeaderForm } from "./batch-header-form";
 import { TeachersSection } from "./teachers-section";
 import { ScheduleSection } from "./schedule-section";
 import { StudentsSection } from "./students-section";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
 
 export const metadata = {
   title: "Batch · FyneStudy Admin",
@@ -147,28 +148,28 @@ export default async function BatchDetailPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link href="/batches" className="text-xs text-slate-500 hover:text-slate-700">
-          ← Back to batches
-        </Link>
-        <div className="mt-1 flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-slate-900">{batch.name}</h1>
-          {batch.courses ? (
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-700">
-              <span className="font-mono">{batch.courses.code}</span> · {batch.courses.name}
-            </span>
-          ) : null}
-          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${batch.is_active ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"}`}>
-            {batch.is_active ? "Active" : "Inactive"}
-          </span>
-        </div>
-        <p className="mt-1 text-sm text-slate-500">
-          Starts {batch.starts_on}
-          {batch.ends_on ? ` · Ends ${batch.ends_on}` : ""}
-          {" · "}
-          {data.students.length}/{batch.capacity} seats filled ({occupancyPct}%)
-        </p>
-      </div>
+      <PageHeader 
+        title={batch.name}
+        breadcrumbs={[
+          { label: "Overview", href: "/" },
+          { label: "Batches", href: "/batches" },
+          { label: batch.name }
+        ]}
+        description={`Starts ${batch.starts_on}${batch.ends_on ? ` · Ends ${batch.ends_on}` : ""} · ${data.students.length}/${batch.capacity} seats filled (${occupancyPct}%)`}
+        actions={
+          <div className="flex items-center gap-3">
+            {batch.courses ? (
+              <span className="rounded-md bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground border border-border">
+                <span className="font-mono">{batch.courses.code}</span> · {batch.courses.name}
+              </span>
+            ) : null}
+            <StatusBadge 
+              status={batch.is_active ? "Active" : "Inactive"} 
+              variant={batch.is_active ? "success" : "default"} 
+            />
+          </div>
+        }
+      />
 
       <BatchHeaderForm
         id={batch.id}

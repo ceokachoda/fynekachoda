@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { NewCourseButton } from "./new-course-button";
+import { PageHeader } from "@/components/page-header";
+import { DataTableLayout } from "@/components/data-table-layout";
+import { EmptyState } from "@/components/empty-state";
+import { StatusBadge } from "@/components/status-badge";
+import { BookOpen } from "lucide-react";
 
 export const metadata = {
   title: "Courses · FyneStudy Admin",
@@ -49,30 +54,26 @@ async function fetchCoursesAndCounts(): Promise<{
 
 export default async function CoursesPage() {
   const { courses, subjectCounts } = await fetchCoursesAndCounts();
-  const activeCount = courses.filter((c) => c.is_active).length;
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            Courses
-          </h1>
-          <p className="text-sm text-slate-500">
-            {courses.length} total · {activeCount} active
-          </p>
-        </div>
+      <PageHeader 
+        title="Courses" 
+        breadcrumbs={[{ label: "Overview", href: "/" }, { label: "Courses" }]}
+      >
         <NewCourseButton />
-      </header>
+      </PageHeader>
 
-      {courses.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">
-          No courses yet. Create one to start adding subjects, chapters, and topics.
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <DataTableLayout>
+        {courses.length === 0 ? (
+          <EmptyState
+            icon={BookOpen}
+            title="No courses yet"
+            description="Create one to start adding subjects, chapters, and topics."
+          />
+        ) : (
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-muted border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Code</th>
                 <th className="px-4 py-3 font-medium">Name</th>
@@ -81,46 +82,38 @@ export default async function CoursesPage() {
                 <th className="px-4 py-3 font-medium">Created</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-border">
               {courses.map((c) => (
-                <tr key={c.id} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-mono text-xs text-slate-700">
+                <tr key={c.id} className="hover:bg-muted/50 transition-colors">
+                  <td className="px-4 py-3 font-mono text-xs text-foreground">
                     {c.code}
                   </td>
                   <td className="px-4 py-3">
                     <Link
                       href={`/courses/${c.id}`}
-                      className="font-medium text-slate-900 hover:text-blue-600 hover:underline"
+                      className="font-medium text-foreground hover:text-primary hover:underline"
                     >
                       {c.name}
                     </Link>
                     {c.description ? (
-                      <p className="text-xs text-slate-500">{c.description}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3 text-slate-600">
+                  <td className="px-4 py-3 text-foreground">
                     {subjectCounts.get(c.id) ?? 0}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                        c.is_active
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-slate-200 text-slate-700"
-                      }`}
-                    >
-                      {c.is_active ? "Active" : "Inactive"}
-                    </span>
+                    <StatusBadge status={c.is_active ? "Active" : "Inactive"} variant={c.is_active ? "success" : "default"} />
                   </td>
-                  <td className="px-4 py-3 text-slate-500">
+                  <td className="px-4 py-3 text-muted-foreground">
                     {new Date(c.created_at).toLocaleDateString()}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </DataTableLayout>
     </div>
   );
 }

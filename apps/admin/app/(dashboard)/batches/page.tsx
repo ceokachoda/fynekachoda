@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { NewBatchButton } from "./new-batch-button";
+import { PageHeader } from "@/components/page-header";
+import { DataTableLayout } from "@/components/data-table-layout";
+import { EmptyState } from "@/components/empty-state";
+import { StatusBadge } from "@/components/status-badge";
+import { Component } from "lucide-react";
 
 export const metadata = {
   title: "Batches · FyneStudy Admin",
@@ -62,30 +67,26 @@ async function fetchBatchesAndCounts(): Promise<{
 
 export default async function BatchesPage() {
   const { batches, studentCounts, teacherCounts, courses } = await fetchBatchesAndCounts();
-  const activeCount = batches.filter((b) => b.is_active).length;
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            Batches
-          </h1>
-          <p className="text-sm text-slate-500">
-            {batches.length} total · {activeCount} active
-          </p>
-        </div>
+      <PageHeader 
+        title="Batches" 
+        breadcrumbs={[{ label: "Overview", href: "/" }, { label: "Batches" }]}
+      >
         <NewBatchButton courses={courses} />
-      </header>
+      </PageHeader>
 
-      {batches.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">
-          No batches yet.
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <DataTableLayout>
+        {batches.length === 0 ? (
+          <EmptyState
+            icon={Component}
+            title="No batches yet"
+            description="You haven't created any batches."
+          />
+        ) : (
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-muted border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Name</th>
                 <th className="px-4 py-3 font-medium">Course</th>
@@ -96,45 +97,43 @@ export default async function BatchesPage() {
                 <th className="px-4 py-3 font-medium">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-border">
               {batches.map((b) => {
                 const sc = studentCounts.get(b.id) ?? 0;
                 const tc = teacherCounts.get(b.id) ?? 0;
                 const fillPct = Math.round((sc / b.capacity) * 100);
                 return (
-                  <tr key={b.id} className="hover:bg-slate-50">
+                  <tr key={b.id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-4 py-3">
-                      <Link href={`/batches/${b.id}`} className="font-medium text-slate-900 hover:text-blue-600 hover:underline">
+                      <Link href={`/batches/${b.id}`} className="font-medium text-foreground hover:text-primary hover:underline">
                         {b.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-slate-600">
+                    <td className="px-4 py-3 text-muted-foreground">
                       {b.courses ? (
                         <>
                           <span className="font-mono text-xs">{b.courses.code}</span>
-                          <span className="ml-1 text-slate-400">{b.courses.name}</span>
+                          <span className="ml-1 opacity-70">{b.courses.name}</span>
                         </>
                       ) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {sc} <span className="text-slate-400">/ {b.capacity}</span>
-                      <span className="ml-1 text-xs text-slate-400">({fillPct}%)</span>
+                    <td className="px-4 py-3 text-foreground">
+                      {sc} <span className="text-muted-foreground">/ {b.capacity}</span>
+                      <span className="ml-1 text-xs text-muted-foreground">({fillPct}%)</span>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{tc}</td>
-                    <td className="px-4 py-3 text-slate-700">{b.capacity}</td>
-                    <td className="px-4 py-3 text-slate-500">{b.starts_on}</td>
+                    <td className="px-4 py-3 text-foreground">{tc}</td>
+                    <td className="px-4 py-3 text-foreground">{b.capacity}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{b.starts_on}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${b.is_active ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700"}`}>
-                        {b.is_active ? "Active" : "Inactive"}
-                      </span>
+                      <StatusBadge status={b.is_active ? "Active" : "Inactive"} variant={b.is_active ? "success" : "default"} />
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </DataTableLayout>
     </div>
   );
 }

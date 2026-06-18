@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { requireAdmin } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { ImportClient } from "./import-client";
+import { PageHeader } from "@/components/page-header";
+import Link from "next/link";
 
 export const metadata = {
   title: "Import students · FyneStudy Admin",
@@ -11,7 +11,6 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export default async function ImportStudentsPage() {
-  await requireAdmin();
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
     .from("batches")
@@ -24,23 +23,20 @@ export default async function ImportStudentsPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <Link href="/students" className="text-sm text-blue-600 hover:underline">
-          ← Students
-        </Link>
-        <h1 className="mt-1 text-2xl font-semibold text-slate-900">
-          Bulk import students
-        </h1>
-        <p className="text-sm text-slate-500">
-          Upload a CSV to create many student accounts at once. You&apos;ll
-          review the rows before anything is created.
-        </p>
-      </header>
+      <PageHeader
+        title="Bulk import students"
+        breadcrumbs={[
+          { label: "Overview", href: "/" },
+          { label: "Students", href: "/students" },
+          { label: "Import" }
+        ]}
+        description="Upload a CSV to create many student accounts at once. You'll review the rows before anything is created."
+      />
 
       {batches.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">
+        <div className="rounded-xl border border-dashed border-border bg-card/50 px-6 py-12 text-center text-sm text-muted-foreground">
           You need at least one active batch first.{" "}
-          <Link href="/batches" className="text-blue-600 hover:underline">
+          <Link href="/batches" className="text-primary hover:underline font-medium">
             Create a batch.
           </Link>
         </div>

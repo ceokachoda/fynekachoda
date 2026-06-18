@@ -34,11 +34,11 @@ function Field({
   hint?: string;
 }) {
   return (
-    <div className="space-y-1">
-      <label htmlFor={name} className="text-sm font-medium text-slate-700">
+    <div className="space-y-1.5">
+      <label htmlFor={name} className="text-sm font-medium text-foreground">
         {label}{" "}
         {required ? null : (
-          <span className="font-normal text-slate-400">(optional)</span>
+          <span className="font-normal text-muted-foreground">(optional)</span>
         )}
       </label>
       <Input
@@ -50,9 +50,9 @@ function Field({
         aria-invalid={error ? "true" : undefined}
       />
       {error ? (
-        <p className="text-xs text-red-600">{error}</p>
+        <p className="text-xs text-destructive">{error}</p>
       ) : hint ? (
-        <p className="text-xs text-slate-500">{hint}</p>
+        <p className="text-xs text-muted-foreground">{hint}</p>
       ) : null}
     </div>
   );
@@ -94,18 +94,18 @@ export function NewStudentForm({ batches }: { batches: BatchOption[] }) {
               hint="Format: YYYY-MM-DD"
               error={state.fieldErrors?.dob}
             />
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label
                 htmlFor="gender"
-                className="text-sm font-medium text-slate-700"
+                className="text-sm font-medium text-foreground"
               >
                 Gender{" "}
-                <span className="font-normal text-slate-400">(optional)</span>
+                <span className="font-normal text-muted-foreground">(optional)</span>
               </label>
               <select
                 id="gender"
                 name="gender"
-                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                 defaultValue=""
               >
                 <option value="">—</option>
@@ -161,8 +161,8 @@ export function NewStudentForm({ batches }: { batches: BatchOption[] }) {
               error={state.fieldErrors?.current_class}
             />
           </div>
-          <div className="space-y-1">
-            <label htmlFor="batch_id" className="text-sm font-medium text-slate-700">
+          <div className="space-y-1.5">
+            <label htmlFor="batch_id" className="text-sm font-medium text-foreground">
               Batch
             </label>
             <select
@@ -170,7 +170,7 @@ export function NewStudentForm({ batches }: { batches: BatchOption[] }) {
               name="batch_id"
               required
               defaultValue=""
-              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
               aria-invalid={state.fieldErrors?.batch_id ? "true" : undefined}
             >
               <option value="" disabled>
@@ -183,9 +183,9 @@ export function NewStudentForm({ batches }: { batches: BatchOption[] }) {
               ))}
             </select>
             {state.fieldErrors?.batch_id ? (
-              <p className="text-xs text-red-600">{state.fieldErrors.batch_id}</p>
+              <p className="text-xs text-destructive">{state.fieldErrors.batch_id}</p>
             ) : (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 The student&apos;s course is derived from the batch (D-013).
               </p>
             )}
@@ -207,18 +207,18 @@ export function NewStudentForm({ batches }: { batches: BatchOption[] }) {
               error={state.fieldErrors?.parent_phone_2}
             />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <label
               htmlFor="parent_consent_method"
-              className="text-sm font-medium text-slate-700"
+              className="text-sm font-medium text-foreground"
             >
               Parent consent captured via{" "}
-              <span className="font-normal text-slate-400">(optional)</span>
+              <span className="font-normal text-muted-foreground">(optional)</span>
             </label>
             <select
               id="parent_consent_method"
               name="parent_consent_method"
-              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm sm:max-w-xs"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm sm:max-w-xs"
               defaultValue=""
             >
               <option value="">—</option>
@@ -226,14 +226,14 @@ export function NewStudentForm({ batches }: { batches: BatchOption[] }) {
               <option value="written">Written</option>
               <option value="form">Admission form</option>
             </select>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               You attest that parent consent was obtained at admission (DPDP).
             </p>
           </div>
         </Section>
 
         {state.error ? (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div className="rounded-md border border-destructive bg-destructive/15 px-3 py-2 text-sm text-destructive">
             {state.error}
           </div>
         ) : null}
@@ -292,9 +292,9 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="space-y-3">
-      <h2 className="text-xs uppercase tracking-wide text-slate-500">{title}</h2>
-      <div className="space-y-4">{children}</div>
+    <section className="space-y-4">
+      <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border pb-1 mb-4">{title}</h2>
+      <div className="space-y-5">{children}</div>
     </section>
   );
 }
@@ -310,15 +310,15 @@ function CopyRow({
 }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="space-y-1">
-      <span className="text-xs uppercase tracking-wide text-slate-500">
+    <div className="space-y-1.5">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </span>
       <div className="flex items-center gap-2">
         <code
-          className={`flex-1 break-all rounded bg-slate-100 px-3 py-2 ${
+          className={`flex-1 break-all rounded-md border border-border bg-muted/50 px-3 py-2 ${
             mono ? "font-mono" : ""
-          } text-sm text-slate-800`}
+          } text-sm text-foreground`}
         >
           {value}
         </code>
@@ -329,7 +329,7 @@ function CopyRow({
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
           }}
-          className="shrink-0 rounded border border-slate-200 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
+          className="shrink-0 rounded-md border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
         >
           {copied ? "Copied!" : "Copy"}
         </button>

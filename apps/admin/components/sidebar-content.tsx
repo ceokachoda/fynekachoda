@@ -37,26 +37,26 @@ export function SidebarContent({
         <SidebarNav items={items} onNavigate={onNavigate} />
       </div>
 
-      <form action={logoutAction} className="border-t border-slate-200 p-3">
+      <form action={logoutAction} className="border-t border-border p-3">
         <div className="mb-2 flex items-center gap-3 px-2 py-1.5">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-700 text-xs font-semibold text-white shadow-sm">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dark text-xs font-semibold text-primary-foreground shadow-sm">
             {user.initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-slate-800">
+            <p className="truncate text-sm font-medium text-foreground">
               {user.fullName}
             </p>
-            <p className="truncate text-xs text-slate-400">{user.email}</p>
+            <p className="truncate text-xs text-muted-foreground">{user.email}</p>
           </div>
         </div>
         <div className="mb-3 px-2">
-          <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+          <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-secondary-foreground">
             {user.isOwnerAdmin ? "Owner admin" : "Staff admin"}
           </span>
         </div>
         <button
           type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         >
           <LogOut className="size-4" aria-hidden />
           Sign out

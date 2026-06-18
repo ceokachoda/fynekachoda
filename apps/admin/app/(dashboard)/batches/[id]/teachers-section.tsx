@@ -33,22 +33,22 @@ export function TeachersSection({ batchId, assigned, allTeachers }: Props) {
   const [picked, setPicked] = useState<string>("");
 
   return (
-    <section className="space-y-3 rounded-lg border border-slate-200 bg-white p-5">
+    <section className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
       <div className="flex items-center justify-between">
-        <h2 className="text-xs uppercase tracking-wide text-slate-500">
+        <h2 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
           Teachers ({assigned.length})
         </h2>
       </div>
 
       {assigned.length === 0 ? (
-        <p className="text-sm text-slate-500">No teachers assigned yet.</p>
+        <p className="text-sm text-muted-foreground">No teachers assigned yet.</p>
       ) : (
-        <ul className="divide-y divide-slate-200">
+        <ul className="divide-y divide-border">
           {assigned.map((t) => (
-            <li key={t.user_id} className="flex items-center justify-between py-2">
+            <li key={t.user_id} className="flex items-center justify-between py-3 hover:bg-muted/30 transition-colors -mx-2 px-2 rounded-md">
               <div>
-                <p className="text-sm font-medium text-slate-900">{t.app_users?.full_name ?? "(unknown)"}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm font-medium text-foreground">{t.app_users?.full_name ?? "(unknown)"}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {t.app_users?.email ?? ""}
                   {t.subjects && t.subjects.length > 0 ? ` · ${t.subjects.join(", ")}` : ""}
                 </p>
@@ -56,24 +56,24 @@ export function TeachersSection({ batchId, assigned, allTeachers }: Props) {
               <form action={unassignTeacherAction}>
                 <input type="hidden" name="batch_id" value={batchId} />
                 <input type="hidden" name="teacher_id" value={t.user_id} />
-                <Button type="submit" variant="outline" className="h-8 text-xs">Unassign</Button>
+                <Button type="submit" variant="outline" size="sm" className="h-8 text-xs">Unassign</Button>
               </form>
             </li>
           ))}
         </ul>
       )}
 
-      <form action={formAction} className="flex items-end gap-2 border-t border-slate-100 pt-3">
+      <form action={formAction} className="flex items-end gap-3 border-t border-border pt-4">
         <input type="hidden" name="batch_id" value={batchId} />
-        <div className="flex-1 space-y-1">
-          <label htmlFor="teacher_id" className="text-xs uppercase tracking-wide text-slate-500">Assign teacher</label>
+        <div className="flex-1 space-y-2">
+          <label htmlFor="teacher_id" className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground">Assign teacher</label>
           <select
             id="teacher_id"
             name="teacher_id"
             required
             value={picked}
             onChange={(e) => setPicked(e.target.value)}
-            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
           >
             <option value="" disabled>{available.length === 0 ? "All teachers already assigned" : "Pick a teacher"}</option>
             {available.map((t) => (
@@ -81,12 +81,12 @@ export function TeachersSection({ batchId, assigned, allTeachers }: Props) {
             ))}
           </select>
         </div>
-        <Button type="submit" disabled={pending || picked === ""}>
+        <Button type="submit" disabled={pending || picked === ""} className="h-9">
           {pending ? "Assigning…" : "Assign"}
         </Button>
       </form>
       {state.error ? (
-        <p className="text-xs text-red-600">{state.error}</p>
+        <p className="text-xs text-destructive">{state.error}</p>
       ) : null}
     </section>
   );

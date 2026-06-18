@@ -1,8 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { RouteProgress } from "@/components/route-progress";
-import { FyneLogo } from "@/components/fyne-logo";
 import { SidebarContent } from "@/components/sidebar-content";
-import { MobileSidebar } from "@/components/mobile-sidebar";
+import { TopNav } from "@/components/top-nav";
 
 interface NavItem {
   label: string;
@@ -53,23 +52,21 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 md:grid md:grid-cols-[240px_1fr]">
+    <div className="min-h-screen bg-muted/40 md:grid md:grid-cols-[240px_1fr]">
       <RouteProgress />
 
       {/* Desktop rail */}
-      <aside className="hidden bg-white md:sticky md:top-0 md:block md:h-screen md:border-r md:border-slate-200">
+      <aside className="hidden bg-background md:sticky md:top-0 md:block md:h-screen md:border-r md:border-border">
         <SidebarContent items={items} user={user} />
       </aside>
 
-      {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
-        <FyneLogo variant="header" />
-        <MobileSidebar items={items} user={user} />
-      </header>
-
-      <main className="min-w-0 px-4 py-5 sm:px-6 md:px-8 md:py-6">
-        {children}
-      </main>
+      <div className="flex flex-col min-w-0 flex-1">
+        <TopNav items={items} user={user} />
+        
+        <main className="flex-1 px-4 py-6 sm:px-6 md:px-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

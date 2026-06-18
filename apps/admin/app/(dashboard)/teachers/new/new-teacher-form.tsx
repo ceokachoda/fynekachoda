@@ -36,11 +36,11 @@ function Field({
   defaultValue?: string;
 }) {
   return (
-    <div className="space-y-1">
-      <label htmlFor={name} className="text-sm font-medium text-slate-700">
+    <div className="space-y-1.5">
+      <label htmlFor={name} className="text-sm font-medium text-foreground">
         {label}{" "}
         {required ? null : (
-          <span className="font-normal text-slate-400">(optional)</span>
+          <span className="font-normal text-muted-foreground">(optional)</span>
         )}
       </label>
       <Input
@@ -53,9 +53,9 @@ function Field({
         aria-invalid={error ? "true" : undefined}
       />
       {error ? (
-        <p className="text-xs text-red-600">{error}</p>
+        <p className="text-xs text-destructive">{error}</p>
       ) : hint ? (
-        <p className="text-xs text-slate-500">{hint}</p>
+        <p className="text-xs text-muted-foreground">{hint}</p>
       ) : null}
     </div>
   );
@@ -105,22 +105,22 @@ export function NewTeacherForm() {
           error={state.fieldErrors?.subjects}
         />
 
-        <div className="space-y-1">
-          <label htmlFor="bio" className="text-sm font-medium text-slate-700">
+        <div className="space-y-1.5">
+          <label htmlFor="bio" className="text-sm font-medium text-foreground">
             Bio{" "}
-            <span className="font-normal text-slate-400">(optional)</span>
+            <span className="font-normal text-muted-foreground">(optional)</span>
           </label>
           <textarea
             id="bio"
             name="bio"
             rows={4}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="Brief teaching background"
           />
         </div>
 
         {state.error ? (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <div className="rounded-md border border-destructive bg-destructive/15 px-3 py-2 text-sm text-destructive">
             {state.error}
           </div>
         ) : null}
@@ -182,13 +182,13 @@ function CopyRow({
 }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="space-y-1">
-      <span className="text-xs uppercase tracking-wide text-slate-500">{label}</span>
+    <div className="space-y-1.5">
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
       <div className="flex items-center gap-2">
         <code
-          className={`flex-1 break-all rounded bg-slate-100 px-3 py-2 ${
+          className={`flex-1 break-all rounded-md border border-border bg-muted/50 px-3 py-2 ${
             mono ? "font-mono" : ""
-          } text-sm text-slate-800`}
+          } text-sm text-foreground`}
         >
           {value}
         </code>
@@ -199,7 +199,7 @@ function CopyRow({
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
           }}
-          className="shrink-0 rounded border border-slate-200 px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
+          className="shrink-0 rounded-md border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
         >
           {copied ? "Copied!" : "Copy"}
         </button>

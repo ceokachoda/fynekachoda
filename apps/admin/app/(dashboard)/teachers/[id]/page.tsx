@@ -4,9 +4,13 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { listAuditForEntity } from "@/lib/audit";
 import { AssignBatchButton } from "./assign-batch-button";
 import { UnassignBatchButton } from "./unassign-batch-button";
+import { StatusBadge } from "@/components/status-badge";
+import { User, Mail, Phone, BookOpen, ShieldAlert, GraduationCap, CheckCircle2, UserX } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ActivityFeedItem } from "../../_components/dashboard-widgets";
 
 export const metadata = {
-  title: "Teacher · FyneStudy Admin",
+  title: "Teacher Profile · FyneStudy Admin",
 };
 
 interface TeacherDetail {
@@ -82,6 +86,10 @@ async function fetchAvailableBatches(assignedIds: Set<string>): Promise<BatchOpt
     }));
 }
 
+function getInitials(name: string) {
+  return name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2);
+}
+
 export default async function TeacherDetailPage({
   params,
   searchParams,
@@ -103,75 +111,106 @@ export default async function TeacherDetailPage({
   const available = await fetchAvailableBatches(assignedIds);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link href="/teachers" className="text-xs text-slate-500 hover:text-slate-700">
-          ← Back to teachers
-        </Link>
-        <div className="mt-2 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900">{teacher.full_name}</h1>
-            <p className="text-sm text-slate-500">{teacher.email}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${teacher.is_active ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"}`}>
-                {teacher.is_active ? "Active" : "Suspended"}
-              </span>
+    <div className="space-y-8 animate-in-fade pb-8">
+      {/* Profile Header */}
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="h-24 bg-gradient-to-r from-chart-2/20 via-chart-2/10 to-transparent" />
+        <div className="px-6 sm:px-8 pb-6 relative">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 -mt-12 mb-4">
+            <div className="flex items-end gap-5">
+              <div className="flex size-24 shrink-0 items-center justify-center rounded-2xl bg-background text-3xl font-semibold text-chart-2 shadow-md border-4 border-card relative z-10">
+                {getInitials(teacher.full_name)}
+              </div>
+              <div className="mb-1 space-y-1">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                  {teacher.full_name}
+                  {teacher.is_active ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                  ) : (
+                    <UserX className="w-5 h-5 text-destructive" />
+                  )}
+                </h1>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />{teacher.email}</span>
+                  <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{teacher.phone ?? "No phone"}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <StatusBadge 
+                status={teacher.is_active ? "Active Faculty" : "Suspended"} 
+                variant={teacher.is_active ? "success" : "destructive"} 
+              />
             </div>
           </div>
+          
+          <nav className="flex gap-2 mt-6">
+            <TabLink href={`/teachers/${id}`} active={tab === "profile"} icon={<User className="w-4 h-4" />}>
+              Profile Overview
+            </TabLink>
+            <TabLink href={`/teachers/${id}?tab=audit`} active={tab === "audit"} icon={<ShieldAlert className="w-4 h-4" />}>
+              Security & Audit
+            </TabLink>
+          </nav>
         </div>
       </div>
 
-      <nav className="flex gap-1 border-b border-slate-200">
-        <TabLink href={`/teachers/${id}`} active={tab === "profile"}>
-          Profile
-        </TabLink>
-        <TabLink href={`/teachers/${id}?tab=audit`} active={tab === "audit"}>
-          Audit
-        </TabLink>
-      </nav>
-
       {tab === "profile" ? (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card title="Profile">
-            <Row label="Full name" value={teacher.full_name} />
-            <Row label="Email" value={teacher.email} />
-            <Row label="Phone" value={teacher.phone ?? "—"} />
-            <Row label="Subjects" value={(teacher.teachers?.subjects ?? []).join(", ") || "—"} />
-            <Row label="Bio" value={teacher.teachers?.bio ?? "—"} />
+          <Card title="Professional Details" icon={<GraduationCap className="w-4 h-4" />}>
+            <Row label="Full Name" value={teacher.full_name} />
+            <Row label="Email Address" value={teacher.email} />
+            <Row label="Phone Number" value={teacher.phone ?? "—"} />
+            <Row label="Specialization" value={(teacher.teachers?.subjects ?? []).join(", ") || "—"} />
+            <div className="mt-4 pt-4 border-t border-border/40">
+              <p className="text-sm font-medium text-muted-foreground mb-2">Biography & Notes</p>
+              <p className="text-sm text-foreground leading-relaxed">{teacher.teachers?.bio ?? "No biography provided."}</p>
+            </div>
           </Card>
 
           <Card
-            title={`Assigned batches (${assigned.length})`}
+            title={`Batch Assignments (${assigned.length})`}
+            icon={<BookOpen className="w-4 h-4" />}
             action={
               <AssignBatchButton teacherId={teacher.id} available={available} />
             }
           >
             {assigned.length === 0 ? (
-              <p className="text-sm text-slate-500">Not assigned to any batch yet.</p>
+              <p className="text-sm text-muted-foreground py-4 text-center border border-dashed border-border rounded-lg mt-2">
+                Not assigned to any batch yet.
+              </p>
             ) : (
-              <ul className="divide-y divide-slate-200">
+              <ul className="divide-y divide-border/40 mt-2">
                 {assigned.map((a) => (
-                  <li key={a.batch_id} className="flex items-center justify-between py-2">
+                  <li key={a.batch_id} className="flex items-center justify-between py-3 group">
                     <div>
                       {a.batches ? (
-                        <Link href={`/batches/${a.batches.id}`} className="text-sm font-medium text-slate-900 hover:text-blue-600 hover:underline">
+                        <Link href={`/batches/${a.batches.id}`} className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
                           {a.batches.name}
                         </Link>
                       ) : (
-                        <span className="text-sm text-slate-500">(unknown)</span>
+                        <span className="text-sm font-medium text-muted-foreground">(Unknown Batch)</span>
                       )}
-                      <p className="text-xs text-slate-500">
-                        {a.batches?.courses
-                          ? `${a.batches.courses.code} · ${a.batches.courses.name}`
-                          : ""}
-                        {a.batches && !a.batches.is_active ? " · INACTIVE" : ""}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                          {a.batches?.courses
+                            ? `${a.batches.courses.code} · ${a.batches.courses.name}`
+                            : "No Course"}
+                        </span>
+                        {a.batches && !a.batches.is_active && (
+                          <span className="text-[9px] font-bold bg-destructive/10 text-destructive px-1.5 py-0.5 rounded">
+                            INACTIVE
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <UnassignBatchButton
-                      batchId={a.batch_id}
-                      teacherId={teacher.id}
-                      batchName={a.batches?.name ?? "this batch"}
-                    />
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <UnassignBatchButton
+                        batchId={a.batch_id}
+                        teacherId={teacher.id}
+                        batchName={a.batches?.name ?? "this batch"}
+                      />
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -188,17 +227,25 @@ export default async function TeacherDetailPage({
 function TabLink({
   href,
   active,
+  icon,
   children,
 }: {
   href: string;
   active: boolean;
+  icon: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const cls = active
-    ? "border-b-2 border-blue-600 px-4 py-2 text-sm font-medium text-blue-700"
-    : "border-b-2 border-transparent px-4 py-2 text-sm text-slate-500 hover:text-slate-800";
   return (
-    <Link href={href} className={cls}>
+    <Link 
+      href={href} 
+      className={cn(
+        "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-colors",
+        active
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+      )}
+    >
+      {icon}
       {children}
     </Link>
   );
@@ -206,29 +253,34 @@ function TabLink({
 
 function Card({
   title,
+  icon,
   children,
   action,
 }: {
   title: string;
+  icon: React.ReactNode;
   children: React.ReactNode;
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xs uppercase tracking-wide text-slate-500">{title}</h2>
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm flex flex-col">
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          {icon}
+          {title}
+        </h2>
         {action ?? null}
       </div>
-      <dl className="space-y-2">{children}</dl>
+      <div className="flex-1">{children}</div>
     </div>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-3 text-sm">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="text-right text-slate-800">{value}</dd>
+    <div className="flex justify-between items-center gap-4 text-sm py-2 border-b border-border/40 last:border-0 last:pb-0">
+      <dt className="text-muted-foreground shrink-0">{label}</dt>
+      <dd className="text-right font-medium text-foreground">{value}</dd>
     </div>
   );
 }
@@ -237,31 +289,31 @@ async function AuditTab({ teacherId }: { teacherId: string }) {
   const entries = await listAuditForEntity("app_users", teacherId);
   if (entries.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">
-        No audit entries recorded.
+      <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-24 text-center text-sm text-muted-foreground flex flex-col items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+          <ShieldAlert className="w-8 h-8 text-muted-foreground/50" />
+        </div>
+        <p>No security or administrative audit events have been recorded for this faculty member yet.</p>
       </div>
     );
   }
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="px-4 py-3 font-medium">When</th>
-            <th className="px-4 py-3 font-medium">Actor role</th>
-            <th className="px-4 py-3 font-medium">Action</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-200">
-          {entries.map((e) => (
-            <tr key={e.id}>
-              <td className="px-4 py-3 text-slate-700">{new Date(e.occurred_at).toLocaleString()}</td>
-              <td className="px-4 py-3 text-slate-600">{e.actor_role ?? "—"}</td>
-              <td className="px-4 py-3 font-mono text-xs text-slate-800">{e.action}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="bg-card rounded-2xl border border-border shadow-sm p-6">
+      <h3 className="font-semibold text-lg mb-6">Security & Administrative Log</h3>
+      <div className="space-y-2 relative">
+        {/* Timeline Line */}
+        <div className="absolute left-4 top-4 bottom-4 w-px bg-border" />
+        {entries.map((e) => (
+          <ActivityFeedItem
+            key={e.id}
+            actionLabel={e.action.replace(/_/g, " ")}
+            actionRaw={e.action}
+            entity={e.entity_table}
+            actorRole={e.actor_role ?? "System"}
+            time={`${new Date(e.occurred_at).toLocaleDateString()} at ${new Date(e.occurred_at).toLocaleTimeString()}`}
+          />
+        ))}
+      </div>
     </div>
   );
 }

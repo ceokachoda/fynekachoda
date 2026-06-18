@@ -2,6 +2,11 @@ import Link from "next/link";
 import { listAudit, resolveActorNames } from "@/lib/audit";
 import { AuditFilters } from "./audit-filters";
 import { AuditTable } from "./audit-table";
+import { PageHeader } from "@/components/page-header";
+import { DataTableLayout } from "@/components/data-table-layout";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/empty-state";
+import { ShieldAlert } from "lucide-react";
 
 export const metadata = {
   title: "Audit log · FyneStudy Admin",
@@ -52,77 +57,77 @@ export default async function AuditPage({
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Audit log</h1>
-        <p className="text-sm text-slate-500">
-          {total.toLocaleString("en-IN")}{" "}
-          {total === 1 ? "event" : "events"} recorded. Every privileged change
-          is logged here with who, what, and before/after values.
-        </p>
-      </header>
-
-      <AuditFilters
-        initial={{
-          actorRole: actorRole ?? "",
-          action: action ?? "",
-          entity: entityTable ?? "",
-          from: from ?? "",
-          to: to ?? "",
-        }}
-        roleOptions={ROLE_OPTIONS}
+      <PageHeader 
+        title="Audit log" 
+        breadcrumbs={[{ label: "Overview", href: "/" }, { label: "Audit log" }]}
       />
 
-      {rows.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">
-          No audit events match this view.
-          {hasFilters ? (
-            <>
-              {" "}
-              <Link href="/audit" className="text-blue-600 hover:underline">
-                Clear filters.
-              </Link>
-            </>
-          ) : null}
-        </div>
-      ) : (
-        <>
-          <AuditTable rows={rows} names={names} />
+      <DataTableLayout
+        filters={
+          <AuditFilters
+            initial={{
+              actorRole: actorRole ?? "",
+              action: action ?? "",
+              entity: entityTable ?? "",
+              from: from ?? "",
+              to: to ?? "",
+            }}
+            roleOptions={ROLE_OPTIONS}
+          />
+        }
+      >
+        {rows.length === 0 ? (
+          <EmptyState
+            icon={ShieldAlert}
+            title="No audit events found"
+            description={hasFilters ? "No audit events match the current filters." : "No audit events recorded yet."}
+          >
+            {hasFilters ? (
+              <Button variant="outline" asChild>
+                <Link href="/audit">Clear filters</Link>
+              </Button>
+            ) : null}
+          </EmptyState>
+        ) : (
+          <>
+            <AuditTable rows={rows} names={names} />
 
-          {totalPages > 1 ? (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">
-                Page {page} of {totalPages}
-              </span>
-              <div className="flex gap-2">
-                {page > 1 ? (
-                  <Link
-                    href={pageHref(page - 1)}
-                    className="rounded-md border border-slate-200 px-3 py-1.5 text-slate-700 hover:bg-slate-100"
-                  >
-                    ← Prev
-                  </Link>
-                ) : (
-                  <span className="rounded-md border border-slate-100 px-3 py-1.5 text-slate-300">
-                    ← Prev
-                  </span>
-                )}
-                {page < totalPages ? (
-                  <Link
-                    href={pageHref(page + 1)}
-                    className="rounded-md border border-slate-200 px-3 py-1.5 text-slate-700 hover:bg-slate-100"
-                  >
-                    Next →
-                  </Link>
-                ) : (
-                  <span className="rounded-md border border-slate-100 px-3 py-1.5 text-slate-300">
-                    Next →
-                  </span>
-                )}
+            {totalPages > 1 ? (
+              <div className="flex items-center justify-between text-sm px-4 py-3 border-t border-border">
+                <span className="text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <div className="flex gap-2">
+                  {page > 1 ? (
+                    <Link
+                      href={pageHref(page - 1)}
+                      className="rounded-md border border-border px-3 py-1.5 text-foreground hover:bg-muted"
+                    >
+                      ← Prev
+                    </Link>
+                  ) : (
+                    <span className="rounded-md border border-transparent px-3 py-1.5 text-muted-foreground/50">
+                      ← Prev
+                    </span>
+                  )}
+                  {page < totalPages ? (
+                    <Link
+                      href={pageHref(page + 1)}
+                      className="rounded-md border border-border px-3 py-1.5 text-foreground hover:bg-muted"
+                    >
+                      Next →
+                    </Link>
+                  ) : (
+                    <span className="rounded-md border border-transparent px-3 py-1.5 text-muted-foreground/50">
+                      Next →
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ) : null}
-        </>
-      )}
+            ) : null}
+          </>
+        )}
+      </DataTableLayout>
     </div>
   );
 }

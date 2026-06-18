@@ -55,7 +55,7 @@ export function StudentsFilters({
       <div
         role="tablist"
         aria-label="Status filter"
-        className="inline-flex rounded-md border border-slate-200 bg-white p-0.5"
+        className="inline-flex rounded-md border border-border bg-background p-0.5"
       >
         {STATUS_OPTIONS.map((opt) => {
           const active = opt.value === initialStatus;
@@ -69,8 +69,8 @@ export function StudentsFilters({
               disabled={pending}
               className={
                 active
-                  ? "rounded px-3 py-1 text-xs font-medium bg-slate-900 text-white"
-                  : "rounded px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                  ? "rounded px-3 py-1 text-xs font-medium bg-foreground text-background"
+                  : "rounded px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted"
               }
             >
               {opt.label}

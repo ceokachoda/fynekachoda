@@ -4,6 +4,9 @@ import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { listAuditForEntity } from "@/lib/audit";
 import { ActionButtons } from "./action-buttons";
 import { TransferBatchButton } from "./transfer-batch-button";
+import { ActivityFeedItem } from "../../_components/dashboard-widgets";
+import { User, Mail, GraduationCap, MapPin, ShieldAlert, KeyRound, Clock, UserCog, UserCheck, UserX } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface StudentDetail {
   id: string;
@@ -61,7 +64,6 @@ async function fetchOtherBatches(currentBatchId: string | null): Promise<BatchOp
 
 async function fetchStudent(id: string): Promise<StudentDetail | null> {
   const supabase = await createSupabaseServerClient();
-  // FK hints — see students/page.tsx for why.
   const { data, error } = await supabase
     .from("app_users")
     .select(
@@ -81,6 +83,10 @@ function tabFromSearch(value: string | undefined): Tab {
   return "identity";
 }
 
+function getInitials(name: string) {
+  return name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2);
+}
+
 export default async function StudentDetailPage({
   params,
   searchParams,
@@ -97,32 +103,44 @@ export default async function StudentDetailPage({
   const otherBatches = await fetchOtherBatches(student.students?.batch_id ?? null);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link
-          href="/students"
-          className="text-xs text-slate-500 hover:text-slate-700"
-        >
-          ← Back to students
-        </Link>
-        <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-              {student.full_name}
-            </h1>
-            <p className="text-sm text-slate-500">{student.email}</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <StatusPill student={student} />
+    <div className="space-y-8 animate-in-fade pb-8">
+      {/* Profile Header */}
+      <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        <div className="h-24 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent" />
+        <div className="px-6 sm:px-8 pb-6 relative">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 -mt-12 mb-4">
+            <div className="flex items-end gap-5">
+              <div className="flex size-24 shrink-0 items-center justify-center rounded-2xl bg-background text-3xl font-semibold text-primary shadow-md border-4 border-card relative z-10">
+                {getInitials(student.full_name)}
+              </div>
+              <div className="mb-1 space-y-1">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                  {student.full_name}
+                  {student.is_active ? (
+                    <UserCheck className="w-5 h-5 text-emerald-500" />
+                  ) : (
+                    <UserX className="w-5 h-5 text-destructive" />
+                  )}
+                </h1>
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />{student.email}</span>
+                  <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />{student.students?.address ?? "No address"}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
               {student.must_change_password ? (
-                <Pill tone="amber">Must change password</Pill>
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600 border border-amber-500/20">
+                  <KeyRound className="w-3.5 h-3.5" />
+                  Pending PW Reset
+                </div>
               ) : null}
+              <ActionButtons userId={student.id} isActive={student.is_active} />
             </div>
           </div>
-          <ActionButtons userId={student.id} isActive={student.is_active} />
+          <Tabs id={student.id} active={tab} />
         </div>
       </div>
-
-      <Tabs id={student.id} active={tab} />
 
       {tab === "identity" ? (
         <IdentityTab student={student} otherBatches={otherBatches} />
@@ -133,64 +151,30 @@ export default async function StudentDetailPage({
   );
 }
 
-function StatusPill({ student }: { student: StudentDetail }) {
-  if (!student.is_active) {
-    return (
-      <Pill tone="red">
-        Suspended
-        {student.suspended_reason ? ` — ${student.suspended_reason}` : ""}
-      </Pill>
-    );
-  }
-  return <Pill tone="emerald">Active</Pill>;
-}
-
-function Pill({
-  children,
-  tone,
-}: {
-  children: React.ReactNode;
-  tone: "emerald" | "red" | "amber" | "slate";
-}) {
-  const cls = {
-    emerald: "bg-emerald-100 text-emerald-800",
-    red: "bg-red-100 text-red-800",
-    amber: "bg-amber-100 text-amber-800",
-    slate: "bg-slate-100 text-slate-700",
-  }[tone];
-  return (
-    <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}
-    >
-      {children}
-    </span>
-  );
-}
-
 function Tabs({ id, active }: { id: string; active: Tab }) {
-  const items: { key: Tab; label: string }[] = [
-    { key: "identity", label: "Identity" },
-    { key: "activity", label: "Activity" },
-    { key: "audit", label: "Audit" },
+  const items: { key: Tab; label: string; icon: React.ReactNode }[] = [
+    { key: "identity", label: "Profile Identity", icon: <User className="w-4 h-4" /> },
+    { key: "activity", label: "Activity Metrics", icon: <Clock className="w-4 h-4" /> },
+    { key: "audit", label: "Security & Audit", icon: <ShieldAlert className="w-4 h-4" /> },
   ];
   return (
-    <div className="border-b border-slate-200">
-      <nav className="flex gap-4">
-        {items.map((item) => (
-          <Link
-            key={item.key}
-            href={`/students/${id}${item.key === "identity" ? "" : `?tab=${item.key}`}`}
-            className={
-              active === item.key
-                ? "border-b-2 border-slate-900 px-1 pb-2 text-sm font-medium text-slate-900"
-                : "border-b-2 border-transparent px-1 pb-2 text-sm text-slate-500 hover:text-slate-700"
-            }
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-    </div>
+    <nav className="flex gap-2 mt-6">
+      {items.map((item) => (
+        <Link
+          key={item.key}
+          href={`/students/${id}${item.key === "identity" ? "" : `?tab=${item.key}`}`}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-colors",
+            active === item.key
+              ? "bg-primary text-primary-foreground shadow-sm"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
+          {item.icon}
+          {item.label}
+        </Link>
+      ))}
+    </nav>
   );
 }
 
@@ -201,21 +185,24 @@ function IdentityTab({
   student: StudentDetail;
   otherBatches: BatchOption[];
 }) {
-  const batchName = student.students?.batches?.name ?? "—";
+  const batchName = student.students?.batches?.name ?? "Not Assigned";
   const courseLabel = student.students?.batches?.courses
     ? `${student.students.batches.courses.code} · ${student.students.batches.courses.name}`
-    : "—";
+    : "No Course";
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <Card title="Personal">
-        <Row label="Full name" value={student.full_name} />
-        <Row label="Email" value={student.email} />
-        <Row label="Phone" value={student.phone ?? "—"} />
-        <Row label="Date of birth" value={student.dob ?? "—"} />
+      <Card title="Personal Information" icon={<User className="w-4 h-4" />}>
+        <Row label="Full Name" value={student.full_name} />
+        <Row label="Email Address" value={student.email} />
+        <Row label="Phone Number" value={student.phone ?? "—"} />
+        <Row label="Date of Birth" value={student.dob ?? "—"} />
         <Row label="Gender" value={student.gender ?? "—"} />
       </Card>
+      
       <Card
-        title="Academic"
+        title="Academic Enrollment"
+        icon={<GraduationCap className="w-4 h-4" />}
         action={
           student.students?.batch_id ? (
             <TransferBatchButton
@@ -226,46 +213,51 @@ function IdentityTab({
           ) : null
         }
       >
-        <Row label="School" value={student.students?.school_name ?? "—"} />
-        <Row label="Board" value={student.students?.board ?? "—"} />
-        <Row label="Class" value={student.students?.current_class ?? "—"} />
-        <Row label="Batch" value={batchName} />
-        <Row label="Course" value={courseLabel} />
+        <Row label="Current Batch" value={batchName} highlight />
+        <Row label="Enrolled Course" value={courseLabel} />
+        <Row label="Previous School" value={student.students?.school_name ?? "—"} />
+        <Row label="Education Board" value={student.students?.board ?? "—"} />
+        <Row label="Grade / Class" value={student.students?.current_class ?? "—"} />
       </Card>
-      <Card title="Parents">
-        <Row label="Parent 1" value={student.students?.parent_phone_1 ?? "—"} />
-        <Row label="Parent 2" value={student.students?.parent_phone_2 ?? "—"} />
+      
+      <Card title="Guardian Details" icon={<UserCog className="w-4 h-4" />}>
+        <Row label="Primary Guardian Phone" value={student.students?.parent_phone_1 ?? "—"} />
+        <Row label="Secondary Guardian Phone" value={student.students?.parent_phone_2 ?? "—"} />
         <Row
-          label="Consent"
+          label="Consent Status"
           value={
             student.students?.parent_consent_method
-              ? `${student.students.parent_consent_method} on ${
+              ? `${student.students.parent_consent_method} (via ${
                   student.students.parent_consent_at
                     ? new Date(student.students.parent_consent_at).toLocaleDateString()
                     : "—"
-                }`
-              : "Not recorded"
+                })`
+              : "Not provided"
           }
         />
       </Card>
-      <Card title="Account">
+      
+      <Card title="Account Administration" icon={<ShieldAlert className="w-4 h-4" />}>
         <Row
-          label="Created"
-          value={new Date(student.created_at).toLocaleString()}
+          label="Account Created"
+          value={new Date(student.created_at).toLocaleString("en-IN", { dateStyle: "long", timeStyle: "short" })}
         />
         <Row
-          label="Suspended at"
+          label="Suspension Status"
           value={
             student.suspended_at
-              ? new Date(student.suspended_at).toLocaleString()
-              : "—"
+              ? `Suspended on ${new Date(student.suspended_at).toLocaleDateString()} (${student.suspended_reason ?? "No reason"})`
+              : "Account in good standing"
           }
+          isWarning={!!student.suspended_at}
         />
       </Card>
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600 lg:col-span-2">
-        Identity fields stay read-only per D-016 (admin is the single source
-        of truth). Batch transfer is allowed via the action button above,
-        which records an audit entry with the reason.
+      
+      <div className="lg:col-span-2 mt-4 rounded-xl border border-border bg-muted/30 p-5 text-sm text-muted-foreground flex items-start gap-3">
+        <ShieldAlert className="w-5 h-5 text-primary shrink-0" />
+        <p className="leading-relaxed">
+          Identity fields remain read-only in accordance with strict educational data protocols. Batch transfers must be executed via the dedicated action button, which ensures comprehensive audit logging of all enrollment modifications.
+        </p>
       </div>
     </div>
   );
@@ -273,9 +265,13 @@ function IdentityTab({
 
 function ActivityTab() {
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">
-      Attendance, quiz attempts, exams, and live-class history land in
-      Phase 4 onwards.
+    <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-24 text-center text-sm text-muted-foreground flex flex-col items-center justify-center">
+      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+        <Clock className="w-8 h-8 text-muted-foreground/50" />
+      </div>
+      <p className="max-w-sm">
+        Advanced metrics including Attendance visualizations, quiz analytics, exam scoring, and live-class participation history are rolling out in the next platform phase.
+      </p>
     </div>
   );
 }
@@ -284,68 +280,65 @@ async function AuditTab({ studentId }: { studentId: string }) {
   const entries = await listAuditForEntity("app_users", studentId);
   if (entries.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-12 text-center text-sm text-slate-500">
-        No audit entries recorded for this user.
+      <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-24 text-center text-sm text-muted-foreground flex flex-col items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+          <ShieldAlert className="w-8 h-8 text-muted-foreground/50" />
+        </div>
+        <p>No security or administrative audit events have been recorded for this user yet.</p>
       </div>
     );
   }
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="px-4 py-3 font-medium">When</th>
-            <th className="px-4 py-3 font-medium">Actor role</th>
-            <th className="px-4 py-3 font-medium">Action</th>
-            <th className="px-4 py-3 font-medium">IP</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-200">
-          {entries.map((e) => (
-            <tr key={e.id}>
-              <td className="px-4 py-3 text-slate-700">
-                {new Date(e.occurred_at).toLocaleString()}
-              </td>
-              <td className="px-4 py-3 text-slate-600">{e.actor_role ?? "—"}</td>
-              <td className="px-4 py-3 font-mono text-xs text-slate-800">
-                {e.action}
-              </td>
-              <td className="px-4 py-3 font-mono text-xs text-slate-500">
-                {e.ip_address ?? "—"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="bg-card rounded-2xl border border-border shadow-sm p-6">
+      <h3 className="font-semibold text-lg mb-6">Security & Administrative Log</h3>
+      <div className="space-y-2 relative">
+        {/* Timeline Line */}
+        <div className="absolute left-4 top-4 bottom-4 w-px bg-border" />
+        {entries.map((e) => (
+          <ActivityFeedItem
+            key={e.id}
+            actionLabel={e.action.replace(/_/g, " ")}
+            actionRaw={e.action}
+            entity={e.entity_table}
+            actorRole={e.actor_role ?? "System"}
+            time={`${new Date(e.occurred_at).toLocaleDateString()} at ${new Date(e.occurred_at).toLocaleTimeString()}`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
 function Card({
   title,
+  icon,
   children,
   action,
 }: {
   title: string;
+  icon: React.ReactNode;
   children: React.ReactNode;
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xs uppercase tracking-wide text-slate-500">{title}</h2>
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm flex flex-col">
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          {icon}
+          {title}
+        </h2>
         {action ?? null}
       </div>
-      <dl className="space-y-2">{children}</dl>
+      <dl className="space-y-4 flex-1">{children}</dl>
     </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, highlight, isWarning }: { label: string; value: string; highlight?: boolean; isWarning?: boolean }) {
   return (
-    <div className="flex justify-between gap-3 text-sm">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="text-right text-slate-800">{value}</dd>
+    <div className="flex justify-between items-center gap-4 text-sm py-1 border-b border-border/40 last:border-0 last:pb-0">
+      <dt className="text-muted-foreground shrink-0">{label}</dt>
+      <dd className={cn("text-right font-medium", highlight ? "text-primary" : "text-foreground", isWarning ? "text-destructive" : "")}>{value}</dd>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { requireAdmin } from "@/lib/auth";
 import { QuizzesClient } from "./quizzes-client";
+import { PageHeader } from "@/components/page-header";
 
 export const metadata = {
   title: "Quizzes · FyneStudy Admin",
@@ -152,12 +153,10 @@ export default async function QuizzesPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold text-slate-900">Quizzes</h1>
-        <p className="text-sm text-slate-500">
-          Moderate practice quizzes · publish / unpublish · delete.
-        </p>
-      </header>
+      <PageHeader 
+        title="Quizzes" 
+        breadcrumbs={[{ label: "Overview", href: "/" }, { label: "Quizzes" }]}
+      />
       <QuizzesClient
         rows={rows}
         courses={courses}

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { listRecentAudit } from "@/lib/audit";
+import { requireAdmin } from "@/lib/auth";
+import { MetricCard, QuickActionButton, ActivityFeedItem } from "./_components/dashboard-widgets";
+import { Users, GraduationCap, Layers, BookOpen, UserPlus, CheckSquare, Calendar, Presentation, Bell, BarChart3, Database, FileText } from "lucide-react";
 
 export const metadata = {
   title: "Overview · FyneStudy Admin",
@@ -95,113 +98,191 @@ const ACTION_LABEL: Record<string, string> = {
 };
 
 export default async function OverviewPage() {
-  const [m, activity] = await Promise.all([loadMetrics(), listRecentAudit(8)]);
-
-  const primary = [
-    { label: "Students", value: m.students, href: "/students", hint: "Enrolled accounts" },
-    { label: "Teachers", value: m.teachers, href: "/teachers", hint: "Active faculty" },
-    { label: "Active batches", value: m.activeBatches, href: "/batches", hint: "Currently running" },
-    { label: "Courses", value: m.courses, href: "/courses", hint: "Programs offered" },
-  ];
-  const secondary = [
-    { label: "Published quizzes", value: m.publishedQuizzes, href: "/quizzes", hint: "Live for students" },
-    { label: "Published exams", value: m.publishedExams, href: "/exams", hint: "Live for students" },
-    { label: "Study materials", value: m.studyMaterials, href: "/content", hint: "Videos & notes" },
-    { label: "Upcoming sessions", value: m.upcomingSessions, href: "/attendance", hint: "Scheduled ahead" },
-  ];
+  const [session, m, activity] = await Promise.all([
+    requireAdmin(),
+    loadMetrics(),
+    listRecentAudit(8)
+  ]);
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-          Overview
+    <div className="space-y-8 animate-in-fade pb-8">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          Welcome back, {session.full_name.split(" ")[0]}
         </h1>
-        <p className="text-sm text-slate-500">
-          A live snapshot of your institute.
+        <p className="text-muted-foreground text-sm">
+          Here is what&apos;s happening across FyneStudy today.
         </p>
-      </header>
+      </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {primary.map((s) => (
-          <StatCard key={s.label} {...s} accent="text-blue-600" />
-        ))}
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {secondary.map((s) => (
-          <StatCard key={s.label} {...s} accent="text-violet-600" />
-        ))}
-      </section>
-
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.03]">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Recent activity</h2>
-          <Link
-            href="/audit"
-            className="text-xs font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline"
-          >
-            View audit log →
-          </Link>
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold tracking-tight text-foreground/90">Quick Actions</h2>
         </div>
-        {activity.length === 0 ? (
-          <p className="px-6 py-8 text-center text-sm text-slate-500">
-            No activity recorded yet.
-          </p>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {activity.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-center justify-between gap-4 px-6 py-3 transition-colors hover:bg-slate-50/80"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm text-slate-700">
-                    <span className="font-medium text-slate-900">
-                      {a.actor_role ? a.actor_role.replace("_", " ") : "system"}
-                    </span>{" "}
-                    {ACTION_LABEL[a.action] ?? a.action.replace(/_/g, " ")}
-                    <span className="text-slate-400"> · {a.entity_table}</span>
-                  </p>
-                </div>
-                <time className="shrink-0 text-xs tabular-nums text-slate-400">
-                  {fmtTime(a.occurred_at)}
-                </time>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <QuickActionButton
+            label="Add Student"
+            description="Enroll a new user"
+            href="/students/new"
+            icon={UserPlus}
+            colorClass="bg-primary text-primary-foreground"
+          />
+          <QuickActionButton
+            label="Manage Batches"
+            description="Update schedules"
+            href="/batches"
+            icon={Layers}
+            colorClass="bg-chart-5 text-white"
+          />
+          <QuickActionButton
+            label="Mark Attendance"
+            description="Record today's sessions"
+            href="/attendance"
+            icon={CheckSquare}
+            colorClass="bg-chart-2 text-white"
+          />
+          <QuickActionButton
+            label="Manage Faculty"
+            description="Update teacher roles"
+            href="/teachers"
+            icon={Presentation}
+            colorClass="bg-chart-3 text-white"
+          />
+        </div>
       </section>
-    </div>
-  );
-}
 
-function StatCard({
-  label,
-  value,
-  href,
-  hint,
-  accent,
-}: {
-  label: string;
-  value: number;
-  href: string;
-  hint: string;
-  accent: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-900/[0.02] transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg hover:shadow-slate-900/[0.06]"
-    >
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-        {label}
-      </p>
-      <p
-        className={`mt-2 text-3xl font-semibold tabular-nums tracking-tight ${accent}`}
-      >
-        {value}
-      </p>
-      <p className="mt-1 text-xs text-slate-400">{hint}</p>
-    </Link>
+      <div className="grid xl:grid-cols-[1fr_400px] gap-8 items-start">
+        <div className="space-y-8">
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold tracking-tight text-foreground/90 flex items-center gap-2">
+                <Database className="w-4 h-4 text-muted-foreground" />
+                Operational Metrics
+              </h2>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <MetricCard
+                label="Total Students"
+                value={m.students}
+                href="/students"
+                hint="Total enrolled accounts"
+                icon={Users}
+                accent="text-primary"
+              />
+              <MetricCard
+                label="Active Faculty"
+                value={m.teachers}
+                href="/teachers"
+                hint="Teachers assigned to courses"
+                icon={GraduationCap}
+                accent="text-chart-2"
+              />
+              <MetricCard
+                label="Active Batches"
+                value={m.activeBatches}
+                href="/batches"
+                hint="Currently running classes"
+                icon={Layers}
+                accent="text-chart-3"
+              />
+              <MetricCard
+                label="Course Programs"
+                value={m.courses}
+                href="/courses"
+                hint="Total active courses offered"
+                icon={BookOpen}
+                accent="text-chart-5"
+              />
+            </div>
+          </section>
+
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold tracking-tight text-foreground/90 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                Content & Engagement
+              </h2>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <MetricCard
+                label="Upcoming Sessions"
+                value={m.upcomingSessions}
+                href="/attendance"
+                hint="Scheduled ahead"
+                icon={Calendar}
+                accent="text-foreground"
+                isSecondary
+              />
+              <MetricCard
+                label="Published Quizzes"
+                value={m.publishedQuizzes}
+                href="/quizzes"
+                hint="Live for students"
+                icon={CheckSquare}
+                accent="text-muted-foreground"
+                isSecondary
+              />
+              <MetricCard
+                label="Published Exams"
+                value={m.publishedExams}
+                href="/exams"
+                hint="Live for students"
+                icon={FileText}
+                accent="text-muted-foreground"
+                isSecondary
+              />
+              <MetricCard
+                label="Study Materials"
+                value={m.studyMaterials}
+                href="/content"
+                hint="Videos & notes"
+                icon={BookOpen}
+                accent="text-muted-foreground"
+                isSecondary
+              />
+            </div>
+          </section>
+        </div>
+
+        <section className="bg-card rounded-2xl border border-border shadow-sm flex flex-col h-[calc(100vh-8rem)] xl:sticky xl:top-24 max-h-[800px]">
+          <div className="flex items-center justify-between border-b border-border px-6 py-5 shrink-0">
+            <h2 className="font-semibold text-foreground flex items-center gap-2">
+              <Bell className="w-4 h-4 text-primary" />
+              Recent Activity
+            </h2>
+            <Link
+              href="/audit"
+              className="text-xs font-medium text-primary transition-colors hover:text-primary-dark hover:underline bg-primary/10 px-2.5 py-1 rounded-full"
+            >
+              View all
+            </Link>
+          </div>
+          
+          <div className="p-6 flex-1 overflow-y-auto">
+            {activity.length === 0 ? (
+              <div className="text-center py-12 flex flex-col items-center justify-center h-full">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                  <Bell className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <p className="text-sm text-muted-foreground">No activity recorded yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {activity.map((a) => (
+                  <ActivityFeedItem
+                    key={a.id}
+                    actionLabel={ACTION_LABEL[a.action] ?? a.action.replace(/_/g, " ")}
+                    actionRaw={a.action}
+                    entity={a.entity_table}
+                    actorRole={a.actor_role ?? ""}
+                    time={fmtTime(a.occurred_at)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }

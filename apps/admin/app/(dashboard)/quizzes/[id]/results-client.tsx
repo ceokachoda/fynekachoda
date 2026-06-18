@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState, useTransition, type ReactNode } from "react";
-import Link from "next/link";
 import type {
   AttemptRow,
   NotAttemptedRow,
@@ -14,6 +13,11 @@ import {
   getQuizAttemptDetailAction,
   type AttemptDetail,
 } from "./actions";
+import { PageHeader } from "@/components/page-header";
+import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/empty-state";
+import { ClipboardList, Users } from "lucide-react";
 
 interface Props {
   meta: QuizMeta;
@@ -111,14 +115,14 @@ function buildCsv(
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-      <div className="text-[10px] uppercase tracking-wide text-slate-500">
+    <div className="rounded-xl border border-border bg-card px-4 py-4 shadow-sm">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
         {label}
       </div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+      <div className="mt-2 text-2xl font-semibold tabular-nums text-foreground">
         {value}
       </div>
-      {sub ? <div className="text-[11px] text-slate-500">{sub}</div> : null}
+      {sub ? <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div> : null}
     </div>
   );
 }
@@ -148,52 +152,26 @@ export function QuizResultsClient({
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href="/quizzes"
-          className="text-sm text-slate-500 hover:text-slate-700"
-        >
-          ← Back to quizzes
-        </Link>
-      </div>
-
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">{meta.title}</h1>
-          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-            <span>{meta.course_code}</span>
-            <span>·</span>
-            <span>{meta.batch_name ?? "Course-wide (all batches)"}</span>
-            <span>·</span>
-            <span>{meta.question_count} questions</span>
-            <span>·</span>
-            <span>{meta.duration_min} min</span>
-            <span>·</span>
-            <span>
-              +{meta.marks_correct} / {meta.marks_wrong} / {meta.marks_skip}
-            </span>
-            <span
-              className={
-                meta.is_published
-                  ? "rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700"
-                  : "rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600"
-              }
-            >
-              {meta.is_published ? "Published" : "Draft"}
-            </span>
-          </p>
-          <p className="mt-0.5 text-[11px] text-slate-400">
-            Created by {meta.created_by_name}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={exportCsv}
-          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-        >
-          Export CSV
-        </button>
-      </header>
+      <PageHeader
+        title={meta.title}
+        breadcrumbs={[
+          { label: "Overview", href: "/" },
+          { label: "Quizzes", href: "/quizzes" },
+          { label: meta.title }
+        ]}
+        description={`${meta.course_code} · ${meta.batch_name ?? "Course-wide"} · ${meta.question_count} questions · ${meta.duration_min} min · +${meta.marks_correct} / ${meta.marks_wrong} / ${meta.marks_skip}`}
+        actions={
+          <div className="flex items-center gap-3">
+            <StatusBadge 
+              status={meta.is_published ? "Published" : "Draft"} 
+              variant={meta.is_published ? "success" : "default"} 
+            />
+            <Button variant="outline" onClick={exportCsv} className="h-9">
+              Export CSV
+            </Button>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Stat
@@ -222,7 +200,7 @@ export function QuizResultsClient({
         />
       </div>
 
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 border-b border-border">
         <TabBtn active={tab === "students"} onClick={() => setTab("students")}>
           Attempted ({summary.attempted_students})
         </TabBtn>
@@ -260,8 +238,8 @@ function TabBtn({
       onClick={onClick}
       className={
         active
-          ? "border-b-2 border-slate-900 px-3 py-2 text-sm font-semibold text-slate-900"
-          : "border-b-2 border-transparent px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700"
+          ? "border-b-2 border-primary px-3 py-2 text-sm font-semibold text-primary"
+          : "border-b-2 border-transparent px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
       }
     >
       {children}
@@ -274,9 +252,11 @@ function TabBtn({
 function StudentsTab({ students }: { students: StudentResult[] }) {
   if (students.length === 0) {
     return (
-      <p className="rounded-xl border border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-        No student has attempted this quiz yet.
-      </p>
+      <EmptyState
+        icon={Users}
+        title="No attempts yet"
+        description="No student has attempted this quiz yet."
+      />
     );
   }
   return (
@@ -291,51 +271,50 @@ function StudentsTab({ students }: { students: StudentResult[] }) {
 function StudentCard({ student: s }: { student: StudentResult }) {
   const [open, setOpen] = useState(false);
   return (
-    <li className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <li className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-slate-50"
+        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/50 transition-colors"
       >
-        <span className="flex size-9 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-700">
+        <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
           {s.student_name.slice(0, 1).toUpperCase()}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-slate-900">
+          <span className="block truncate text-sm font-semibold text-foreground">
             {s.student_name}
             {!s.in_roster ? (
               <span
-                className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700"
-                title="Has an attempt but is not in this quiz's current audience (e.g. transferred batch)"
+                className="ml-2 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600"
+                title="Has an attempt but is not in this quiz's current audience"
               >
                 outside audience
               </span>
             ) : null}
           </span>
-          <span className="block truncate text-[11px] text-slate-500">
+          <span className="block truncate text-[11px] text-muted-foreground mt-0.5">
             {s.enrollment_no ? `${s.enrollment_no} · ` : ""}
             {s.batch_name ?? "—"} · {s.submitted_count} submitted ·{" "}
             {s.attempts.length} total attempt{s.attempts.length === 1 ? "" : "s"}
           </span>
         </span>
         <span className="text-right">
-          <span className="block text-lg font-extrabold text-blue-700 tabular-nums">
+          <span className="block text-lg font-extrabold text-primary tabular-nums">
             {s.best_score !== null ? s.best_score : "—"}
-            <span className="text-[11px] font-medium text-slate-400">
-              {" "}
+            <span className="text-[11px] font-medium text-muted-foreground/70 ml-1">
               best
             </span>
           </span>
-          <span className="block text-[11px] text-slate-500 tabular-nums">
+          <span className="block text-[11px] text-muted-foreground tabular-nums">
             {s.best_pct !== null ? `${s.best_pct}%` : "no submission"}
           </span>
         </span>
-        <span className="ml-1 text-slate-400">{open ? "▲" : "▼"}</span>
+        <span className="ml-2 text-muted-foreground/50">{open ? "▲" : "▼"}</span>
       </button>
 
       {open ? (
-        <div className="border-t border-slate-100 bg-slate-50/60 px-3 py-3">
-          <ul className="space-y-2">
+        <div className="border-t border-border bg-muted/20 px-4 py-4">
+          <ul className="space-y-3">
             {s.attempts.map((a) => (
               <AttemptCard key={a.id} attempt={a} studentName={s.student_name} />
             ))}
@@ -376,56 +355,56 @@ function AttemptCard({
   };
 
   return (
-    <li className="rounded-lg border border-slate-200 bg-white">
+    <li className="rounded-lg border border-border bg-card">
       <button
         type="button"
         onClick={toggle}
         disabled={!submitted}
-        className="flex w-full items-center gap-3 px-3 py-2 text-left disabled:cursor-default"
+        className="flex w-full items-center gap-3 px-3 py-2 text-left disabled:cursor-default hover:bg-muted/30 transition-colors rounded-t-lg"
       >
-        <span className="text-xs font-bold text-slate-500">#{a.attempt_no}</span>
+        <span className="text-xs font-bold text-muted-foreground">#{a.attempt_no}</span>
         <span className="min-w-0 flex-1">
           {submitted ? (
-            <span className="block text-xs text-slate-600">
+            <span className="block text-xs text-foreground/80">
               {a.correct_count ?? 0}✓ · {a.wrong_count ?? 0}✗ ·{" "}
               {a.skipped_count ?? 0} skipped · {fmtIst(a.submitted_at)}
               {a.is_auto_submit ? " · auto" : ""}
             </span>
           ) : (
-            <span className="block text-xs italic text-amber-700">
+            <span className="block text-xs italic text-amber-600 dark:text-amber-500">
               In progress (started {fmtIst(a.started_at)}) — not submitted
             </span>
           )}
         </span>
         <span className="text-right">
-          <span className="block text-sm font-bold text-slate-900 tabular-nums">
+          <span className="block text-sm font-bold text-foreground tabular-nums">
             {a.score !== null ? a.score : "—"}
-            <span className="text-[11px] font-medium text-slate-400">
+            <span className="text-[11px] font-medium text-muted-foreground">
               /{a.max_score ?? 0}
             </span>
           </span>
-          <span className="block text-[11px] text-slate-500 tabular-nums">
+          <span className="block text-[11px] text-muted-foreground tabular-nums">
             {a.pct !== null ? `${a.pct}%` : ""}
           </span>
         </span>
         {submitted ? (
-          <span className="ml-1 text-slate-400">{open ? "▲" : "▼"}</span>
+          <span className="ml-1 text-muted-foreground/50">{open ? "▲" : "▼"}</span>
         ) : (
           <span className="ml-1 w-3" />
         )}
       </button>
 
       {open && submitted ? (
-        <div className="border-t border-slate-100 px-3 py-3">
+        <div className="border-t border-border px-3 py-3">
           {pending && !detail ? (
-            <p className="text-xs text-slate-500">Loading answer breakdown…</p>
+            <p className="text-xs text-muted-foreground">Loading answer breakdown…</p>
           ) : err ? (
-            <div className="flex items-center justify-between gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            <div className="flex items-center justify-between gap-2 rounded border border-destructive bg-destructive/15 px-3 py-2 text-xs text-destructive">
               <span>{err}</span>
               <button
                 type="button"
                 onClick={load}
-                className="rounded border border-red-300 px-2 py-0.5 font-medium hover:bg-red-100"
+                className="rounded border border-destructive/50 px-2 py-0.5 font-medium hover:bg-destructive/20"
               >
                 Retry
               </button>
@@ -448,31 +427,31 @@ function AttemptDetailView({
 }) {
   return (
     <div className="space-y-3">
-      <p className="text-[11px] text-slate-500">
+      <p className="text-[11px] text-muted-foreground">
         {studentName}&apos;s answers · {detail.questions.length} questions
       </p>
       <ol className="space-y-3">
         {detail.questions.map((q, i) => {
           const tone =
             q.outcome === "correct"
-              ? { label: "Correct", c: "#16a34a", bg: "bg-emerald-50", tc: "text-emerald-700" }
+              ? { label: "Correct", bg: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" }
               : q.outcome === "wrong"
-                ? { label: "Wrong", c: "#dc2626", bg: "bg-red-50", tc: "text-red-700" }
-                : { label: "Skipped", c: "#64748b", bg: "bg-slate-100", tc: "text-slate-600" };
+                ? { label: "Wrong", bg: "bg-destructive/15 text-destructive border-destructive/30" }
+                : { label: "Skipped", bg: "bg-muted text-muted-foreground border-border" };
           return (
             <li
               key={q.id}
-              className="rounded-lg border border-slate-200 bg-white p-3"
+              className="rounded-lg border border-border bg-card p-4 shadow-sm"
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="flex min-w-0 items-start gap-2">
-                  <span className="text-xs font-bold text-slate-500">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="text-xs font-bold text-muted-foreground mt-0.5">
                     Q{i + 1}
                   </span>
-                  <span className="text-sm text-slate-800">{q.prompt_md}</span>
+                  <span className="text-sm text-foreground">{q.prompt_md}</span>
                 </div>
                 <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${tone.bg} ${tone.tc}`}
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold border ${tone.bg}`}
                 >
                   {tone.label} ({q.points > 0 ? "+" : ""}
                   {q.points})
@@ -483,32 +462,32 @@ function AttemptDetailView({
                 <img
                   src={q.prompt_image_url}
                   alt=""
-                  className="mt-2 max-h-48 rounded border border-slate-200"
+                  className="mt-3 max-h-48 rounded border border-border"
                 />
               ) : null}
-              <ul className="mt-2 space-y-1">
+              <ul className="mt-3 space-y-1.5">
                 {q.options.map((o) => {
                   const isChosen = o.id === q.your_option_id;
                   const isCorrect = o.is_correct;
                   const border = isCorrect
-                    ? "border-emerald-300 bg-emerald-50"
+                    ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
                     : isChosen
-                      ? "border-red-300 bg-red-50"
-                      : "border-slate-200 bg-white";
+                      ? "border-destructive/50 bg-destructive/10 text-destructive"
+                      : "border-border bg-transparent text-foreground";
                   return (
                     <li
                       key={o.id}
-                      className={`flex items-center justify-between gap-2 rounded border px-2.5 py-1.5 text-xs ${border}`}
+                      className={`flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-xs transition-colors ${border}`}
                     >
-                      <span className="text-slate-800">{o.text_md}</span>
-                      <span className="flex shrink-0 gap-1">
+                      <span>{o.text_md}</span>
+                      <span className="flex shrink-0 gap-1.5">
                         {isChosen ? (
-                          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
                             Their choice
                           </span>
                         ) : null}
                         {isCorrect ? (
-                          <span className="rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          <span className="rounded bg-emerald-600 dark:bg-emerald-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
                             Correct
                           </span>
                         ) : null}
@@ -518,8 +497,8 @@ function AttemptDetailView({
                 })}
               </ul>
               {q.explanation_md ? (
-                <p className="mt-2 rounded bg-slate-50 px-2.5 py-1.5 text-[11px] text-slate-600">
-                  <span className="font-semibold">Explanation: </span>
+                <p className="mt-3 rounded-md bg-muted/50 px-3 py-2 text-[11px] text-muted-foreground leading-relaxed">
+                  <span className="font-semibold text-foreground">Explanation: </span>
                   {q.explanation_md}
                 </p>
               ) : null}
@@ -536,31 +515,33 @@ function AttemptDetailView({
 function AbsentTab({ rows }: { rows: NotAttemptedRow[] }) {
   if (rows.length === 0) {
     return (
-      <p className="rounded-xl border border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-        Everyone in this quiz&apos;s audience has attempted it. 🎉
-      </p>
+      <EmptyState
+        icon={Users}
+        title="Everyone participated"
+        description="Everyone in this quiz's audience has attempted it. 🎉"
+      />
     );
   }
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+    <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-left text-[11px] uppercase text-slate-500">
+        <thead className="bg-muted border-b border-border text-left text-[11px] uppercase text-muted-foreground tracking-wide">
           <tr>
             <th className="px-3 py-2">Student</th>
             <th className="px-3 py-2">Enrollment</th>
             <th className="px-3 py-2">Batch</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-border">
           {rows.map((r) => (
-            <tr key={r.student_id} className="border-t border-slate-100">
-              <td className="px-3 py-2 font-medium text-slate-900">
+            <tr key={r.student_id} className="hover:bg-muted/30 transition-colors">
+              <td className="px-3 py-3 font-medium text-foreground">
                 {r.student_name}
               </td>
-              <td className="px-3 py-2 text-slate-600">
+              <td className="px-3 py-3 text-muted-foreground">
                 {r.enrollment_no ?? "—"}
               </td>
-              <td className="px-3 py-2 text-slate-600">{r.batch_name ?? "—"}</td>
+              <td className="px-3 py-3 text-muted-foreground">{r.batch_name ?? "—"}</td>
             </tr>
           ))}
         </tbody>
@@ -574,30 +555,32 @@ function AbsentTab({ rows }: { rows: NotAttemptedRow[] }) {
 function QuestionsTab({ rows }: { rows: QuestionAnalysisRow[] }) {
   if (rows.length === 0) {
     return (
-      <p className="rounded-xl border border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
-        This quiz has no questions.
-      </p>
+      <EmptyState
+        icon={ClipboardList}
+        title="No questions"
+        description="This quiz has no questions."
+      />
     );
   }
   return (
-    <ul className="space-y-2">
+    <ul className="space-y-3">
       {rows.map((q, i) => {
         const color = pctColor(q.pct_correct);
         return (
           <li
             key={q.question_id}
-            className="rounded-xl border border-slate-200 bg-white p-3"
+            className="rounded-xl border border-border bg-card p-4 shadow-sm"
           >
-            <div className="flex items-start gap-2">
-              <span className="text-xs font-bold text-slate-500">Q{i + 1}</span>
-              <span className="line-clamp-2 flex-1 text-sm text-slate-800">
+            <div className="flex items-start gap-3">
+              <span className="text-xs font-bold text-muted-foreground mt-0.5">Q{i + 1}</span>
+              <span className="line-clamp-2 flex-1 text-sm text-foreground leading-relaxed">
                 {q.prompt_md}
               </span>
             </div>
-            <div className="mt-2 flex items-center gap-3">
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+            <div className="mt-4 flex items-center gap-3">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full"
+                  className="h-full rounded-full transition-all"
                   style={{ width: `${q.pct_correct}%`, backgroundColor: color }}
                 />
               </div>
@@ -608,7 +591,7 @@ function QuestionsTab({ rows }: { rows: QuestionAnalysisRow[] }) {
                 {q.pct_correct}%
               </span>
             </div>
-            <p className="mt-1 text-[11px] text-slate-500 tabular-nums">
+            <p className="mt-1.5 text-[11px] text-muted-foreground tabular-nums">
               {q.correct_attempts}/{q.total_attempts} attempts correct
             </p>
           </li>

@@ -63,14 +63,14 @@ export function TransferBatchButton({
 
           <form action={formAction} className="space-y-4">
             <input type="hidden" name="student_id" value={studentId} />
-            <div className="space-y-1">
-              <label htmlFor="to_batch_id" className="text-sm font-medium text-slate-700">Target batch</label>
+            <div className="space-y-1.5">
+              <label htmlFor="to_batch_id" className="text-sm font-medium text-foreground">Target batch</label>
               <select
                 id="to_batch_id"
                 name="to_batch_id"
                 required
                 defaultValue=""
-                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
               >
                 <option value="" disabled>Pick a batch</option>
                 {otherBatches.map((b) => (
@@ -80,17 +80,17 @@ export function TransferBatchButton({
                 ))}
               </select>
             </div>
-            <div className="space-y-1">
-              <label htmlFor="reason" className="text-sm font-medium text-slate-700">Reason</label>
+            <div className="space-y-1.5">
+              <label htmlFor="reason" className="text-sm font-medium text-foreground">Reason</label>
               <Input id="reason" name="reason" minLength={3} required placeholder="e.g. schedule clash" />
               {state.fieldErrors?.reason ? (
-                <p className="text-xs text-red-600">{state.fieldErrors.reason}</p>
+                <p className="text-xs text-destructive">{state.fieldErrors.reason}</p>
               ) : null}
             </div>
             {state.error ? (
-              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</div>
+              <div className="rounded-md border border-destructive bg-destructive/15 px-3 py-2 text-sm text-destructive">{state.error}</div>
             ) : state.ok ? (
-              <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Transferred. Close to refresh.</div>
+              <div className="rounded-md border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600 dark:text-emerald-400">Transferred. Close to refresh.</div>
             ) : null}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Close</Button>
