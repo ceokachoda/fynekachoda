@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { StudentsFilters } from "./students-filters";
@@ -84,6 +85,100 @@ function getInitials(name: string) {
   return name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2);
 }
 
+async function StudentTableWrapper({ q, status }: { q: string | null; status: StatusFilter }) {
+  const rows = await fetchStudents(q, status);
+  if (rows.length === 0) {
+    return (
+      <EmptyState
+        icon={Users}
+        title="No students found"
+        description={q || status !== "all" ? "No students match the current filters." : "You haven't added any students yet."}
+      >
+        {q || status !== "all" ? (
+          <Button variant="outline" asChild>
+            <Link href="/students">Clear filters</Link>
+          </Button>
+        ) : null}
+      </EmptyState>
+    );
+  }
+  return (
+    <table className="w-full text-sm">
+      <thead className="bg-muted/50 border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+        <tr>
+          <th className="px-6 py-4">Student</th>
+          <th className="px-6 py-4">Contact</th>
+          <th className="px-6 py-4">Class</th>
+          <th className="px-6 py-4">Status</th>
+          <th className="px-6 py-4">Enrolled</th>
+          <th className="px-6 py-4 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-border bg-card">
+        {rows.map((row) => {
+          const s = statusBadge(row);
+          return (
+            <tr key={row.id} className="hover:bg-muted/30 transition-colors group">
+              <td className="px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary shadow-sm border border-primary/20">
+                    {getInitials(row.full_name)}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <Link
+                      href={`/students/${row.id}`}
+                      className="font-semibold text-foreground hover:text-primary transition-colors truncate"
+                    >
+                      {row.full_name}
+                    </Link>
+                    <span className="text-xs text-muted-foreground truncate">{row.id.split("-")[0]?.toUpperCase() ?? ""}</span>
+                  </div>
+                </div>
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex flex-col">
+                  <span className="text-foreground">{row.email}</span>
+                  <span className="text-xs text-muted-foreground">{row.phone ?? "No phone"}</span>
+                </div>
+              </td>
+              <td className="px-6 py-4 text-muted-foreground">
+                {row.students?.current_class ? (
+                  <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
+                    {row.students.current_class}
+                  </span>
+                ) : "—"}
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge status={s === "must_change" ? "Pending PW" : s} variant={s === "active" ? "success" : s === "suspended" ? "destructive" : "warning"} />
+              </td>
+              <td className="px-6 py-4 text-muted-foreground text-xs">
+                {new Date(row.created_at).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
+              </td>
+              <td className="px-6 py-4 text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:opacity-100" aria-label={`Actions for ${row.full_name}`}>
+                      <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-[160px]">
+                    <DropdownMenuItem asChild>
+                      <Link href={`/students/${row.id}`}>View Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/attendance?student=${row.id}`}>View Attendance</Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
 export default async function StudentsPage({
   searchParams,
 }: {
@@ -92,7 +187,6 @@ export default async function StudentsPage({
   const sp = await searchParams;
   const q = sp.q?.trim() || null;
   const status = statusFromSearch(sp.status);
-  const rows = await fetchStudents(q, status);
 
   return (
     <div className="space-y-6 animate-in-fade pb-8">
@@ -118,93 +212,21 @@ export default async function StudentsPage({
       </div>
 
       <DataTableLayout filters={<StudentsFilters initialQ={q ?? ""} initialStatus={status} />}>
-        {rows.length === 0 ? (
-          <EmptyState
-            icon={Users}
-            title="No students found"
-            description={q || status !== "all" ? "No students match the current filters." : "You haven't added any students yet."}
-          >
-            {q || status !== "all" ? (
-              <Button variant="outline" asChild>
-                <Link href="/students">Clear filters</Link>
-              </Button>
-            ) : null}
-          </EmptyState>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground font-semibold">
-              <tr>
-                <th className="px-6 py-4">Student</th>
-                <th className="px-6 py-4">Contact</th>
-                <th className="px-6 py-4">Class</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Enrolled</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border bg-card">
-              {rows.map((row) => {
-                const s = statusBadge(row);
-                return (
-                  <tr key={row.id} className="hover:bg-muted/30 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary shadow-sm border border-primary/20">
-                          {getInitials(row.full_name)}
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <Link
-                            href={`/students/${row.id}`}
-                            className="font-semibold text-foreground hover:text-primary transition-colors truncate"
-                          >
-                            {row.full_name}
-                          </Link>
-                          <span className="text-xs text-muted-foreground truncate">{row.id.split("-")[0]?.toUpperCase() ?? ""}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-foreground">{row.email}</span>
-                        <span className="text-xs text-muted-foreground">{row.phone ?? "No phone"}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground">
-                      {row.students?.current_class ? (
-                        <span className="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-                          {row.students.current_class}
-                        </span>
-                      ) : "—"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={s === "must_change" ? "Pending PW" : s} variant={s === "active" ? "success" : s === "suspended" ? "destructive" : "warning"} />
-                    </td>
-                    <td className="px-6 py-4 text-muted-foreground text-xs">
-                      {new Date(row.created_at).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:opacity-100" aria-label={`Actions for ${row.full_name}`}>
-                            <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[160px]">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/students/${row.id}`}>View Profile</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/attendance?student=${row.id}`}>View Attendance</Link>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+        <Suspense key={`${q}-${status}`} fallback={
+          <div className="p-6 space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <div className="h-10 w-10 bg-muted animate-pulse rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-4 w-1/4 bg-muted animate-pulse rounded" />
+                  <div className="h-3 w-1/3 bg-muted animate-pulse rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        }>
+          <StudentTableWrapper q={q} status={status} />
+        </Suspense>
       </DataTableLayout>
     </div>
   );

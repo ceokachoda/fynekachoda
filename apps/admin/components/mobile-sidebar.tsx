@@ -31,14 +31,14 @@ export function MobileSidebar({
         <button
           type="button"
           aria-label="Open navigation menu"
-          className="inline-flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="inline-flex size-9 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
         >
           <Menu className="size-5" aria-hidden />
         </button>
       </SheetTrigger>
       <SheetContent
         side="left"
-        className="w-[17rem] gap-0 bg-white p-0 sm:max-w-[17rem]"
+        className="w-[17rem] gap-0 bg-background border-r border-border p-0 sm:max-w-[17rem]"
       >
         <SheetTitle className="sr-only">Navigation menu</SheetTitle>
         <SidebarContent

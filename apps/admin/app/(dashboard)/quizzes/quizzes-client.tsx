@@ -78,11 +78,13 @@ export function QuizzesClient({ rows, courses, batches, filters }: Props) {
   );
 
   const setFilter = (k: keyof typeof filters, v: string) => {
-    const url = new URL(window.location.href);
-    if (v) url.searchParams.set(k, v);
-    else url.searchParams.delete(k);
-    if (k === "course") url.searchParams.delete("batch");
-    router.replace(url.pathname + "?" + url.searchParams.toString());
+    startTransition(() => {
+      const url = new URL(window.location.href);
+      if (v) url.searchParams.set(k, v);
+      else url.searchParams.delete(k);
+      if (k === "course") url.searchParams.delete("batch");
+      router.replace(url.pathname + "?" + url.searchParams.toString(), { scroll: false });
+    });
   };
 
   const toggle = (id: string, next: "publish" | "unpublish") => {
@@ -122,6 +124,7 @@ export function QuizzesClient({ rows, courses, batches, filters }: Props) {
       ) : null}
 
       <DataTableLayout
+        isLoading={pending}
         filters={
           <div className="flex flex-wrap items-end gap-3 w-full">
             <div className="flex flex-col gap-1.5">

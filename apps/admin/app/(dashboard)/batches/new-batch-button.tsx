@@ -49,12 +49,12 @@ export function NewBatchButton({ courses }: { courses: CourseOption[] }) {
 
           <form action={formAction} className="space-y-4">
             <div className="space-y-1">
-              <label htmlFor="course_id" className="text-sm font-medium text-slate-700">Course</label>
+              <label htmlFor="course_id" className="text-sm font-medium text-foreground">Course</label>
               <select
                 id="course_id"
                 name="course_id"
                 required
-                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm"
+                className="h-9 w-full rounded-lg border border-input bg-background px-2 text-sm text-foreground"
                 defaultValue=""
               >
                 <option value="" disabled>Pick a course</option>
@@ -63,39 +63,39 @@ export function NewBatchButton({ courses }: { courses: CourseOption[] }) {
                 ))}
               </select>
               {state.fieldErrors?.course_id ? (
-                <p className="text-xs text-red-600">{state.fieldErrors.course_id}</p>
+                <p className="text-xs text-destructive">{state.fieldErrors.course_id}</p>
               ) : null}
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="name" className="text-sm font-medium text-slate-700">Name</label>
+              <label htmlFor="name" className="text-sm font-medium text-foreground">Name</label>
               <Input id="name" name="name" placeholder="e.g. NEET 2027 Morning" required aria-invalid={state.fieldErrors?.name ? "true" : undefined} />
               {state.fieldErrors?.name ? (
-                <p className="text-xs text-red-600">{state.fieldErrors.name}</p>
+                <p className="text-xs text-destructive">{state.fieldErrors.name}</p>
               ) : null}
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <label htmlFor="starts_on" className="text-sm font-medium text-slate-700">Starts on</label>
+                <label htmlFor="starts_on" className="text-sm font-medium text-foreground">Starts on</label>
                 <Input id="starts_on" name="starts_on" type="date" required />
                 {state.fieldErrors?.starts_on ? (
-                  <p className="text-xs text-red-600">{state.fieldErrors.starts_on}</p>
+                  <p className="text-xs text-destructive">{state.fieldErrors.starts_on}</p>
                 ) : null}
               </div>
               <div className="space-y-1">
-                <label htmlFor="ends_on" className="text-sm font-medium text-slate-700">Ends on (optional)</label>
+                <label htmlFor="ends_on" className="text-sm font-medium text-foreground">Ends on (optional)</label>
                 <Input id="ends_on" name="ends_on" type="date" />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="capacity" className="text-sm font-medium text-slate-700">Capacity</label>
+              <label htmlFor="capacity" className="text-sm font-medium text-foreground">Capacity</label>
               <Input id="capacity" name="capacity" type="number" defaultValue={80} min={1} max={10000} />
             </div>
 
             {state.error ? (
-              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {state.error}
               </div>
             ) : null}

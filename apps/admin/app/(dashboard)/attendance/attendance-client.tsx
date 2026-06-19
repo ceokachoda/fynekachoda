@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -137,6 +137,7 @@ export function AttendanceMatrix({
   cellsRecord,
 }: Props) {
   const router = useRouter();
+  const [pendingNav, startTransition] = useTransition();
   const cells = useMemo(() => new Map(Object.entries(cellsRecord)), [cellsRecord]);
   const selectedBatch = batches.find((b) => b.id === selectedBatchId);
 
@@ -251,7 +252,9 @@ export function AttendanceMatrix({
     if (d) sp.set("date", d);
     if (b) sp.set("batch", b);
     if (s) sp.set("session", s);
-    router.push(`/attendance?${sp.toString()}`);
+    startTransition(() => {
+      router.push(`/attendance?${sp.toString()}`);
+    });
   }
 
   function exportCsv() {
@@ -453,12 +456,17 @@ export function AttendanceMatrix({
             </div>
 
             {/* Enterprise Table */}
-            <div className="bg-card rounded-xl border shadow-sm overflow-hidden flex flex-col">
+            <div className="bg-card rounded-xl border shadow-sm overflow-hidden flex flex-col relative">
               <div className="px-4 py-3 border-b bg-muted/20 flex justify-between items-center">
                 <h3 className="font-semibold text-foreground">Attendance Roster</h3>
                 <span className="text-xs text-muted-foreground">{activeSessions.length} Session(s) Displayed</span>
               </div>
-              <div className="overflow-x-auto max-h-[600px]">
+              <div className={`overflow-x-auto max-h-[600px] transition-opacity duration-200 ${pendingNav ? "opacity-50 pointer-events-none" : ""}`}>
+                {pendingNav && (
+                  <div className="absolute inset-0 flex items-center justify-center z-30">
+                    <div className="h-8 w-8 rounded-full border-4 border-primary border-r-transparent animate-spin"></div>
+                  </div>
+                )}
                 <table className="w-full text-sm text-left border-collapse">
                   <thead className="bg-muted/50 sticky top-0 z-20 backdrop-blur-md shadow-[0_1px_0_0_var(--color-border)]">
                     <tr>

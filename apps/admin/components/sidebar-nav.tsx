@@ -38,7 +38,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/content": FolderOpen,
   "/quizzes": ListChecks,
   "/exams": FileText,
-  "/offline-scores": ClipboardCheck,
+  "/performance": ClipboardCheck,
   "/questions": FileQuestionMark,
   "/audit": ScrollText,
 };

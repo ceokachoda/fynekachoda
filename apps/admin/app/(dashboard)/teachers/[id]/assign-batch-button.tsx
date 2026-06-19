@@ -62,13 +62,13 @@ export function AssignBatchButton({
           <form action={formAction} className="space-y-4">
             <input type="hidden" name="teacher_id" value={teacherId} />
             <div className="space-y-1">
-              <label htmlFor="batch_id" className="text-sm font-medium text-slate-700">Batch</label>
+              <label htmlFor="batch_id" className="text-sm font-medium text-foreground">Batch</label>
               <select
                 id="batch_id"
                 name="batch_id"
                 required
                 defaultValue=""
-                className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm"
+                className="h-9 w-full rounded-lg border border-input bg-background px-2 text-sm text-foreground"
               >
                 <option value="" disabled>Pick a batch</option>
                 {available.map((b) => (
@@ -77,9 +77,9 @@ export function AssignBatchButton({
               </select>
             </div>
             {state.error ? (
-              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</div>
+              <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">{state.error}</div>
             ) : state.ok ? (
-              <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">Assigned. Close to refresh.</div>
+              <div className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-600">Assigned. Close to refresh.</div>
             ) : null}
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Close</Button>

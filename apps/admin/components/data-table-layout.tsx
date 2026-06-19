@@ -20,7 +20,8 @@ export function DataTableLayout({
   filters,
   children,
   pagination,
-}: DataTableLayoutProps) {
+  isLoading = false,
+}: DataTableLayoutProps & { isLoading?: boolean }) {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -42,10 +43,15 @@ export function DataTableLayout({
       </div>
 
       {/* Table Container */}
-      <div className="rounded-md border border-border bg-background overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
+      <div className="relative rounded-md border border-border bg-background overflow-hidden shadow-sm">
+        <div className={`overflow-x-auto transition-opacity duration-200 ${isLoading ? "opacity-50 pointer-events-none" : ""}`}>
           {children}
         </div>
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="h-6 w-6 rounded-full border-2 border-primary border-r-transparent animate-spin"></div>
+          </div>
+        )}
       </div>
 
       {/* Pagination Footer */}

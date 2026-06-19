@@ -62,7 +62,9 @@ export async function bulkUpsertOfflineScoresAction(
   }
 ): Promise<OfflineScoreActionState> {
   const parsed = UpsertForm.safeParse(payload);
-  if (!parsed.success) return { error: "Invalid data format." };
+  if (!parsed.success) {
+    return { error: `Validation failed: ${parsed.error.issues.map(i => i.message).join(", ")}` };
+  }
 
   const session = await requireAdmin();
   const r = await callEdgeFn<{ error?: string; inserted_count?: number; updated_count?: number }>(
@@ -70,6 +72,11 @@ export async function bulkUpsertOfflineScoresAction(
     {
       ...parsed.data,
       subject_id: parsed.data.subject_id ?? undefined,
+      entries: parsed.data.entries.map((e) => ({
+        student_id: e.student_id,
+        score: e.score,
+        ...(e.notes ? { notes: e.notes } : {}),
+      })),
     },
     session.access_token,
   );
@@ -114,4 +121,99 @@ export async function getBatchDetails(batchId: string) {
   }));
 
   return { students, subjects };
+}
+
+export async function getStudentProfile(studentId: string) {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient();
+  
+  const [studentRes, scoresRes, attendanceRes] = await Promise.all([
+    supabase
+      .from("students")
+      .select("user_id, batch_id, app_users!user_id(full_name, email), batches(name, courses(code))")
+      .eq("user_id", studentId)
+      .single(),
+    supabase
+      .from("offline_test_scores")
+      .select("id, test_name, test_date, score, max_score, notes, subjects(name)")
+      .eq("student_id", studentId)
+      .order("test_date", { ascending: false }),
+    supabase
+      .from("attendance")
+      .select("status")
+      .eq("student_id", studentId)
+  ]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const s = studentRes.data as any;
+  const student = {
+    id: studentId,
+    name: s?.app_users?.full_name ?? "Unknown",
+    email: s?.app_users?.email ?? "",
+    batch: s?.batches?.name ?? "",
+    course: s?.batches?.courses?.code ?? ""
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scores = (scoresRes.data ?? []).map((r: any) => ({
+    id: r.id,
+    test_name: r.test_name,
+    test_date: r.test_date,
+    score: Number(r.score),
+    max_score: Number(r.max_score),
+    subject: r.subjects?.name ?? "General",
+    notes: r.notes
+  }));
+
+  const attData = attendanceRes.data ?? [];
+  const totalSessions = attData.length;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const presentSessions = attData.filter((a: any) => a.status === "present" || a.status === "late").length;
+  const attendancePercentage = totalSessions > 0 ? (presentSessions / totalSessions) * 100 : null;
+
+  return { 
+    student, 
+    scores, 
+    attendance: { total: totalSessions, present: presentSessions, percentage: attendancePercentage } 
+  };
+}
+
+export async function getBatchReportData(batchId: string) {
+  await requireAdmin();
+  const supabase = await createSupabaseServerClient();
+
+  const [batchRes, studentsRes, scoresRes, attRes] = await Promise.all([
+    supabase.from("batches").select("name, courses(code)").eq("id", batchId).single(),
+    supabase.from("students").select("user_id, app_users!user_id(full_name)").eq("batch_id", batchId),
+    supabase.from("offline_test_scores").select("student_id, test_name, test_date, score, max_score, subjects(name)").eq("batch_id", batchId),
+    supabase.from("attendance").select("student_id, status, sessions!inner(batch_id)").eq("sessions.batch_id", batchId)
+  ]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const b = batchRes.data as any;
+  const batchInfo = {
+    id: batchId,
+    name: b?.name ?? "Unknown Batch",
+    course: b?.courses?.code ?? ""
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const students = (studentsRes.data ?? []).map((s: any) => ({
+    id: s.user_id,
+    name: s.app_users?.full_name ?? "Unknown"
+  }));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scores = (scoresRes.data ?? []).map((r: any) => ({
+    student_id: r.student_id,
+    test_name: r.test_name,
+    test_date: r.test_date,
+    score: Number(r.score),
+    max_score: Number(r.max_score),
+    subject: r.subjects?.name ?? "General"
+  }));
+
+  const attendanceData = attRes.data ?? [];
+
+  return { batchInfo, students, scores, attendance: attendanceData };
 }

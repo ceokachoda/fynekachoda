@@ -104,63 +104,65 @@ export function ManualEntryView({ batches, onComplete }: Props) {
 
   return (
     <div className="bg-card rounded-2xl border border-border shadow-sm p-6 space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Batch *</label>
-          <select
-            value={batchId}
-            onChange={(e) => loadBatch(e.target.value)}
-            className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="">Select Batch</option>
-            {batches.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Subject</label>
-          <select
-            value={subjectId}
-            onChange={(e) => setSubjectId(e.target.value)}
-            disabled={!batchId}
-            className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-          >
-            <option value="">All / General</option>
-            {subjects.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Test Name *</label>
-          <input
-            type="text"
-            placeholder="e.g. [Unit Test] Math Chapter 1"
-            value={testName}
-            onChange={(e) => setTestName(e.target.value)}
-            className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Test Date *</label>
-          <input
-            type="date"
-            value={testDate}
-            onChange={(e) => setTestDate(e.target.value)}
-            className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Max Score *</label>
-          <input
-            type="number"
-            min={1}
-            placeholder="100"
-            value={maxScore}
-            onChange={(e) => setMaxScore(e.target.value === "" ? "" : Number(e.target.value))}
-            className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring"
-          />
+      <div className="sticky top-0 z-20 bg-card py-4 px-6 -mx-6 -mt-6 mb-6 rounded-t-2xl border-b border-border shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Batch *</label>
+            <select
+              value={batchId}
+              onChange={(e) => loadBatch(e.target.value)}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">Select Batch</option>
+              {batches.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Subject</label>
+            <select
+              value={subjectId}
+              onChange={(e) => setSubjectId(e.target.value)}
+              disabled={!batchId}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+            >
+              <option value="">All / General</option>
+              {subjects.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Test Name *</label>
+            <input
+              type="text"
+              placeholder="e.g. [Unit Test] Math Chapter 1"
+              value={testName}
+              onChange={(e) => setTestName(e.target.value)}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Test Date *</label>
+            <input
+              type="date"
+              value={testDate}
+              onChange={(e) => setTestDate(e.target.value)}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Max Score *</label>
+            <input
+              type="number"
+              min={1}
+              placeholder="100"
+              value={maxScore}
+              onChange={(e) => setMaxScore(e.target.value === "" ? "" : Number(e.target.value))}
+              className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
         </div>
       </div>
 
@@ -183,23 +185,48 @@ export function ManualEntryView({ batches, onComplete }: Props) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {students.map((student, idx) => (
-                <tr key={student.user_id} className="hover:bg-muted/30">
-                  <td className="px-4 py-2 text-center text-muted-foreground text-xs">{idx + 1}</td>
-                  <td className="px-4 py-2 font-medium">{student.full_name}</td>
-                  <td className="px-4 py-2 text-right">
-                    <input
-                      type="number"
-                      step="0.1"
-                      min={0}
-                      max={maxScore || 100}
-                      value={scores[student.user_id]?.score ?? ""}
-                      onChange={(e) => handleScoreChange(student.user_id, e.target.value)}
-                      className="w-20 h-8 rounded-md border border-input bg-background px-2 text-sm text-right focus-visible:ring-1 focus-visible:ring-primary outline-none"
-                    />
-                  </td>
-                </tr>
-              ))}
+              {students.map((student, idx) => {
+                const scoreVal = scores[student.user_id]?.score ?? "";
+                const isInvalid = scoreVal !== "" && maxScore !== "" && Number(scoreVal) > Number(maxScore);
+
+                return (
+                  <tr key={student.user_id} className="hover:bg-muted/30">
+                    <td className="px-4 py-2 text-center text-muted-foreground text-xs">{idx + 1}</td>
+                    <td className="px-4 py-2 font-medium">{student.full_name}</td>
+                    <td className="px-4 py-2 text-right">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min={0}
+                        max={maxScore || 100}
+                        value={scoreVal}
+                        data-score-idx={idx}
+                        onChange={(e) => handleScoreChange(student.user_id, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === "ArrowDown") {
+                            e.preventDefault();
+                            const next = document.querySelector(`input[data-score-idx="${idx + 1}"]`) as HTMLInputElement;
+                            if (next) {
+                              next.focus();
+                              next.select();
+                            }
+                          } else if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            const prev = document.querySelector(`input[data-score-idx="${idx - 1}"]`) as HTMLInputElement;
+                            if (prev) {
+                              prev.focus();
+                              prev.select();
+                            }
+                          }
+                        }}
+                        className={`w-20 h-8 rounded-md border bg-background px-2 text-sm text-right focus-visible:ring-1 focus-visible:ring-primary outline-none transition-colors ${
+                          isInvalid ? "border-destructive text-destructive focus-visible:ring-destructive" : "border-input"
+                        }`}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

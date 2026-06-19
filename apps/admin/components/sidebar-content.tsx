@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { FyneLogo } from "@/components/fyne-logo";
 import { SidebarNav, type SidebarItem } from "@/components/sidebar-nav";
 import { logoutAction } from "@/app/actions/logout";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export interface SidebarUser {
   fullName: string;
@@ -49,14 +50,15 @@ export function SidebarContent({
             <p className="truncate text-xs text-muted-foreground">{user.email}</p>
           </div>
         </div>
-        <div className="mb-3 px-2">
+        <div className="mb-3 px-2 flex items-center justify-between">
           <span className="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-secondary-foreground">
             {user.isOwnerAdmin ? "Owner admin" : "Staff admin"}
           </span>
+          <ThemeToggle />
         </div>
         <button
           type="submit"
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/50"
         >
           <LogOut className="size-4" aria-hidden />
           Sign out

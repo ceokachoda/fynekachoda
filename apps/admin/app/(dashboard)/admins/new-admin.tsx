@@ -35,11 +35,11 @@ function NewAdminForm({ onClose }: { onClose: () => void }) {
 
   if (state.created) {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
-        <p className="text-sm font-semibold text-emerald-900">
+      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-5">
+        <p className="text-sm font-semibold text-emerald-600">
           Admin created — share these credentials securely
         </p>
-        <p className="mt-1 text-xs text-emerald-700">
+        <p className="mt-1 text-xs text-emerald-500">
           The temporary password is shown only once. The new admin must change
           it at first login.
         </p>
@@ -58,7 +58,7 @@ function NewAdminForm({ onClose }: { onClose: () => void }) {
   return (
     <form
       action={action}
-      className="space-y-4 rounded-xl border border-slate-200 bg-white p-5"
+      className="space-y-4 rounded-xl border border-border bg-card p-5"
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Full name" error={state.fieldErrors?.full_name}>
@@ -74,19 +74,19 @@ function NewAdminForm({ onClose }: { onClose: () => void }) {
           <select
             name="role"
             defaultValue="staff_admin"
-            className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900"
+            className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground"
           >
             <option value="staff_admin">Staff admin</option>
             <option value="owner_admin">Owner admin</option>
           </select>
         </Field>
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         Staff admins run day-to-day operations. Owner admins can additionally
         manage admins and institute settings.
       </p>
       {state.error ? (
-        <p className="text-sm text-red-600">{state.error}</p>
+        <p className="text-sm text-destructive">{state.error}</p>
       ) : null}
       <Button type="submit" disabled={pending}>
         {pending ? "Creating…" : "Create admin"}
@@ -106,9 +106,9 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span className="font-medium text-slate-700">{label}</span>
+      <span className="font-medium text-foreground">{label}</span>
       {children}
-      {error ? <span className="text-xs text-red-600">{error}</span> : null}
+      {error ? <span className="text-xs text-destructive">{error}</span> : null}
     </label>
   );
 }
@@ -124,11 +124,11 @@ function CredRow({
 }) {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2">
+    <div className="flex items-center justify-between gap-3 rounded-md bg-muted/50 px-3 py-2">
       <div className="min-w-0">
-        <dt className="text-xs text-slate-400">{label}</dt>
+        <dt className="text-xs text-muted-foreground">{label}</dt>
         <dd
-          className={`truncate text-slate-900 ${mono ? "font-mono" : ""}`}
+          className={`truncate text-foreground ${mono ? "font-mono" : ""}`}
         >
           {value}
         </dd>
@@ -140,7 +140,7 @@ function CredRow({
           setCopied(true);
           setTimeout(() => setCopied(false), 1500);
         }}
-        className="shrink-0 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-100"
+        className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
       >
         {copied ? "Copied" : "Copy"}
       </button>

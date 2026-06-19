@@ -64,10 +64,12 @@ export function QuestionsClient({ rows, courses, filters }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<QuestionRow | null>(null);
 
   const setFilter = (k: keyof typeof filters, v: string) => {
-    const url = new URL(window.location.href);
-    if (v) url.searchParams.set(k, v);
-    else url.searchParams.delete(k);
-    router.replace(url.pathname + "?" + url.searchParams.toString());
+    startTransition(() => {
+      const url = new URL(window.location.href);
+      if (v) url.searchParams.set(k, v);
+      else url.searchParams.delete(k);
+      router.replace(url.pathname + "?" + url.searchParams.toString(), { scroll: false });
+    });
   };
 
   const archive = (id: string, next: "archive" | "unarchive") => {
@@ -107,6 +109,7 @@ export function QuestionsClient({ rows, courses, filters }: Props) {
       ) : null}
 
       <DataTableLayout
+        isLoading={pending}
         filters={
           <div className="flex flex-wrap items-end gap-3 w-full">
             <div className="flex flex-col gap-1.5">
